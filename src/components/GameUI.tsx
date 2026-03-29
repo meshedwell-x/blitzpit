@@ -659,58 +659,61 @@ export default function GameUI() {
 
       {/* LOBBY */}
       {gameState.phase === 'lobby' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-0 tracking-tighter drop-shadow-lg">
-            BLITZ<span className="text-red-500">PIT</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+          <h1 className="text-5xl md:text-7xl font-black mb-0 tracking-wider uppercase" style={{ fontFamily: "'Teko', sans-serif", color: '#e8e0d0', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+            BLITZ<span style={{ color: '#c93a3a' }}>PIT</span>
           </h1>
-          <p className="text-gray-400 text-xs md:text-sm mb-2 font-mono tracking-widest">INFINITE BATTLE ROYALE</p>
-          <div className="text-gray-500 text-xs font-mono mb-4">
+          <p className="text-xs md:text-sm mb-2 tracking-[0.3em] uppercase font-bold" style={{ fontFamily: "'Teko', sans-serif", color: '#8a7e6b' }}>INFINITE BATTLE ROYALE</p>
+          <div className="text-xs font-mono mb-4" style={{ color: '#6b6356' }}>
             40 players waiting...
           </div>
 
-          {/* Nickname input -- io game style, no login */}
+          {/* Nickname input */}
           <div className="mb-3 mt-2">
             <input
               type="text"
-              placeholder="Enter your name"
+              placeholder="ENTER CALLSIGN"
               maxLength={16}
               defaultValue={localStorage.getItem('blitzpit_name') || ''}
               onChange={(e) => localStorage.setItem('blitzpit_name', e.target.value)}
-              className="px-4 py-2 bg-black/80 border border-gray-500 rounded text-white text-center font-mono text-lg focus:border-yellow-400 focus:outline-none w-64"
+              className="px-4 py-2.5 text-center font-mono text-lg uppercase tracking-wider focus:outline-none w-64"
+              style={{ background: '#1a1f16', border: '1px solid #4a4535', color: '#e8e0d0', fontFamily: "'Rajdhani', sans-serif" }}
             />
           </div>
 
           {/* Personal best */}
           {bestLeaderboardEntry && (
             <div className="mb-3 text-center">
-              <span className="text-gray-500 text-xs font-mono">PERSONAL BEST: </span>
-              <span className="text-yellow-400 text-sm font-bold">Wave {bestLeaderboardEntry.wave} | {bestLeaderboardEntry.kills} Kills</span>
+              <span className="text-xs font-mono uppercase tracking-wider" style={{ color: '#6b6356' }}>PERSONAL BEST: </span>
+              <span className="text-sm font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>Wave {bestLeaderboardEntry.wave} | {bestLeaderboardEntry.kills} Kills</span>
             </div>
           )}
 
           <button
             onClick={() => engineRef.current?.startGame()}
-            className="px-12 py-4 bg-red-600 hover:bg-red-500 text-white font-black text-xl rounded-lg transition-all active:scale-95 shadow-lg shadow-red-600/30"
+            className="px-14 py-3 font-black text-xl uppercase tracking-widest transition-all active:scale-95"
+            style={{ background: '#d4a24e', color: '#1a1f16', fontFamily: "'Teko', sans-serif", fontSize: '1.5rem', letterSpacing: '0.15em' }}
           >
-            PLAY
+            DEPLOY
           </button>
           <button
             onClick={() => setShowShop(true)}
-            className="mt-2 px-6 py-2 bg-purple-600/80 text-white font-bold text-sm rounded active:scale-95"
+            className="mt-2 px-8 py-2 font-bold text-sm uppercase tracking-wider transition-all active:scale-95"
+            style={{ background: '#4a6741', color: '#e8e0d0', fontFamily: "'Teko', sans-serif", letterSpacing: '0.1em' }}
           >
-            SHOP
+            ARMORY
           </button>
 
           {skinSystem.current?.getActiveSkin() && (
             <div className="mt-2 text-center">
-              <span className="text-gray-400 text-xs font-mono">Skin: </span>
-              <span className="text-purple-400 text-xs font-bold">
+              <span className="text-xs font-mono uppercase" style={{ color: '#6b6356' }}>Loadout: </span>
+              <span className="text-xs font-bold" style={{ color: '#d4a24e' }}>
                 {skinSystem.current?.getActiveSkin()?.name}
               </span>
             </div>
           )}
 
-          <div className="mt-5 text-gray-500 text-[10px] font-mono space-y-0.5 text-center">
+          <div className="mt-5 text-[10px] font-mono space-y-0.5 text-center uppercase" style={{ color: '#4a4535' }}>
             <p>WASD Move | SHIFT Sprint | C Crouch/Slide | V Melee</p>
             <p>Click Shoot | RMB Aim | R Reload | F Pickup | SPACE Jump</p>
             <p>1/2 Weapons | T Grenade | E Vehicle | TAB Inventory</p>
@@ -721,13 +724,14 @@ export default function GameUI() {
       {/* PLANE */}
       {gameState.phase === 'plane' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <div className="bg-black/70 px-6 py-3 rounded">
-            <p className="text-white text-xl font-mono font-bold text-center">IN FLIGHT</p>
-            <p className="text-gray-300 text-sm font-mono text-center mt-1">Press SPACE or tap to jump</p>
+          <div className="px-8 py-3" style={{ background: '#1a1f16/90', border: '1px solid #4a4535' }}>
+            <p className="text-xl font-bold text-center uppercase tracking-widest" style={{ fontFamily: "'Teko', sans-serif", color: '#e8e0d0' }}>IN FLIGHT</p>
+            <p className="text-sm font-mono text-center mt-1 uppercase" style={{ color: '#8a7e6b' }}>Press SPACE or tap to jump</p>
           </div>
           <button
             onClick={() => engineRef.current?.drop()}
-            className="mt-3 px-8 py-3 bg-red-500 active:bg-red-400 text-white font-bold text-lg rounded pointer-events-auto"
+            className="mt-3 px-10 py-3 font-bold text-lg uppercase tracking-wider active:scale-95 pointer-events-auto transition-all"
+            style={{ background: '#c93a3a', color: '#e8e0d0', fontFamily: "'Teko', sans-serif", letterSpacing: '0.15em' }}
           >
             JUMP!
           </button>
