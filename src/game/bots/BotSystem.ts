@@ -57,7 +57,7 @@ export class BotSystem {
 
   onBotHit: ((position: THREE.Vector3, isHeadshot: boolean, damage: number) => void) | null = null;
   onBotDeath: ((position: THREE.Vector3) => void) | null = null;
-  onPlayerHit: (() => void) | null = null;
+  onPlayerHit: ((fromPosition: THREE.Vector3) => void) | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -497,7 +497,7 @@ export class BotSystem {
         const distToPlayer = bullet.position.distanceTo(this.player.state.position);
         if (distToPlayer < 1.0) {
           this.player.takeDamage(bullet.damage);
-          if (this.onPlayerHit) this.onPlayerHit();
+          if (this.onPlayerHit) this.onPlayerHit(bullet.position.clone());
           if (this.player.state.isDead) {
             const killerBot = this.bots.find(b => b.id === bullet.ownerId);
             this.killFeed.push({
@@ -748,21 +748,9 @@ export class BotSystem {
     }
   }
 
-  setNightMode(isNight: boolean): void {
-    for (const bot of this.bots) {
-      if (bot.isDead) continue;
-      if (isNight) {
-        if (!bot.flashlight) {
-          const light = new THREE.PointLight(0xffddaa, 0.8, 15);
-          light.position.set(0, 1.2, -0.5);
-          bot.mesh.add(light);
-          bot.flashlight = light;
-        }
-        bot.flashlight.visible = true;
-      } else {
-        if (bot.flashlight) bot.flashlight.visible = false;
-      }
-    }
+  setNightMode(_isNight: boolean): void {
+    // PointLight per bot is too expensive (40+ lights kills GPU)
+    // Night mode is handled by DayNightSystem ambient lighting only
   }
 
   getAliveCount(): number {

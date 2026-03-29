@@ -47,6 +47,9 @@ export class WeaponSystem {
   onFire: ((weaponType: string, position: THREE.Vector3, direction: THREE.Vector3) => void) | null = null;
   onBotFire: ((position: THREE.Vector3, direction: THREE.Vector3, weaponType: string) => void) | null = null;
   onPickup: ((position: THREE.Vector3, type: string) => void) | null = null;
+  onMelee: ((position: THREE.Vector3) => void) | null = null;
+
+  private meleeCooldown = 0;
 
   private _onMouseDown: (e: MouseEvent) => void = () => {};
   private _onMouseUp: (e: MouseEvent) => void = () => {};
@@ -104,6 +107,7 @@ export class WeaponSystem {
       if (e.code === 'KeyR') this.reload();
       if (e.code === 'KeyF') this.tryPickup();
       if (e.code === 'KeyQ') this.dropWeapon();
+      if (e.code === 'KeyV') this.meleeAttack();
     };
     this._onWheel = (e: WheelEvent) => {
       if (e.deltaY > 0) this.activeSlot = (this.activeSlot + 1) % 2;
@@ -248,6 +252,14 @@ export class WeaponSystem {
     w.reloadTimer = w.def.reloadTime;
   }
 
+  private meleeAttack(): void {
+    if (this.meleeCooldown > 0) return;
+    this.meleeCooldown = 0.8;
+    const pos = this.player.state.position.clone();
+    pos.y += 1.0;
+    if (this.onMelee) this.onMelee(pos);
+  }
+
   private fire(): void {
     const w = this.weapons[this.activeSlot];
     if (!w || w.isReloading || w.currentAmmo <= 0) return;
@@ -267,7 +279,8 @@ export class WeaponSystem {
     startPos.y += 1.2;
 
     for (let i = 0; i < pellets; i++) {
-      const spread = w.def.spread;
+      const spreadMult = this.player.getSpreadMultiplier();
+      const spread = w.def.spread * spreadMult;
       const bulletDir = dir.clone();
       bulletDir.x += (Math.random() - 0.5) * spread;
       bulletDir.y += (Math.random() - 0.5) * spread;
@@ -324,6 +337,9 @@ export class WeaponSystem {
   }
 
   update(delta: number): void {
+    // Melee cooldown
+    if (this.meleeCooldown > 0) this.meleeCooldown -= delta;
+
     // Weapon timers
     const w = this.weapons[this.activeSlot];
     if (w) {

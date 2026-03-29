@@ -14,7 +14,7 @@ import { WeatherSystem } from '../world/WeatherSystem';
 import { DayNightSystem } from '../world/DayNightSystem';
 import { BiomeSystem } from '../world/BiomeSystem';
 import { AnimalSystem } from '../world/AnimalSystem';
-import { WORLD_SIZE, PLAYER_HEAL_BETWEEN_WAVES } from './constants';
+import { WORLD_SIZE, PLAYER_HEAL_BETWEEN_WAVES, WEAPONS } from './constants';
 
 export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'wave_transition' | 'dead';
 
@@ -73,6 +73,10 @@ export class GameEngine {
 
   // Flash effect
   flashTimer = 0;
+
+  // Damage direction indicator
+  lastDamageFrom: THREE.Vector3 | null = null;
+  lastDamageTime = 0;
 
   // Reusable temp vectors
   private _tmpBehind = new THREE.Vector3();
@@ -250,7 +254,10 @@ export class GameEngine {
     this.weaponSystem.onFire = (weaponType, pos, dir) => {
       this.soundManager.playGunshot(weaponType);
       this.particleSystem.emitMuzzleFlash(pos, dir);
-      this.player.applyRecoil(1.0);
+      const weaponDef = WEAPONS[weaponType];
+      if (weaponDef) {
+        this.player.applyRecoil(weaponDef.recoilVertical, weaponDef.recoilHorizontal);
+      }
     };
 
     // Bot fire callback
@@ -278,9 +285,48 @@ export class GameEngine {
     };
 
     // Player hit callback
-    this.botSystem.onPlayerHit = () => {
+    this.botSystem.onPlayerHit = (fromPos) => {
       this.soundManager.playDamageTaken();
       this.player.addShake(0.2);
+      this.lastDamageFrom = fromPos.clone();
+      this.lastDamageTime = Date.now();
+    };
+
+    // Melee attack callback
+    this.weaponSystem.onMelee = (pos) => {
+      this.soundManager.playDamageTaken(); // impact sound
+      this.player.addShake(0.15);
+      const fwd = this.player.getForwardDirection();
+      const meleeTarget = pos.clone().add(fwd.clone().multiplyScalar(2));
+      const meleeDamage = this.weaponSystem.weapons[this.weaponSystem.activeSlot] ? 35 : 20;
+      for (const bot of this.botSystem.bots) {
+        if (bot.isDead) continue;
+        if (bot.position.distanceTo(meleeTarget) < 2.5) {
+          bot.health -= meleeDamage;
+          this.particleSystem.emitHitSpark(bot.position.clone());
+          if (bot.health <= 0 && !bot.isDead) {
+            bot.isDead = true;
+            bot.health = 0;
+            bot.mesh.rotation.x = Math.PI / 2;
+            this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
+            this.player.state.kills++;
+            this.scoreboardSystem.recordKill(false);
+            this.particleSystem.emitDeath(bot.position.clone());
+            this.soundManager.playKillConfirm();
+            this.botSystem.killFeed.push({
+              killer: 'You', victim: bot.name, weapon: 'Melee', time: Date.now()
+            });
+          }
+          break;
+        }
+      }
+    };
+
+    // Footstep callback
+    this.player.onFootstep = () => {
+      const biome = this.biomeSystem.getBiome(this.player.state.position.x, this.player.state.position.z);
+      const terrain = biome === 'tundra' ? 'snow' : biome === 'desert' ? 'sand' : biome === 'urban' ? 'concrete' : 'grass';
+      this.soundManager.playFootstep(terrain);
     };
 
     // Zone shrink start callback
@@ -616,34 +662,7 @@ export class GameEngine {
               }
             }
 
-            // Building collision -- push vehicle out completely
-            const buildings = this.world.getBuildings();
-            for (const b of buildings) {
-              const baseH = this.world.getHeightAt(b.x, b.z);
-              if (
-                v.position.x > b.x - 1.5 && v.position.x < b.x + b.width + 1.5 &&
-                v.position.z > b.z - 1.5 && v.position.z < b.z + b.depth + 1.5 &&
-                v.position.y < baseH + b.height + 2
-              ) {
-                const speedBefore = Math.abs(v.speed);
-                v.speed = 0;
-                if (speedBefore > 2) {
-                  v.health -= speedBefore * 2 + 5;
-                  this.soundManager.playExplosion();
-                  this.player.addShake(0.2);
-                }
-                // Push out strongly
-                const cx = b.x + b.width / 2;
-                const cz = b.z + b.depth / 2;
-                const pushX = v.position.x - cx;
-                const pushZ = v.position.z - cz;
-                const pushLen = Math.sqrt(pushX * pushX + pushZ * pushZ) || 1;
-                v.position.x += (pushX / pushLen) * 4;
-                v.position.z += (pushZ / pushLen) * 4;
-                v.mesh.position.copy(v.position);
-                break;
-              }
-            }
+            // Building collision is now handled in VehicleSystem.update() BEFORE movement
 
             this._tmpBehind.set(
               Math.sin(v.rotation) * 10,

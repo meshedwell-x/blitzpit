@@ -41,6 +41,7 @@ export default function GameUI() {
     nearbyVehicle: false,
     flashAlpha: 0,
     gameState: { phase: 'lobby', playersAlive: 40, kills: 0, gameTime: 0, currentWave: 1, totalKills: 0, killStreak: 0, bestKillStreak: 0 } as GameState,
+    damageDirection: null as number | null,
   });
 
   // Single state tick for low-frequency UI updates
@@ -171,6 +172,16 @@ export default function GameUI() {
           }
         }
 
+        // Damage direction indicator
+        if (engine.lastDamageFrom && Date.now() - engine.lastDamageTime < 1500) {
+          const dx = engine.lastDamageFrom.x - engine.player.state.position.x;
+          const dz = engine.lastDamageFrom.z - engine.player.state.position.z;
+          const angle = Math.atan2(dx, dz) - engine.player.getYaw();
+          d.damageDirection = angle;
+        } else {
+          d.damageDirection = null;
+        }
+
         // Nearby items/vehicles check
         const pp = engine.player.state.position;
         let item: string | null = null;
@@ -215,6 +226,7 @@ export default function GameUI() {
   // Snapshot from ref for rendering (updated at 10fps)
   const d = gameDataRef.current;
   const { health, armor, weapon, weapons, activeSlot, zoneInfo, killFeed, grenadeType, grenadeCount, inVehicle, nearbyItem, nearbyVehicle, flashAlpha } = d;
+  // damageDirection accessed via d.damageDirection below
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
 
@@ -645,6 +657,20 @@ export default function GameUI() {
           >
             PLAY AGAIN
           </button>
+        </div>
+      )}
+
+      {/* DAMAGE DIRECTION INDICATOR */}
+      {d.damageDirection !== null && gameState.phase === 'playing' && (
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute w-16 h-16 rounded-full"
+            style={{
+              left: `${50 + Math.sin(d.damageDirection) * 40}%`,
+              top: `${50 - Math.cos(d.damageDirection) * 40}%`,
+              transform: 'translate(-50%, -50%)',
+              background: 'radial-gradient(circle, rgba(255,0,0,0.6) 0%, transparent 70%)',
+            }}
+          />
         </div>
       )}
 

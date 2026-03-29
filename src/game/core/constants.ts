@@ -80,6 +80,8 @@ export interface WeaponDef {
   bulletSpeed: number;
   color: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic';
+  recoilVertical: number;
+  recoilHorizontal: number;
 }
 
 export const WEAPONS: Record<string, WeaponDef> = {
@@ -95,6 +97,8 @@ export const WEAPONS: Record<string, WeaponDef> = {
     bulletSpeed: 200,
     color: '#888888',
     rarity: 'common',
+    recoilVertical: 0.015,
+    recoilHorizontal: 0.005,
   },
   shotgun: {
     name: 'Shotgun',
@@ -108,6 +112,8 @@ export const WEAPONS: Record<string, WeaponDef> = {
     bulletSpeed: 150,
     color: '#b87333',
     rarity: 'uncommon',
+    recoilVertical: 0.04,
+    recoilHorizontal: 0.01,
   },
   smg: {
     name: 'SMG',
@@ -121,6 +127,8 @@ export const WEAPONS: Record<string, WeaponDef> = {
     bulletSpeed: 180,
     color: '#4a4a4a',
     rarity: 'uncommon',
+    recoilVertical: 0.01,
+    recoilHorizontal: 0.008,
   },
   assault: {
     name: 'Assault Rifle',
@@ -134,6 +142,8 @@ export const WEAPONS: Record<string, WeaponDef> = {
     bulletSpeed: 250,
     color: '#2d2d2d',
     rarity: 'rare',
+    recoilVertical: 0.018,
+    recoilHorizontal: 0.006,
   },
   sniper: {
     name: 'Sniper Rifle',
@@ -147,6 +157,8 @@ export const WEAPONS: Record<string, WeaponDef> = {
     bulletSpeed: 400,
     color: '#1a1a1a',
     rarity: 'epic',
+    recoilVertical: 0.06,
+    recoilHorizontal: 0.002,
   },
 };
 

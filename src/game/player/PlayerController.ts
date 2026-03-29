@@ -34,11 +34,30 @@ export class PlayerController {
   private mobileInput = { x: 0, z: 0 };
   biomeSpeedMultiplier = 1.0;
 
+  // ADS
+  isADS = false;
+  private adsFOV = 70;
+  private targetFOV = 70;
+
+  // Sliding
+  private slideTimer = 0;
+  private slideCooldown = 0;
+  private slideDir = new THREE.Vector3();
+  isSliding = false;
+
+  // Footstep
+  private stepDistance = 0;
+  private stepThreshold = 1.5;
+  onFootstep: (() => void) | null = null;
+
   private _onKeyDown: (e: KeyboardEvent) => void = () => {};
   private _onKeyUp: (e: KeyboardEvent) => void = () => {};
   private _onMouseMove: (e: MouseEvent) => void = () => {};
+  private _onMouseDown: (e: MouseEvent) => void = () => {};
+  private _onMouseUp: (e: MouseEvent) => void = () => {};
   private _onPointerLockChange: () => void = () => {};
   private _onClick: () => void = () => {};
+  private _onContextMenu: (e: MouseEvent) => void = () => {};
   private _container: HTMLElement | null = null;
 
   constructor(camera: THREE.PerspectiveCamera, world: WorldGenerator, scene: THREE.Scene) {
@@ -180,7 +199,18 @@ export class PlayerController {
     this._onKeyDown = (e: KeyboardEvent) => {
       this.keys.add(e.code);
       if (e.code === 'ShiftLeft') this.state.isSprinting = true;
-      if (e.code === 'KeyC') this.state.isCrouching = !this.state.isCrouching;
+      if (e.code === 'KeyC') {
+        if (this.state.isSprinting && this.slideTimer <= 0 && this.slideCooldown <= 0) {
+          // Start sliding
+          this.isSliding = true;
+          this.slideTimer = 0.8;
+          this.slideCooldown = 1.5;
+          this.slideDir.copy(this.getForwardDirection());
+          this.mesh.scale.y = 0.5;
+        } else {
+          this.state.isCrouching = !this.state.isCrouching;
+        }
+      }
     };
     this._onKeyUp = (e: KeyboardEvent) => {
       this.keys.delete(e.code);
@@ -193,14 +223,31 @@ export class PlayerController {
         this.pitch = Math.max(-1.2, Math.min(0.6, this.pitch));
       }
     };
+    this._onMouseDown = (e: MouseEvent) => {
+      if (e.button === 2) {
+        this.isADS = true;
+        e.preventDefault();
+      }
+    };
+    this._onMouseUp = (e: MouseEvent) => {
+      if (e.button === 2) {
+        this.isADS = false;
+      }
+    };
     this._onPointerLockChange = () => {
       this.isLocked = document.pointerLockElement === container;
+    };
+    this._onContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
     };
 
     document.addEventListener('keydown', this._onKeyDown);
     document.addEventListener('keyup', this._onKeyUp);
     document.addEventListener('mousemove', this._onMouseMove);
+    document.addEventListener('mousedown', this._onMouseDown);
+    document.addEventListener('mouseup', this._onMouseUp);
     document.addEventListener('pointerlockchange', this._onPointerLockChange);
+    container.addEventListener('contextmenu', this._onContextMenu);
 
     this._onClick = () => {
       if (!this.isLocked) {
@@ -214,9 +261,12 @@ export class PlayerController {
     document.removeEventListener('keydown', this._onKeyDown);
     document.removeEventListener('keyup', this._onKeyUp);
     document.removeEventListener('mousemove', this._onMouseMove);
+    document.removeEventListener('mousedown', this._onMouseDown);
+    document.removeEventListener('mouseup', this._onMouseUp);
     document.removeEventListener('pointerlockchange', this._onPointerLockChange);
     if (this._container) {
       this._container.removeEventListener('click', this._onClick);
+      this._container.removeEventListener('contextmenu', this._onContextMenu);
     }
   }
 
@@ -228,37 +278,67 @@ export class PlayerController {
       this.state.health = Math.min(100, this.state.health + 0.5 * delta);
     }
 
-    // Movement direction based on yaw
-    const moveDir = new THREE.Vector3();
-    const forward = new THREE.Vector3(
-      -Math.sin(this.yaw), 0, -Math.cos(this.yaw)
-    ).normalize();
-    const right = new THREE.Vector3(
-      Math.cos(this.yaw), 0, -Math.sin(this.yaw)
-    ).normalize();
+    // Slide cooldown tick
+    if (this.slideCooldown > 0) this.slideCooldown -= delta;
 
-    if (this.keys.has('KeyW') || this.mobileInput.z < -0.1) moveDir.add(forward);
-    if (this.keys.has('KeyS') || this.mobileInput.z > 0.1) moveDir.sub(forward);
-    if (this.keys.has('KeyA') || this.mobileInput.x < -0.1) moveDir.sub(right);
-    if (this.keys.has('KeyD') || this.mobileInput.x > 0.1) moveDir.add(right);
+    // Sliding logic (takes priority over normal movement)
+    if (this.slideTimer > 0) {
+      this.slideTimer -= delta;
+      const slideSpeed = 16 * (this.slideTimer / 0.8); // decelerate
+      this.state.velocity.x = this.slideDir.x * slideSpeed;
+      this.state.velocity.z = this.slideDir.z * slideSpeed;
+      if (this.slideTimer <= 0) {
+        this.isSliding = false;
+        this.mesh.scale.y = this.state.isCrouching ? 0.7 : 1.0;
+      }
+      // Gravity still applies during slide
+      this.state.velocity.y += GRAVITY * delta;
+    } else {
+      // Normal movement
+      const moveDir = new THREE.Vector3();
+      const forward = new THREE.Vector3(
+        -Math.sin(this.yaw), 0, -Math.cos(this.yaw)
+      ).normalize();
+      const right = new THREE.Vector3(
+        Math.cos(this.yaw), 0, -Math.sin(this.yaw)
+      ).normalize();
 
-    const isMoving = moveDir.length() > 0;
-    if (isMoving) moveDir.normalize();
+      if (this.keys.has('KeyW') || this.mobileInput.z < -0.1) moveDir.add(forward);
+      if (this.keys.has('KeyS') || this.mobileInput.z > 0.1) moveDir.sub(forward);
+      if (this.keys.has('KeyA') || this.mobileInput.x < -0.1) moveDir.sub(right);
+      if (this.keys.has('KeyD') || this.mobileInput.x > 0.1) moveDir.add(right);
 
-    let speed = PLAYER_SPEED * this.biomeSpeedMultiplier;
-    if (this.state.isSprinting) speed *= SPRINT_MULTIPLIER;
-    if (this.state.isCrouching) speed *= CROUCH_MULTIPLIER;
+      const isMoving = moveDir.length() > 0;
+      if (isMoving) moveDir.normalize();
 
-    this.state.velocity.x = moveDir.x * speed;
-    this.state.velocity.z = moveDir.z * speed;
+      let speed = PLAYER_SPEED * this.biomeSpeedMultiplier;
+      if (this.state.isSprinting) speed *= SPRINT_MULTIPLIER;
+      if (this.state.isCrouching) speed *= CROUCH_MULTIPLIER;
+      if (this.isADS) speed *= 0.6;
 
-    // Gravity
-    this.state.velocity.y += GRAVITY * delta;
+      this.state.velocity.x = moveDir.x * speed;
+      this.state.velocity.z = moveDir.z * speed;
 
-    // Jump
-    if (this.keys.has('Space') && this.state.isGrounded) {
-      this.state.velocity.y = JUMP_FORCE;
-      this.state.isGrounded = false;
+      // Gravity
+      this.state.velocity.y += GRAVITY * delta;
+
+      // Jump
+      if (this.keys.has('Space') && this.state.isGrounded) {
+        this.state.velocity.y = JUMP_FORCE;
+        this.state.isGrounded = false;
+      }
+
+      // Footstep sound
+      if (isMoving && this.state.isGrounded) {
+        const threshold = this.state.isSprinting ? 1.0 : (this.state.isCrouching ? 2.5 : this.stepThreshold);
+        this.stepDistance += speed * delta;
+        if (this.stepDistance >= threshold) {
+          this.stepDistance = 0;
+          if (this.onFootstep) this.onFootstep();
+        }
+      } else {
+        this.stepDistance = 0;
+      }
     }
 
     // Apply velocity
@@ -292,7 +372,9 @@ export class PlayerController {
       this.state.position.z
     );
     this.mesh.rotation.y = this.yaw;
-    this.mesh.scale.y = this.state.isCrouching ? 0.7 : 1.0;
+    if (!this.isSliding) {
+      this.mesh.scale.y = this.state.isCrouching ? 0.7 : 1.0;
+    }
 
     // Walk animation -- Minecraft-style limb swing
     const leftArm = this.mesh.getObjectByName('leftArm');
@@ -300,10 +382,11 @@ export class PlayerController {
     const leftLeg = this.mesh.getObjectByName('leftLeg');
     const rightLeg = this.mesh.getObjectByName('rightLeg');
 
-    if (isMoving && this.state.isGrounded) {
+    const isMovingAnim = this.state.velocity.x !== 0 || this.state.velocity.z !== 0;
+    if (isMovingAnim && this.state.isGrounded && !this.isSliding) {
       const animSpeed = this.state.isSprinting ? 14 : 9;
       this.animTime += delta * animSpeed;
-      const swing = Math.sin(this.animTime) * 0.8; // wider swing
+      const swing = Math.sin(this.animTime) * 0.8;
       const armSwing = Math.sin(this.animTime) * 0.6;
 
       if (leftArm) leftArm.rotation.x = armSwing;
@@ -331,8 +414,20 @@ export class PlayerController {
   }
 
   private updateCamera(_delta: number): void {
-    const camDist = CAMERA_DISTANCE;
-    const camHeight = CAMERA_HEIGHT;
+    // ADS / sprint FOV transitions
+    if (this.isADS) {
+      this.targetFOV = 45;
+    } else if (this.state.isSprinting) {
+      this.targetFOV = 78;
+    } else {
+      this.targetFOV = 70;
+    }
+    this.adsFOV += (this.targetFOV - this.adsFOV) * 0.15;
+    this.camera.fov = this.adsFOV;
+    this.camera.updateProjectionMatrix();
+
+    const camDist = this.isADS ? 2.5 : CAMERA_DISTANCE;
+    const camHeight = this.isADS ? 2.0 : CAMERA_HEIGHT;
 
     // Camera orbits behind player
     const camX = this.state.position.x + Math.sin(this.yaw) * camDist * Math.cos(this.pitch);
@@ -418,9 +513,22 @@ export class PlayerController {
 
   setYaw(value: number): void { this.yaw = value; }
 
-  applyRecoil(amount: number): void {
-    this.pitch += amount * 0.015;
+  applyRecoil(vertical: number, horizontal: number): void {
+    this.pitch += vertical;
+    this.yaw += (Math.random() - 0.5) * horizontal * 2;
     this.pitch = Math.max(-1.2, Math.min(0.6, this.pitch));
+  }
+
+  getSpreadMultiplier(): number {
+    if (this.state.isDead) return 1.0;
+    let mult = 1.0;
+    if (this.isADS) mult *= 0.5;
+    if (this.state.isCrouching) mult *= 0.7;
+    const isMoving = this.keys.has('KeyW') || this.keys.has('KeyS') || this.keys.has('KeyA') || this.keys.has('KeyD');
+    if (isMoving && this.state.isSprinting) mult *= 2.5;
+    else if (isMoving) mult *= 1.3;
+    if (!this.state.isGrounded) mult *= 3.0;
+    return mult;
   }
 
   private shakeAmount = 0;

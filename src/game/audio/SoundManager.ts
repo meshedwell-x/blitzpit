@@ -168,6 +168,21 @@ export class SoundManager {
     this.playTone(1400, 0.12, 'triangle', 0.3);
   }
 
+  playFootstep(terrain: string): void {
+    const ctx = this.getCtx();
+    if (!ctx) return;
+    const defs: Record<string, { freq: number; dur: number; gain: number }> = {
+      grass:    { freq: 300,  dur: 0.06, gain: 0.06 },
+      sand:     { freq: 200,  dur: 0.08, gain: 0.05 },
+      concrete: { freq: 1200, dur: 0.03, gain: 0.08 },
+      snow:     { freq: 2000, dur: 0.04, gain: 0.04 },
+      water:    { freq: 500,  dur: 0.1,  gain: 0.07 },
+      default:  { freq: 400,  dur: 0.06, gain: 0.06 },
+    };
+    const d = defs[terrain] || defs.default;
+    this.playNoise(d.dur, d.gain, d.freq);
+  }
+
   playKillStreak(level: number): void {
     const baseFreq = 400 + level * 80;
     const notes = [baseFreq, baseFreq * 1.25, baseFreq * 1.5];
