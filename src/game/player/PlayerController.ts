@@ -353,8 +353,45 @@ export class PlayerController {
     newPos.y += this.state.velocity.y * delta;
     newPos.z += this.state.velocity.z * delta;
 
+    // Building collision -- prevent walking through walls
+    const buildings = this.world.getBuildings();
+    for (const b of buildings) {
+      const baseH = this.world.getHeightAt(b.x, b.z);
+      if (
+        newPos.x > b.x && newPos.x < b.x + b.width &&
+        newPos.z > b.z && newPos.z < b.z + b.depth &&
+        newPos.y < baseH + b.height + 1
+      ) {
+        // Check if entering through door (front face z === b.z, centered x, height 2 blocks)
+        const doorX = b.x + Math.floor(b.width / 2);
+        const isDoor =
+          Math.abs(newPos.x - doorX) < 1.5 &&
+          Math.abs(newPos.z - b.z) < 1.5 &&
+          newPos.y < baseH + 3;
+
+        if (!isDoor) {
+          const prevInX =
+            this.state.position.x > b.x && this.state.position.x < b.x + b.width;
+          const prevInZ =
+            this.state.position.z > b.z && this.state.position.z < b.z + b.depth;
+
+          if (!prevInX) {
+            newPos.x = this.state.position.x;
+          }
+          if (!prevInZ) {
+            newPos.z = this.state.position.z;
+          }
+          if (prevInX && prevInZ) {
+            // Already inside (e.g. spawned inside) -- push back
+            newPos.x = this.state.position.x;
+            newPos.z = this.state.position.z;
+          }
+        }
+      }
+    }
+
     // Ground collision
-    const groundHeight = this.world.getHeightAt(newPos.x, newPos.z);
+    const groundHeight = this.world.getEffectiveHeightAt(newPos.x, newPos.z);
 
     // Block top surface is at groundHeight + 0.5 (blocks are 1 unit tall, centered)
     const surfaceY = groundHeight + 0.6;

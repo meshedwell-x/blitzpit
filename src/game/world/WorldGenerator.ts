@@ -710,6 +710,20 @@ export class WorldGenerator {
     }
   }
 
+  getEffectiveHeightAt(x: number, z: number): number {
+    const h = this.getHeightAt(x, z);
+    // Early exit for positions far from city clusters (buildings concentrated within 0.35 * WORLD_SIZE)
+    if (Math.abs(x) > WORLD_SIZE * 0.4 && Math.abs(z) > WORLD_SIZE * 0.4) return h;
+
+    for (const b of this.buildings) {
+      if (x >= b.x && x <= b.x + b.width && z >= b.z && z <= b.z + b.depth) {
+        const baseH = this.getHeightAt(b.x, b.z);
+        return Math.max(h, baseH + b.height);
+      }
+    }
+    return h;
+  }
+
   getBuildings(): Building[] {
     return this.buildings;
   }

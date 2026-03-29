@@ -189,9 +189,9 @@ export class BotSystem {
           break;
       }
 
-      // Ground collision -- snap to terrain height (bots always walk on ground)
+      // Ground collision -- snap to terrain/building height (bots always walk on ground)
       if (bot.state !== 'landing') {
-        const groundH = this.world.getHeightAt(bot.position.x, bot.position.z);
+        const groundH = this.world.getEffectiveHeightAt(bot.position.x, bot.position.z);
         const surfaceY = groundH + 0.6;
         bot.position.y = surfaceY; // Always snap to ground -- no floating
       }
@@ -235,7 +235,7 @@ export class BotSystem {
   }
 
   private updateLanding(bot: Bot, delta: number): void {
-    const groundH = this.world.getHeightAt(bot.position.x, bot.position.z);
+    const groundH = this.world.getEffectiveHeightAt(bot.position.x, bot.position.z);
     const surfaceY = groundH + 0.6;
     bot.position.y -= 40 * delta;
     if (bot.position.y <= surfaceY) {
