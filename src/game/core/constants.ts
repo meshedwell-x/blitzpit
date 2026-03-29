@@ -1,4 +1,4 @@
-export const WORLD_SIZE = 800;
+export const WORLD_SIZE = 3200;
 export const CHUNK_SIZE = 16;
 export const BLOCK_SIZE = 1;
 export const MAX_HEIGHT = 64;
@@ -202,16 +202,16 @@ export const REINFORCEMENT_MAX_EXTRA = 6;
 export const REINFORCEMENT_WEAPON_CHANCE = 0.6;
 
 // Bot spawning
-export const BOT_SPAWN_RADIUS_MIN = 80;
-export const BOT_SPAWN_RADIUS_MAX = 350;
+export const BOT_SPAWN_RADIUS_MIN = 320;
+export const BOT_SPAWN_RADIUS_MAX = 1400;
 export const BOT_LANDING_HEIGHT_MIN = 15;
 export const BOT_LANDING_HEIGHT_MAX = 25;
 export const BOT_LANDING_SPEED = 40;
 
 // Plane
-export const PLANE_ALTITUDE = 250;
-export const PLANE_SPEED = 50;
-export const PLANE_AUTO_DROP_TIME = 15;
+export const PLANE_ALTITUDE = 500;
+export const PLANE_SPEED = 120;
+export const PLANE_AUTO_DROP_TIME = 30;
 export const DROP_SPEED_FREEFALL = 55;
 export const DROP_SPEED_PARACHUTE = 8;
 export const DROP_STEER_FREEFALL = 15;

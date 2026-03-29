@@ -606,8 +606,8 @@ export default function GameUI() {
         </div>
       )}
 
-      {/* MINIMAP */}
-      {gameState.phase === 'playing' && <Minimap engine={engineRef.current} />}
+      {/* MINIMAP -- show during plane, dropping, and playing phases */}
+      {(gameState.phase === 'playing' || gameState.phase === 'plane' || gameState.phase === 'dropping') && <Minimap engine={engineRef.current} />}
 
       {/* MOBILE CONTROLS */}
       {isMobile && gameState.phase === 'playing' && <MobileControls engine={engineRef.current} nearbyItem={nearbyItem} />}
@@ -816,78 +816,108 @@ export default function GameUI() {
 
       {/* GAME OVER */}
       {gameState.phase === 'dead' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
-          <h2 className="text-5xl font-black text-red-500 mb-1">GAME OVER</h2>
-          <p className="text-gray-300 text-lg font-mono mb-4">Wave {gameState.currentWave}</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-30"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%)', backdropFilter: 'blur(8px)' }}>
 
-          {/* Final stats card */}
-          <div className="bg-gray-900/90 border border-gray-700 rounded-xl p-6 w-96 max-w-[90vw] mb-4 backdrop-blur">
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div>
-                <div className="text-3xl font-bold text-yellow-400">{stats?.totalKills ?? gameState.kills}</div>
-                <div className="text-gray-500 text-xs font-mono">TOTAL KILLS</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-green-400">{gameState.currentWave}</div>
-                <div className="text-gray-500 text-xs font-mono">WAVES SURVIVED</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-400">{fmt(stats?.survivalTime ?? gameState.gameTime)}</div>
-                <div className="text-gray-500 text-xs font-mono">SURVIVAL TIME</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-orange-400">{stats?.bestKillStreak ?? gameState.bestKillStreak}</div>
-                <div className="text-gray-500 text-xs font-mono">BEST STREAK</div>
-              </div>
-            </div>
+          {/* GAME OVER Title */}
+          <h2 className="text-6xl sm:text-7xl font-black mb-0 tracking-wider"
+            style={{
+              background: 'linear-gradient(180deg, #ff4444 0%, #ff8800 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '0 0 40px rgba(255,68,68,0.5), 0 0 80px rgba(255,136,0,0.3)',
+              filter: 'drop-shadow(0 0 20px rgba(255,68,68,0.4))',
+            }}>
+            GAME OVER
+          </h2>
+          <p className="text-gray-400 text-sm font-mono mb-5 tracking-[0.3em]">WAVE {gameState.currentWave}</p>
 
-            {/* Rank */}
-            <div className="mt-4 text-center border-t border-gray-700 pt-3">
-              <div className="text-gray-400 text-xs">RANK</div>
-              <div className="text-2xl font-black text-purple-400">{rank}</div>
+          {/* Final stats card -- premium glassmorphism */}
+          <div className="relative w-[420px] max-w-[92vw] mb-4 rounded-2xl p-[1px] overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.03), rgba(0,240,255,0.1))' }}>
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(10,14,26,0.95)', backdropFilter: 'blur(20px)' }}>
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="rounded-xl p-3" style={{ background: 'rgba(255,68,68,0.08)', border: '1px solid rgba(255,68,68,0.15)' }}>
+                  <div className="text-3xl font-black" style={{ color: '#ff4444', textShadow: '0 0 12px rgba(255,68,68,0.4)' }}>{stats?.totalKills ?? gameState.kills}</div>
+                  <div className="text-gray-500 text-[10px] font-mono tracking-wider mt-1">TOTAL KILLS</div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.15)' }}>
+                  <div className="text-3xl font-black" style={{ color: '#4ade80', textShadow: '0 0 12px rgba(74,222,128,0.4)' }}>{gameState.currentWave}</div>
+                  <div className="text-gray-500 text-[10px] font-mono tracking-wider mt-1">WAVES SURVIVED</div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: 'rgba(0,240,255,0.08)', border: '1px solid rgba(0,240,255,0.15)' }}>
+                  <div className="text-2xl font-black" style={{ color: '#00f0ff', textShadow: '0 0 12px rgba(0,240,255,0.4)' }}>{fmt(stats?.survivalTime ?? gameState.gameTime)}</div>
+                  <div className="text-gray-500 text-[10px] font-mono tracking-wider mt-1">SURVIVAL TIME</div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.15)' }}>
+                  <div className="text-2xl font-black" style={{ color: '#ffd700', textShadow: '0 0 12px rgba(255,215,0,0.4)' }}>{stats?.bestKillStreak ?? gameState.bestKillStreak}</div>
+                  <div className="text-gray-500 text-[10px] font-mono tracking-wider mt-1">BEST STREAK</div>
+                </div>
+              </div>
+              {/* Rank */}
+              <div className="mt-4 text-center pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="text-gray-500 text-[10px] font-mono tracking-wider">RANK</div>
+                <div className="text-2xl font-black mt-1" style={{ color: '#00f0ff', textShadow: '0 0 15px rgba(0,240,255,0.5)' }}>{rank}</div>
+              </div>
             </div>
           </div>
 
-          {/* Leaderboard top 5 */}
-          <div className="bg-gray-900/80 border border-gray-700 rounded-lg p-4 w-80 max-w-[90vw] mb-4">
-            <h3 className="text-white font-bold text-sm mb-2 text-center">ALL-TIME LEADERBOARD</h3>
-            {leaderboard.slice(0, 5).map((entry, i) => (
-              <div key={i} className="flex justify-between text-xs font-mono py-0.5 border-b border-gray-800">
-                <span className="text-gray-400">#{i + 1}</span>
-                <span className="text-white">{entry.name}</span>
-                <span className="text-yellow-400">W{entry.wave}</span>
-                <span className="text-gray-300">{entry.kills}K</span>
-              </div>
-            ))}
-            {leaderboard.length === 0 && (
-              <p className="text-gray-600 text-xs text-center font-mono">No records yet</p>
-            )}
+          {/* Leaderboard top 5 -- premium card */}
+          <div className="relative w-[360px] max-w-[90vw] mb-4 rounded-xl p-[1px] overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02))' }}>
+            <div className="rounded-xl p-4" style={{ background: 'rgba(10,14,26,0.95)', backdropFilter: 'blur(20px)' }}>
+              <h3 className="text-white font-black text-xs mb-3 text-center tracking-[0.25em]">ALL-TIME LEADERBOARD</h3>
+              {leaderboard.slice(0, 5).map((entry, i) => {
+                const rankColors = ['#ffd700', '#c0c0c0', '#cd7f32', '#888', '#666'];
+                const rankBg = i < 3 ? `${rankColors[i]}12` : 'transparent';
+                return (
+                  <div key={i} className="flex items-center justify-between text-xs font-mono py-1.5 px-2 rounded-lg mb-0.5"
+                    style={{ background: rankBg, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span className="font-black text-sm w-6 text-center" style={{ color: rankColors[i] }}>
+                      {i === 0 ? '\u{1F451}' : i === 1 ? '\u{1F948}' : i === 2 ? '\u{1F949}' : `#${i + 1}`}
+                    </span>
+                    <span className="text-white flex-1 ml-2 truncate">{entry.name}</span>
+                    <span className="font-bold ml-2" style={{ color: '#4ade80' }}>W{entry.wave}</span>
+                    <span className="font-bold ml-2" style={{ color: '#ff4444' }}>{entry.kills}K</span>
+                  </div>
+                );
+              })}
+              {leaderboard.length === 0 && (
+                <p className="text-gray-600 text-xs text-center font-mono py-2">No records yet</p>
+              )}
+            </div>
           </div>
 
-          {/* Welcome Pack Banner */}
+          {/* Welcome Pack Banner -- golden glow */}
           {skinSystem.current && !skinSystem.current.purchases.welcomePurchased && (
-            <div className="bg-yellow-900/60 border border-yellow-500 rounded-lg p-3 mb-3 text-center w-80 max-w-[90vw]">
-              <div className="text-yellow-400 font-bold text-sm">WELCOME PACK -- &#8377;9</div>
-              <div className="text-gray-300 text-xs">500 BC + VIP Badge + Random Skin</div>
-              <button onClick={() => {
-                skinSystem.current!.buyWelcomePack();
-                setShowShop(false);
-              }} className="mt-2 px-4 py-1.5 bg-yellow-500 text-black font-bold text-sm rounded active:scale-95">
-                GET FOR &#8377;9
-              </button>
+            <div className="relative w-[360px] max-w-[90vw] mb-4 rounded-xl p-[1px] overflow-hidden animate-pulse"
+              style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.5), rgba(255,170,0,0.3), rgba(255,215,0,0.5))', boxShadow: '0 0 30px rgba(255,215,0,0.15), 0 0 60px rgba(255,215,0,0.05)' }}>
+              <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(10,14,26,0.95)' }}>
+                <div className="font-black text-base tracking-wider" style={{ color: '#ffd700', textShadow: '0 0 12px rgba(255,215,0,0.4)' }}>WELCOME PACK -- &#8377;9</div>
+                <div className="text-gray-400 text-xs mt-1">500 BC + VIP Badge + Random Skin</div>
+                <button onClick={() => {
+                  skinSystem.current!.buyWelcomePack();
+                  setShowShop(false);
+                }} className="mt-3 px-6 py-2 text-black font-bold text-sm rounded-lg active:scale-95 transition-all"
+                  style={{ background: 'linear-gradient(90deg, #eab308, #f59e0b)', boxShadow: '0 0 20px rgba(234,179,8,0.3)' }}>
+                  GET FOR &#8377;9
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 w-[360px] max-w-[90vw]">
             <button
               onClick={() => window.location.reload()}
-              className="flex-1 px-6 py-3 bg-red-600 text-white font-bold text-lg rounded-lg active:scale-95"
+              className="flex-1 py-3.5 text-white font-black text-lg rounded-xl active:scale-95 transition-all tracking-wider"
+              style={{ background: 'linear-gradient(90deg, #00b4d8, #2563eb)', boxShadow: '0 0 25px rgba(0,180,216,0.3), inset 0 1px 0 rgba(255,255,255,0.1)' }}
             >
               PLAY AGAIN
             </button>
             <button
               onClick={() => setShowShop(true)}
-              className="px-6 py-3 bg-purple-600 text-white font-bold text-lg rounded-lg active:scale-95"
+              className="px-6 py-3.5 text-white font-black text-lg rounded-xl active:scale-95 transition-all tracking-wider"
+              style={{ background: 'linear-gradient(90deg, #8b5cf6, #6366f1)', boxShadow: '0 0 25px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.1)' }}
             >
               SHOP
             </button>

@@ -49,7 +49,7 @@ export class AnimalSystem {
       attempts++;
       const def = animalDefs[Math.floor(Math.random() * animalDefs.length)];
       const angle = Math.random() * Math.PI * 2;
-      const radius = 50 + Math.random() * 300;
+      const radius = 100 + Math.random() * 1200;
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       const biome = this.biomeSystem.getBiome(x, z);

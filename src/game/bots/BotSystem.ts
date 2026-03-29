@@ -792,7 +792,7 @@ export class BotSystem {
     const weapons = ['pistol', 'smg', 'assault', 'shotgun', 'sniper'];
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 50 + Math.random() * 300;
+      const radius = BOT_SPAWN_RADIUS_MIN + Math.random() * (BOT_SPAWN_RADIUS_MAX - BOT_SPAWN_RADIUS_MIN);
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       const h = this.world.getHeightAt(x, z);

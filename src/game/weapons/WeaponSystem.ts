@@ -389,6 +389,25 @@ export class WeaponSystem {
           continue;
         }
 
+        // Tree collision -- bullets stopped by tree trunks
+        let hitTree = false;
+        const TREE_HIT_RADIUS = 0.8;
+        for (const treePos of this.world.treePositions) {
+          const dx = bullet.position.x - treePos.x;
+          const dz = bullet.position.z - treePos.z;
+          const distSq = dx * dx + dz * dz;
+          // Only collide if bullet is at trunk height (ground to ~6 units above ground)
+          if (distSq < TREE_HIT_RADIUS * TREE_HIT_RADIUS && bullet.position.y < treePos.y + 6 && bullet.position.y > treePos.y - 1) {
+            hitTree = true;
+            break;
+          }
+        }
+        if (hitTree) {
+          this.scene.remove(bullet.mesh);
+          this.bullets.splice(i, 1);
+          continue;
+        }
+
         // Building collision -- bullets stopped by walls, door opening allowed
         const buildings = this.world.getNearbyBuildings(bullet.position.x, bullet.position.z);
         let hitWall = false;

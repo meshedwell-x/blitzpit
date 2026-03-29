@@ -62,8 +62,8 @@ export class VehicleSystem {
     const types: Vehicle['type'][] = ['jeep', 'buggy', 'truck'];
 
     for (let i = 0; i < count; i++) {
-      const x = (rand() - 0.5) * 300;
-      const z = (rand() - 0.5) * 300;
+      const x = (rand() - 0.5) * 1200;
+      const z = (rand() - 0.5) * 1200;
       const h = this.world.getHeightAt(x, z);
       if (h <= 5) continue; // skip water
 

@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useEffect } from 'react';
 import { GameEngine } from '../game/core/GameEngine';
+import { WORLD_SIZE } from '../game/core/constants';
 
 export function Minimap({ engine }: { engine: GameEngine | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -21,7 +22,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
       ctx.fillStyle = 'rgba(0,0,0,0.85)';
       ctx.fillRect(0, 0, size, size);
 
-      const scale = size / 800;
+      const scale = size / WORLD_SIZE;
       const ox = size / 2;
       const oz = size / 2;
 

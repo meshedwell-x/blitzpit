@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   PLAYER_SPEED, SPRINT_MULTIPLIER,
   CROUCH_MULTIPLIER, JUMP_FORCE, GRAVITY,
-  CAMERA_DISTANCE, CAMERA_HEIGHT,
+  CAMERA_DISTANCE, CAMERA_HEIGHT, WORLD_SIZE,
 } from '../core/constants';
 import { WorldGenerator } from '../world/WorldGenerator';
 
@@ -395,6 +395,23 @@ export class PlayerController {
     newPos.y += this.state.velocity.y * delta;
     newPos.z += this.state.velocity.z * delta;
 
+    // Tree collision -- prevent walking through trees
+    const TREE_RADIUS = 1.0;
+    const PLAYER_RADIUS = 0.4;
+    const treeCollisionDist = TREE_RADIUS + PLAYER_RADIUS;
+    for (const treePos of this.world.treePositions) {
+      const dx = newPos.x - treePos.x;
+      const dz = newPos.z - treePos.z;
+      const distSq = dx * dx + dz * dz;
+      if (distSq < treeCollisionDist * treeCollisionDist && distSq > 0.0001) {
+        const dist = Math.sqrt(distSq);
+        const pushX = (dx / dist) * (treeCollisionDist - dist);
+        const pushZ = (dz / dist) * (treeCollisionDist - dist);
+        newPos.x += pushX;
+        newPos.z += pushZ;
+      }
+    }
+
     // Building collision -- prevent walking through walls
     const buildings = this.world.getNearbyBuildings(newPos.x, newPos.z);
     for (const b of buildings) {
@@ -469,7 +486,7 @@ export class PlayerController {
     }
 
     // World bounds
-    const halfWorld = 400;
+    const halfWorld = WORLD_SIZE / 2;
     newPos.x = Math.max(-halfWorld, Math.min(halfWorld, newPos.x));
     newPos.z = Math.max(-halfWorld, Math.min(halfWorld, newPos.z));
 
@@ -486,37 +503,72 @@ export class PlayerController {
       this.mesh.scale.y = this.state.isCrouching ? 0.7 : 1.0;
     }
 
-    // Walk animation -- Minecraft-style limb swing
+    // Limb animation
     const leftArm = this.mesh.getObjectByName('leftArm');
     const rightArm = this.mesh.getObjectByName('rightArm');
     const leftLeg = this.mesh.getObjectByName('leftLeg');
     const rightLeg = this.mesh.getObjectByName('rightLeg');
 
-    const isMovingAnim = this.state.velocity.x !== 0 || this.state.velocity.z !== 0;
-    if (isMovingAnim && this.state.isGrounded && !this.isSliding) {
-      const animSpeed = this.state.isSprinting ? 14 : 9;
-      this.animTime += delta * animSpeed;
-      const swing = Math.sin(this.animTime) * 0.8;
-      const armSwing = Math.sin(this.animTime) * 0.6;
+    if (this.state.isSwimming) {
+      // Swimming animation -- breaststroke arms + frog kick legs
+      this.animTime += delta * 4;
+      const strokePhase = Math.sin(this.animTime);
+      const kickPhase = Math.sin(this.animTime + Math.PI * 0.3);
 
-      if (leftArm) leftArm.rotation.x = armSwing;
-      if (rightArm) rightArm.rotation.x = -armSwing;
-      if (leftLeg) leftLeg.rotation.x = -swing;
-      if (rightLeg) rightLeg.rotation.x = swing;
-      // Slight body bob
-      this.mesh.position.y += Math.abs(Math.sin(this.animTime * 2)) * 0.05;
-    } else if (!this.state.isGrounded) {
-      // Airborne -- arms up, legs dangling
-      if (leftArm) leftArm.rotation.x = -0.4;
-      if (rightArm) rightArm.rotation.x = -0.4;
-      if (leftLeg) leftLeg.rotation.x = 0.2;
-      if (rightLeg) rightLeg.rotation.x = 0.2;
+      // Arms: reach forward then sweep outward/back (breaststroke)
+      if (leftArm) {
+        leftArm.rotation.x = -1.2 + strokePhase * 0.8;
+        leftArm.rotation.z = strokePhase > 0 ? -strokePhase * 0.5 : 0;
+      }
+      if (rightArm) {
+        rightArm.rotation.x = -1.2 + strokePhase * 0.8;
+        rightArm.rotation.z = strokePhase > 0 ? strokePhase * 0.5 : 0;
+      }
+      // Legs: frog kick (spread then close)
+      if (leftLeg) {
+        leftLeg.rotation.x = -0.3 + kickPhase * 0.4;
+        leftLeg.rotation.z = kickPhase > 0 ? -kickPhase * 0.3 : 0;
+      }
+      if (rightLeg) {
+        rightLeg.rotation.x = -0.3 + kickPhase * 0.4;
+        rightLeg.rotation.z = kickPhase > 0 ? kickPhase * 0.3 : 0;
+      }
+      // Body bob in water
+      this.mesh.position.y += Math.sin(this.animTime * 1.5) * 0.08;
     } else {
-      // Idle -- smooth return to rest
-      if (leftArm) leftArm.rotation.x *= 0.85;
-      if (rightArm) rightArm.rotation.x *= 0.85;
-      if (leftLeg) leftLeg.rotation.x *= 0.85;
-      if (rightLeg) rightLeg.rotation.x *= 0.85;
+      // Reset Z rotation from swimming
+      if (leftArm) leftArm.rotation.z = 0;
+      if (rightArm) rightArm.rotation.z = 0;
+      if (leftLeg) leftLeg.rotation.z = 0;
+      if (rightLeg) rightLeg.rotation.z = 0;
+
+      // Walk animation -- Minecraft-style limb swing
+      const isMovingAnim = this.state.velocity.x !== 0 || this.state.velocity.z !== 0;
+      if (isMovingAnim && this.state.isGrounded && !this.isSliding) {
+        const animSpeed = this.state.isSprinting ? 14 : 9;
+        this.animTime += delta * animSpeed;
+        const swing = Math.sin(this.animTime) * 0.8;
+        const armSwing = Math.sin(this.animTime) * 0.6;
+
+        if (leftArm) leftArm.rotation.x = armSwing;
+        if (rightArm) rightArm.rotation.x = -armSwing;
+        if (leftLeg) leftLeg.rotation.x = -swing;
+        if (rightLeg) rightLeg.rotation.x = swing;
+        // Slight body bob
+        this.mesh.position.y += Math.abs(Math.sin(this.animTime * 2)) * 0.05;
+      } else if (!this.state.isGrounded) {
+        // Airborne -- arms up, legs dangling
+        if (leftArm) leftArm.rotation.x = -0.4;
+        if (rightArm) rightArm.rotation.x = -0.4;
+        if (leftLeg) leftLeg.rotation.x = 0.2;
+        if (rightLeg) rightLeg.rotation.x = 0.2;
+      } else {
+        // Idle -- smooth return to rest
+        if (leftArm) leftArm.rotation.x *= 0.85;
+        if (rightArm) rightArm.rotation.x *= 0.85;
+        if (leftLeg) leftLeg.rotation.x *= 0.85;
+        if (rightLeg) rightLeg.rotation.x *= 0.85;
+      }
     }
 
     // 3rd person camera

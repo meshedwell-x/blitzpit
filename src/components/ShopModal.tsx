@@ -116,13 +116,23 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
     coins: 'BLITZ COINS',
   };
 
+  // Get skin colors for character preview
+  const activeSkin = skinSystem.getActiveSkin();
+  const previewColors = {
+    head: activeSkin?.colors?.body ?? 0xffcc99,
+    body: activeSkin?.colors?.body ?? 0x2d5a1e,
+    arms: activeSkin?.colors?.arms ?? 0x2d5a1e,
+    legs: activeSkin?.colors?.legs ?? 0x3a3a2a,
+  };
+  const toHex = (n: number) => '#' + n.toString(16).padStart(6, '0');
+
   return (
     <div
-      className="absolute inset-0 bg-black/90 flex items-center justify-center z-50"
+      className="absolute inset-0 bg-black/90 flex items-start pt-4 justify-center z-50"
       onClick={onClose}
     >
       <div
-        className="bg-[#0a0e1a]/95 backdrop-blur-xl border border-cyan-500/20 rounded-2xl shadow-2xl shadow-cyan-500/10 w-full max-w-2xl max-h-[90vh] flex flex-col mx-4"
+        className="bg-[#0a0e1a]/95 backdrop-blur-xl border border-cyan-500/20 rounded-2xl shadow-2xl shadow-cyan-500/10 w-full max-w-2xl max-h-[92vh] flex flex-col mx-4"
         style={{ fontFamily: "'Rajdhani', sans-serif" }}
         onClick={e => e.stopPropagation()}
       >
@@ -146,14 +156,40 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                 )}
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M1 1l12 12M13 1L1 13" />
-              </svg>
-            </button>
+
+            {/* Character Preview */}
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-0.5 p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="text-[8px] font-mono text-gray-500 mb-1 tracking-wider">PREVIEW</div>
+                <div className="flex flex-col items-center">
+                  {/* Helmet */}
+                  <div className="rounded-sm" style={{ width: 18, height: 8, background: toHex(previewColors.body), opacity: 0.8 }} />
+                  {/* Head */}
+                  <div className="rounded-sm" style={{ width: 14, height: 14, background: toHex(previewColors.head) }} />
+                  {/* Body + Arms row */}
+                  <div className="flex gap-px items-start">
+                    <div className="rounded-sm" style={{ width: 6, height: 20, background: toHex(previewColors.arms) }} />
+                    <div className="rounded-sm" style={{ width: 16, height: 22, background: toHex(previewColors.body) }} />
+                    <div className="rounded-sm" style={{ width: 6, height: 20, background: toHex(previewColors.arms) }} />
+                  </div>
+                  {/* Legs */}
+                  <div className="flex gap-px">
+                    <div className="rounded-sm" style={{ width: 7, height: 18, background: toHex(previewColors.legs) }} />
+                    <div className="rounded-sm" style={{ width: 7, height: 18, background: toHex(previewColors.legs) }} />
+                  </div>
+                </div>
+                {activeSkin && <div className="text-[7px] font-mono mt-1 truncate max-w-[60px]" style={{ color: '#00f0ff' }}>{activeSkin.name}</div>}
+              </div>
+
+              <button
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M1 1l12 12M13 1L1 13" />
+                </svg>
+              </button>
+            </div>
           </div>
           {/* Cyan accent underline */}
           <div className="absolute bottom-0 left-5 right-5 h-px" style={{ background: 'linear-gradient(90deg, transparent, #00f0ff40, transparent)' }} />

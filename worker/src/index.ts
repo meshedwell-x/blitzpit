@@ -9,14 +9,14 @@ const corsHeaders = {
 };
 
 const PACKS: Record<string, { name: string; amountUSD: number; coins: number; bonus: number }> = {
-  pack_29:  { name: 'Small Crate - 300 CUB Coins',       amountUSD: 35,  coins: 300,  bonus: 0    },
-  pack_79:  { name: 'Supply Box - 1000 CUB Coins',       amountUSD: 95,  coins: 900,  bonus: 100  },
-  pack_149: { name: 'Airdrop - 2300 CUB Coins',          amountUSD: 179, coins: 2000, bonus: 300  },
-  pack_299: { name: 'War Chest - 5500 CUB Coins',        amountUSD: 359, coins: 4500, bonus: 1000 },
-  pack_499: { name: 'Arsenal - 10500 CUB Coins',         amountUSD: 599, coins: 8000, bonus: 2500 },
-  welcome:  { name: 'Welcome Pack - VIP + 500 Coins',    amountUSD: 11,  coins: 500,  bonus: 0    },
-  daily_boost: { name: 'Daily Boost - 200 CUB + 2x XP', amountUSD: 23,  coins: 200,  bonus: 0    },
-  lucky_box:   { name: 'Lucky Box - Random Skin',        amountUSD: 35,  coins: 0,    bonus: 0    },
+  pack_29:  { name: 'Small Crate - 300 Blitz Coins',       amountUSD: 35,  coins: 300,  bonus: 0    },
+  pack_79:  { name: 'Supply Box - 1000 Blitz Coins',      amountUSD: 95,  coins: 900,  bonus: 100  },
+  pack_149: { name: 'Airdrop - 2300 Blitz Coins',         amountUSD: 179, coins: 2000, bonus: 300  },
+  pack_299: { name: 'War Chest - 5500 Blitz Coins',       amountUSD: 359, coins: 4500, bonus: 1000 },
+  pack_499: { name: 'Arsenal - 10500 Blitz Coins',        amountUSD: 599, coins: 8000, bonus: 2500 },
+  welcome:  { name: 'Welcome Pack - VIP + 500 Coins',     amountUSD: 11,  coins: 500,  bonus: 0    },
+  daily_boost: { name: 'Daily Boost - 200 BC + 2x XP',   amountUSD: 23,  coins: 200,  bonus: 0    },
+  lucky_box:   { name: 'Lucky Box - Random Skin',         amountUSD: 35,  coins: 0,    bonus: 0    },
 };
 
 export default {

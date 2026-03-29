@@ -125,12 +125,12 @@ export class WorldGenerator {
 
   private generateBuildings(): void {
     const rand = this.seededRandom(12345);
-    const cityCount = 12;
+    const cityCount = 24;
 
     for (let c = 0; c < cityCount; c++) {
       const cx = (rand() - 0.5) * WORLD_SIZE * 0.55;
       const cz = (rand() - 0.5) * WORLD_SIZE * 0.55;
-      const buildingCount = 10 + Math.floor(rand() * 11);
+      const buildingCount = 12 + Math.floor(rand() * 14);
 
       for (let b = 0; b < buildingCount; b++) {
         const bx = cx + (rand() - 0.5) * 50;
@@ -179,7 +179,8 @@ export class WorldGenerator {
   }
 
   private addWater(): void {
-    const waterGeo = new THREE.PlaneGeometry(WORLD_SIZE * 2, WORLD_SIZE * 2);
+    // Main ocean plane extending far beyond the island
+    const waterGeo = new THREE.PlaneGeometry(WORLD_SIZE * 6, WORLD_SIZE * 6);
     const waterMat = new THREE.MeshLambertMaterial({
       color: 0x2a6bc5,
       transparent: true,
@@ -190,12 +191,38 @@ export class WorldGenerator {
     water.rotation.x = -Math.PI / 2;
     water.position.y = WATER_LEVEL + 0.2;
     this.scene.add(water);
+
+    // Shallow water ring for coastline transition (lighter color, slightly higher)
+    const shallowGeo = new THREE.RingGeometry(WORLD_SIZE * 0.38, WORLD_SIZE * 0.52, 64);
+    const shallowMat = new THREE.MeshLambertMaterial({
+      color: 0x4a9ad5,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.DoubleSide,
+    });
+    const shallow = new THREE.Mesh(shallowGeo, shallowMat);
+    shallow.rotation.x = -Math.PI / 2;
+    shallow.position.y = WATER_LEVEL + 0.35;
+    this.scene.add(shallow);
+
+    // Beach foam ring at the waterline
+    const foamGeo = new THREE.RingGeometry(WORLD_SIZE * 0.35, WORLD_SIZE * 0.40, 64);
+    const foamMat = new THREE.MeshLambertMaterial({
+      color: 0x8acfea,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide,
+    });
+    const foam = new THREE.Mesh(foamGeo, foamMat);
+    foam.rotation.x = -Math.PI / 2;
+    foam.position.y = WATER_LEVEL + 0.4;
+    this.scene.add(foam);
   }
 
   private buildTerrainMesh(): void {
-    // Sample every 4 blocks for large map performance
-    const step = 4;
-    const blockGeo = new THREE.BoxGeometry(step, 1, step);
+    // Sample every 8 blocks for large map performance
+    const step = 8;
+    const blockGeo = new THREE.BoxGeometry(step, 2, step);
 
     const grassPositions: THREE.Matrix4[] = [];
     const dirtPositions: THREE.Matrix4[] = [];
@@ -358,7 +385,7 @@ export class WorldGenerator {
     const rand = this.seededRandom(55555);
     const rockPositions: THREE.Matrix4[] = [];
     const matrix = new THREE.Matrix4();
-    const count = 150;
+    const count = 400;
 
     for (let i = 0; i < count; i++) {
       const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.75);
@@ -402,7 +429,7 @@ export class WorldGenerator {
     const leafPositions: THREE.Matrix4[] = [];
     const matrix = new THREE.Matrix4();
 
-    for (let i = 0; i < 800; i++) {
+    for (let i = 0; i < 2000; i++) {
       const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.7);
       const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.7);
       const height = this.getHeightAt(x, z);
@@ -505,7 +532,7 @@ export class WorldGenerator {
       }
     }
 
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 800; i++) {
       const x = (rand() - 0.5) * WORLD_SIZE * 0.6;
       const z = (rand() - 0.5) * WORLD_SIZE * 0.6;
       const h = this.getHeightAt(x, z);

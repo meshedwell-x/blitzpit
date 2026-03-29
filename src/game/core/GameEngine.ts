@@ -134,10 +134,10 @@ export class GameEngine {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x87ceeb);
-    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0015);
+    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0006);
 
     this.camera = new THREE.PerspectiveCamera(
-      70, container.clientWidth / container.clientHeight, 0.1, 1000
+      70, container.clientWidth / container.clientHeight, 0.1, 4000
     );
 
     this.clock = new THREE.Clock();
@@ -173,11 +173,11 @@ export class GameEngine {
     sun.shadow.mapSize.width = 1024;
     sun.shadow.mapSize.height = 1024;
     sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 400;
-    sun.shadow.camera.left = -150;
-    sun.shadow.camera.right = 150;
-    sun.shadow.camera.top = 150;
-    sun.shadow.camera.bottom = -150;
+    sun.shadow.camera.far = 1200;
+    sun.shadow.camera.left = -400;
+    sun.shadow.camera.right = 400;
+    sun.shadow.camera.top = 400;
+    sun.shadow.camera.bottom = -400;
     this.scene.add(sun);
     this.scene.add(sun.target);
     this.scene.add(new THREE.HemisphereLight(0x87ceeb, 0x556B2F, 0.4));
@@ -493,16 +493,19 @@ export class GameEngine {
       this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z) + Math.PI;
     }
 
+    // 3rd person camera BEHIND the plane
     this.camera.position.set(
-      this.planePosition.x + this.planeDirection.x * 30,
-      this.planePosition.y + 15,
-      this.planePosition.z + this.planeDirection.z * 30
+      this.planePosition.x - this.planeDirection.x * 40,
+      this.planePosition.y + 12,
+      this.planePosition.z - this.planeDirection.z * 40
     );
-    this.camera.lookAt(this.planePosition);
+    // Look ahead of the plane
+    this._tmpBehind.copy(this.planePosition).addScaledVector(this.planeDirection, 30);
+    this.camera.lookAt(this._tmpBehind);
 
     if (this.planeTimer > PLANE_AUTO_DROP_TIME ||
-        Math.abs(this.planePosition.x) > 400 ||
-        Math.abs(this.planePosition.z) > 400) {
+        Math.abs(this.planePosition.x) > WORLD_SIZE * 0.6 ||
+        Math.abs(this.planePosition.z) > WORLD_SIZE * 0.6) {
       this.drop();
     }
   }
@@ -684,7 +687,7 @@ export class GameEngine {
     switch (this.gameState.phase) {
       case 'lobby': {
         const t = this.gameState.gameTime * 0.2;
-        this.camera.position.set(Math.sin(t) * 80, 60, Math.cos(t) * 80);
+        this.camera.position.set(Math.sin(t) * 200, 120, Math.cos(t) * 200);
         this.camera.lookAt(0, 10, 0);
         break;
       }
