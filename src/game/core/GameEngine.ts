@@ -18,35 +18,22 @@ import { AnimalSystem } from '../world/AnimalSystem';
 import { SkinSystem } from '../shop/SkinSystem';
 import {
   WORLD_SIZE,
-  PLAYER_HEAL_BETWEEN_WAVES,
   WEAPONS,
   REINFORCEMENT_FIRST_DELAY,
   REINFORCEMENT_INTERVAL,
-  REINFORCEMENT_MIN_ALIVE,
-  REINFORCEMENT_MIN_COUNT,
-  REINFORCEMENT_MAX_EXTRA,
   PLANE_ALTITUDE,
-  PLANE_SPEED,
-  PLANE_AUTO_DROP_TIME,
 } from './constants';
 
-export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'wave_transition' | 'dead';
-
-export interface GameState {
-  phase: GamePhase;
-  playersAlive: number;
-  kills: number;
-  gameTime: number;
-  currentWave: number;
-  totalKills: number;
-  killStreak: number;
-  bestKillStreak: number;
-}
+// Re-export types so downstream imports don't break
+export type { GamePhase, GameState } from './GameTypes';
+import type { GameState } from './GameTypes';
+import { updatePlane, updateDropping, updatePlayingPhase } from './PhaseUpdaters';
+import { startNextWave } from './WaveTransition';
 
 export class GameEngine {
   private renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
-  private camera: THREE.PerspectiveCamera;
+  camera: THREE.PerspectiveCamera;
   private clock: THREE.Clock;
   private container: HTMLElement;
 
@@ -78,13 +65,13 @@ export class GameEngine {
     bestKillStreak: 0,
   };
 
-  private planePosition = new THREE.Vector3();
-  private planeDirection = new THREE.Vector3();
-  private planeTimer = 0;
+  planePosition = new THREE.Vector3();
+  planeDirection = new THREE.Vector3();
+  planeTimer = 0;
   dropSpeed = 55;
   parachuteOpen = false;
-  private planeMesh: THREE.Group | null = null;
-  private playerDropMesh: THREE.Group | null = null;
+  planeMesh: THREE.Group | null = null;
+  playerDropMesh: THREE.Group | null = null;
 
   // Flash effect
   flashTimer = 0;
@@ -94,19 +81,17 @@ export class GameEngine {
   lastDamageTime = 0;
 
   // Reusable temp vectors
-  private _tmpBehind = new THREE.Vector3();
-  private _tmpSide = new THREE.Vector3();
+  _tmpBehind = new THREE.Vector3();
 
   // Bot footstep timer
-  private botFootstepTimer = 0;
+  botFootstepTimer = 0;
 
   // Kill streak tracking
-  private killStreakTimer = 0;
-  private lastKillCount = 0;
+  killStreakTimer = 0;
 
   // Reinforcement plane system -- periodic bot drops
-  private reinforcementTimer = REINFORCEMENT_FIRST_DELAY;
-  private reinforcementInterval = REINFORCEMENT_INTERVAL;
+  reinforcementTimer = REINFORCEMENT_FIRST_DELAY;
+  reinforcementInterval = REINFORCEMENT_INTERVAL;
 
   isPaused = false;
 
@@ -183,26 +168,22 @@ export class GameEngine {
 
   private createPlaneMesh(): THREE.Group {
     const g = new THREE.Group();
-    // Fuselage
     g.add(Object.assign(new THREE.Mesh(
       new THREE.BoxGeometry(3, 3, 20),
       new THREE.MeshLambertMaterial({ color: 0x8a8a8a })
     ), {}));
-    // Cockpit
     const cp = new THREE.Mesh(
       new THREE.BoxGeometry(2.5, 1.5, 3),
       new THREE.MeshLambertMaterial({ color: 0x4488cc, transparent: true, opacity: 0.6 })
     );
     cp.position.set(0, 1.5, -8);
     g.add(cp);
-    // Wings
     const w = new THREE.Mesh(
       new THREE.BoxGeometry(28, 0.4, 5),
       new THREE.MeshLambertMaterial({ color: 0x7a7a7a })
     );
     w.position.set(0, 0, -1);
     g.add(w);
-    // Tail
     const t = new THREE.Mesh(
       new THREE.BoxGeometry(0.5, 6, 4),
       new THREE.MeshLambertMaterial({ color: 0x7a7a7a })
@@ -215,12 +196,10 @@ export class GameEngine {
     );
     hs.position.set(0, 0, 8);
     g.add(hs);
-    // Engines
     const eMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
     const eGeo = new THREE.BoxGeometry(1.5, 1.5, 3);
     const le = new THREE.Mesh(eGeo, eMat); le.position.set(-7, -1.2, -1); g.add(le);
     const re = new THREE.Mesh(eGeo, eMat); re.position.set(7, -1.2, -1); g.add(re);
-    // Stripe
     const s = new THREE.Mesh(
       new THREE.BoxGeometry(3.1, 0.5, 0.1),
       new THREE.MeshLambertMaterial({ color: 0xcc3333 })
@@ -249,7 +228,6 @@ export class GameEngine {
     this.planeMesh.visible = false;
     this.scene.add(this.planeMesh);
 
-    // Parachute mesh
     const pg = new THREE.Group();
     const canopy = new THREE.Mesh(
       new THREE.BoxGeometry(4, 2, 4),
@@ -261,12 +239,10 @@ export class GameEngine {
     this.playerDropMesh.visible = false;
     this.scene.add(this.playerDropMesh);
 
-    // Zone bot kill callback -> decrement alive
     this.zoneSystem.onBotKill = (_botId: string) => {
       this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
     };
 
-    // Grenade explosion callback
     this.grenadeSystem.onExplosion = (pos, _damage, radius, type) => {
       if (type === 'flash') this.flashTimer = 2.0;
       if (type === 'frag') {
@@ -276,14 +252,12 @@ export class GameEngine {
         if (vol > 0) {
           this.soundManager.playExplosion();
         }
-        // Camera shake based on proximity
         if (dist < 30) {
           this.player.addShake(0.3 * (1 - dist / 30));
         }
       }
     };
 
-    // Grenade bot kill callback -> decrement alive
     this.grenadeSystem.onBotKill = (_botId: string) => {
       this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
       this.scoreboardSystem.recordKill(false);
@@ -291,7 +265,6 @@ export class GameEngine {
       this.soundManager.playKillConfirm();
     };
 
-    // Player fire callback
     this.weaponSystem.onFire = (weaponType, pos, dir) => {
       this.soundManager.playGunshot(weaponType);
       this.particleSystem.emitMuzzleFlash(pos, dir);
@@ -301,7 +274,6 @@ export class GameEngine {
       }
     };
 
-    // Bot fire callback -- 3D positional audio
     this.weaponSystem.onBotFire = (pos, _dir, weaponType) => {
       this.soundManager.playGunshot3D(
         weaponType,
@@ -311,13 +283,11 @@ export class GameEngine {
       );
     };
 
-    // Item pickup callback
     this.weaponSystem.onPickup = (pos) => {
       this.soundManager.playPickup();
       this.particleSystem.emitPickupGlow(pos);
     };
 
-    // Bot hit callback
     this.botSystem.onBotHit = (pos, isHeadshot) => {
       this.particleSystem.emitHitSpark(pos);
       this.particleSystem.emitBlood(pos);
@@ -325,12 +295,10 @@ export class GameEngine {
       this.player.addShake(0.1);
     };
 
-    // Bot death callback
     this.botSystem.onBotDeath = (pos) => {
       this.particleSystem.emitDeath(pos);
     };
 
-    // Player hit callback
     this.botSystem.onPlayerHit = (fromPos) => {
       this.soundManager.playDamageTaken();
       this.player.addShake(0.2);
@@ -338,9 +306,8 @@ export class GameEngine {
       this.lastDamageTime = Date.now();
     };
 
-    // Melee attack callback
     this.weaponSystem.onMelee = (pos) => {
-      this.soundManager.playDamageTaken(); // impact sound
+      this.soundManager.playDamageTaken();
       this.player.addShake(0.15);
       const fwd = this.player.getForwardDirection();
       const meleeTarget = pos.clone().add(fwd.clone().multiplyScalar(2));
@@ -370,7 +337,6 @@ export class GameEngine {
       }
     };
 
-    // Footstep callback
     this.player.onFootstep = () => {
       const groundH = this.world.getHeightAt(this.player.state.position.x, this.player.state.position.z);
       if (groundH <= 4) {
@@ -382,17 +348,14 @@ export class GameEngine {
       this.soundManager.playFootstep(terrain);
     };
 
-    // Zone shrink start callback
     this.zoneSystem.onShrinkStart = () => {
       this.soundManager.playZoneWarning();
     };
 
-    // Zone outside warning callback
     this.zoneSystem.onPlayerOutsideZone = () => {
       this.soundManager.playZoneWarning();
     };
 
-    // ESC pause via pointerlock
     this._onPointerLockChange = () => {
       if (!document.pointerLockElement && this.gameState.phase === 'playing') {
         this.isPaused = true;
@@ -414,7 +377,6 @@ export class GameEngine {
     this.waveManager.currentWave = 1;
     this.notifyStateChange();
 
-    // Apply purchased skin to player mesh
     this.skinSystem.applySkinToMesh(this.player.mesh);
   }
 
@@ -439,7 +401,7 @@ export class GameEngine {
     if (this.gameState.phase !== 'plane') return;
     this.gameState.phase = 'dropping';
     this.parachuteOpen = false;
-    this.dropSpeed = 15; // Start at base spread-eagle speed, player controls acceleration
+    this.dropSpeed = 15;
     this.player.state.velocity.set(
       this.planeDirection.x * 20, -this.dropSpeed, this.planeDirection.z * 20
     );
@@ -453,7 +415,7 @@ export class GameEngine {
   openParachute(): void {
     if (this.gameState.phase !== 'dropping') return;
     this.parachuteOpen = true;
-    this.dropSpeed = 5; // Parachute: gentle descent
+    this.dropSpeed = 5;
     if (this.playerDropMesh) this.playerDropMesh.visible = true;
   }
 
@@ -478,229 +440,6 @@ export class GameEngine {
     this.grenadeSystem.throwGrenade();
   }
 
-  private updatePlane(delta: number): void {
-    this.planeTimer += delta;
-    const speed = PLANE_SPEED * delta;
-    this.planePosition.x += this.planeDirection.x * speed;
-    this.planePosition.y += this.planeDirection.y * speed;
-    this.planePosition.z += this.planeDirection.z * speed;
-    this.player.state.position.copy(this.planePosition);
-    if (this.planeMesh) {
-      this.planeMesh.position.copy(this.planePosition);
-      // Plane model faces -Z, so we rotate Y to match flight direction
-      this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z) + Math.PI;
-    }
-
-    // 3rd person camera using player yaw/pitch for free-look
-    const planeYaw = this.player.getYaw();
-    const planePitch = this.player.pitch;
-    const camDist = 40;
-    const camHeight = 12;
-    this.camera.position.set(
-      this.planePosition.x + Math.sin(planeYaw) * camDist,
-      this.planePosition.y + camHeight - Math.sin(planePitch) * camDist * 0.5,
-      this.planePosition.z + Math.cos(planeYaw) * camDist
-    );
-    this.camera.lookAt(this.planePosition);
-
-    if (this.planeTimer > PLANE_AUTO_DROP_TIME ||
-        Math.abs(this.planePosition.x) > WORLD_SIZE * 0.6 ||
-        Math.abs(this.planePosition.z) > WORLD_SIZE * 0.6) {
-      this.drop();
-    }
-  }
-
-  private updateDropping(delta: number): void {
-    const groundH = this.world.getHeightAt(this.player.state.position.x, this.player.state.position.z);
-    const altitude = this.player.state.position.y - groundH;
-
-    // Auto-deploy parachute at very low altitude if player hasn't opened it
-    if (!this.parachuteOpen && altitude < 20) {
-      this.openParachute();
-    }
-
-    const keys = this.player.keys;
-    const yaw = this.player.getYaw();
-
-    if (this.parachuteOpen) {
-      // === PARACHUTE PHASE: slow descent, good lateral control ===
-      this.dropSpeed = 5;
-      const lateralSpeed = 12;
-      let fwd = 0;
-      let strafe = 0;
-      if (keys.has('KeyW')) fwd = lateralSpeed;
-      if (keys.has('KeyS')) fwd = -lateralSpeed * 0.5;
-      if (keys.has('KeyA')) strafe -= lateralSpeed;
-      if (keys.has('KeyD')) strafe += lateralSpeed;
-
-      this.player.state.position.x += (-Math.sin(yaw) * fwd + -Math.cos(yaw) * strafe) * delta;
-      this.player.state.position.z += (-Math.cos(yaw) * fwd + Math.sin(yaw) * strafe) * delta;
-      this.player.state.position.y -= this.dropSpeed * delta;
-    } else {
-      // === FREEFALL PHASE: realistic skydiving ===
-      const baseDescend = 15; // base fall speed (spread-eagle default)
-      const diveBoost = keys.has('KeyW') ? 3.0 : 1.0; // W = head-down dive, much faster
-      const spreadSlow = keys.has('KeyS') ? 0.4 : 1.0; // S = spread-eagle, slower
-      const fallSpeed = baseDescend * diveBoost * spreadSlow;
-      this.dropSpeed = fallSpeed;
-
-      // Lateral movement: diving forward gives big forward push, strafe always available
-      const lateralSpeed = 8;
-      const fwd = keys.has('KeyW') ? lateralSpeed * 2 : 0; // dive = strong forward movement
-      const strafe = (keys.has('KeyA') ? -lateralSpeed : 0) + (keys.has('KeyD') ? lateralSpeed : 0);
-
-      const vx = -Math.sin(yaw) * fwd + -Math.cos(yaw) * strafe;
-      const vz = -Math.cos(yaw) * fwd + Math.sin(yaw) * strafe;
-
-      this.player.state.position.x += vx * delta;
-      this.player.state.position.z += vz * delta;
-      this.player.state.position.y -= fallSpeed * delta;
-
-      // Store velocity for momentum on landing
-      this.player.state.velocity.set(vx, -fallSpeed, vz);
-    }
-
-    this.player.mesh.position.copy(this.player.state.position);
-    // Dive body tilt: W = head-down (~70deg), S = spread-eagle flat, default = slight tilt
-    if (!this.parachuteOpen) {
-      const targetTilt = keys.has('KeyW') ? -1.2 : keys.has('KeyS') ? -0.1 : -0.4;
-      this.player.mesh.rotation.x += (targetTilt - this.player.mesh.rotation.x) * 0.08;
-      this.player.mesh.rotation.y = -this.player.getYaw();
-    } else {
-      // Parachute: upright
-      this.player.mesh.rotation.x += (0 - this.player.mesh.rotation.x) * 0.1;
-    }
-    if (this.playerDropMesh && this.parachuteOpen) {
-      this.playerDropMesh.position.copy(this.player.state.position);
-    }
-
-    // Camera: free-look using player yaw/pitch during both freefall and parachute
-    const dropYaw = this.player.getYaw();
-    const dropPitch = this.player.pitch;
-    if (!this.parachuteOpen) {
-      // Freefall: camera orbits around player using yaw/pitch
-      const ffDist = 20;
-      const ffHeight = 10;
-      this.camera.position.set(
-        this.player.state.position.x + Math.sin(dropYaw) * ffDist * Math.cos(dropPitch),
-        this.player.state.position.y + ffHeight - Math.sin(dropPitch) * ffDist,
-        this.player.state.position.z + Math.cos(dropYaw) * ffDist * Math.cos(dropPitch)
-      );
-      this.camera.lookAt(this.player.state.position);
-    } else {
-      // Parachute: 3rd person follow with free-look
-      this.camera.position.set(
-        this.player.state.position.x + Math.sin(dropYaw) * 12 * Math.cos(dropPitch),
-        this.player.state.position.y + 8 - Math.sin(dropPitch) * 12,
-        this.player.state.position.z + Math.cos(dropYaw) * 12 * Math.cos(dropPitch)
-      );
-      this.camera.lookAt(this.player.state.position);
-    }
-
-    if (this.player.state.position.y <= groundH + 0.6) {
-      this.player.state.position.y = groundH + 0.6;
-      // Fall damage based on landing speed -- no parachute = death
-      if (!this.parachuteOpen) {
-        // Freefall at 55 m/s = instant death
-        this.player.takeDamage(200);
-        this.soundManager.playExplosion();
-        this.player.addShake(0.5);
-      } else if (this.dropSpeed > 12) {
-        // Hard landing
-        this.player.takeDamage(20);
-        this.player.addShake(0.3);
-      }
-      this.player.state.velocity.set(0, 0, 0);
-      this.player.state.isGrounded = true;
-      this.gameState.phase = 'playing';
-      this.player.mesh.visible = true;
-      if (this.planeMesh) this.planeMesh.visible = false;
-      if (this.playerDropMesh) this.playerDropMesh.visible = false;
-      this.soundManager.playWaveStart();
-      this.notifyStateChange();
-    }
-  }
-
-  private startNextWave(): void {
-    const wave = this.waveManager.nextWave();
-    const config = this.waveManager.getWaveConfig(wave);
-
-    // Zone reset with new speed multiplier
-    this.zoneSystem.reset();
-    this.zoneSystem.speedMultiplier = config.zoneShrinkSpeedMultiplier;
-
-    // Clean up old items from previous wave
-    for (const item of this.weaponSystem.items) {
-      if (!item.collected) {
-        item.collected = true;
-        this.scene.remove(item.mesh);
-      }
-      // Dispose mesh resources
-      if (item.mesh.geometry) item.mesh.geometry.dispose();
-      if (item.mesh.material instanceof THREE.Material) item.mesh.material.dispose();
-    }
-    this.weaponSystem.items = [];
-
-    // Clear bullets and grenades
-    this.weaponSystem.clearBullets();
-    this.grenadeSystem.clearAll();
-
-    // Refuel and repair vehicles
-    for (const v of this.vehicleSystem.vehicles) {
-      v.fuel = 100;
-      v.health = v.type === 'truck' ? 200 : 150;
-    }
-
-    // Respawn bots
-    this.botSystem.respawnForWave(config);
-
-    // Boss spawn check
-    const bossTypes = this.bossSystem.shouldSpawnBoss(wave);
-    for (const type of bossTypes) {
-      const boss = this.bossSystem.createBoss(type, wave, this.scene, this.world);
-      this.botSystem.bots.push(boss);
-      this.botSystem.alive++;
-    }
-    this.bossSystem.updatePhases();
-
-    // Spawn new weapons
-    this.weaponSystem.spawnItems(this.world.itemSpawns);
-
-    // Animal respawn
-    this.animalSystem.destroy();
-    this.animalSystem.spawn();
-
-    // Heal player
-    this.player.heal(PLAYER_HEAL_BETWEEN_WAVES);
-
-    // Award Wild Points for wave clear (doubled if XP boost active)
-    const waveWpGain = this.skinSystem.hasXPBoost() ? 100 : 50;
-    this.skinSystem.purchases.blitzPoints += waveWpGain;
-    this.skinSystem.save();
-
-    // Achievement titles on wave milestones
-    if (wave >= 10 && !this.skinSystem.owns('title_legend')) {
-      this.skinSystem.purchases.ownedItems.push('title_legend');
-      this.skinSystem.save();
-    }
-    if (wave >= 20 && !this.skinSystem.owns('title_godofwar')) {
-      this.skinSystem.purchases.ownedItems.push('title_godofwar');
-      this.skinSystem.save();
-    }
-
-    // Update scoreboard wave
-    this.scoreboardSystem.updateWave(wave);
-
-    this.gameState.phase = 'playing';
-    this.gameState.currentWave = wave;
-    this.gameState.playersAlive = this.botSystem.getAliveCount();
-
-    this.particleSystem.emitWaveStart();
-    this.soundManager.playWaveStart();
-
-    this.notifyStateChange();
-  }
-
   resume(): void {
     this.isPaused = false;
   }
@@ -723,293 +462,23 @@ export class GameEngine {
         break;
       }
       case 'plane':
-        this.updatePlane(delta);
+        updatePlane(this, delta);
         break;
       case 'dropping':
-        this.updateDropping(delta);
+        updateDropping(this, delta);
         // Bots should still move during player drop (don't freeze mid-air)
         this.botSystem.update(delta);
         this.dayNightSystem.update(delta);
         break;
       case 'playing': {
-        if (this.vehicleSystem.isPlayerInVehicle()) {
-          this.vehicleSystem.update(delta);
-          const v = this.vehicleSystem.playerVehicle;
-          if (v) {
-            // Roadkill -- vehicle hits bots
-            if (Math.abs(v.speed) > 3) {
-              for (const bot of this.botSystem.bots) {
-                if (bot.isDead) continue;
-                const dx = v.position.x - bot.position.x;
-                const dz = v.position.z - bot.position.z;
-                const dist = Math.sqrt(dx * dx + dz * dz);
-                if (dist < 2.5) {
-                  const damage = Math.abs(v.speed) * 4;
-                  bot.health -= damage;
-                  v.speed *= 0.7;
-                  this.particleSystem.emitHitSpark(bot.position.clone());
-                  this.soundManager.playExplosion();
-                  if (bot.health <= 0 && !bot.isDead) {
-                    bot.isDead = true;
-                    bot.health = 0;
-                    bot.mesh.rotation.x = Math.PI / 2;
-                    this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
-                    this.player.state.kills++;
-                    this.scoreboardSystem.recordKill(false);
-                    this.particleSystem.emitDeath(bot.position.clone());
-                    this.soundManager.playKillConfirm();
-                    bot.deathTime = Date.now();
-                    const vehicleKillerName = (typeof localStorage !== 'undefined' && localStorage.getItem('blitzpit_name')) || 'You';
-                    this.botSystem.killFeed.push({
-                      killer: vehicleKillerName, victim: bot.name, weapon: 'Vehicle', time: Date.now()
-                    });
-                  }
-                }
-              }
-            }
-
-            // Tree collision (speed > 5)
-            if (Math.abs(v.speed) > 5) {
-              for (let i = this.world.treePositions.length - 1; i >= 0; i--) {
-                const tree = this.world.treePositions[i];
-                const dx = v.position.x - tree.x;
-                const dz = v.position.z - tree.z;
-                if (Math.sqrt(dx * dx + dz * dz) < 2) {
-                  this.particleSystem.emitDeath(tree.clone());
-                  this.world.treePositions.splice(i, 1);
-                  v.speed *= 0.85;
-                  v.health -= 10;
-                  break;
-                }
-              }
-            }
-
-            // Building collision is now handled in VehicleSystem.update() BEFORE movement
-
-            // Vehicle camera: free-look with mouse (yaw/pitch from player)
-            const vCamDist = 10;
-            const vCamHeight = 4;
-            const pYaw = this.player.yaw;
-            const pPitch = this.player.pitch;
-            this._tmpBehind.set(
-              Math.sin(pYaw) * vCamDist * Math.cos(pPitch),
-              vCamHeight - Math.sin(pPitch) * vCamDist,
-              Math.cos(pYaw) * vCamDist * Math.cos(pPitch)
-            );
-            this.camera.position.copy(v.position).add(this._tmpBehind);
-            // Look ahead of vehicle, not at vehicle center
-            const vLookTarget = v.position.clone();
-            vLookTarget.y += 1.5;
-            this.camera.lookAt(vLookTarget);
-            this.soundManager.playVehicleEngine(v.speed);
-          }
-        } else {
-          this.player.update(delta);
-          this.soundManager.stopVehicleEngine();
-        }
-
-        this.weaponSystem.update(delta);
-        this.grenadeSystem.update(delta, this.botSystem.bots);
-        this.botSystem.update(delta);
-        this.bossSystem.updatePhases();
-        this.zoneSystem.update(delta, this.botSystem.bots);
-        this.particleSystem.update(delta);
-
-        // Day/night cycle
-        this.dayNightSystem.update(delta);
-        // Night mode -- headlights and flashlights
-        this.vehicleSystem.setNightMode(this.dayNightSystem.isNight);
-        this.botSystem.setNightMode(this.dayNightSystem.isNight);
-
-        // Biome effects on player
-        const playerBiome = this.biomeSystem.getBiome(
-          this.player.state.position.x,
-          this.player.state.position.z
-        );
-        this.player.biomeSpeedMultiplier = this.biomeSystem.getSpeedMultiplier(playerBiome);
-
-        // Animal update
-        this.animalSystem.update(delta, this.player.state.position, this.dayNightSystem.isNight);
-
-        // Animal attack damage
-        const animalDmg = this.animalSystem.getAttackingAnimalDamage(this.player.state.position);
-        if (animalDmg > 0) {
-          this.player.takeDamage(animalDmg);
-          this.soundManager.playDamageTaken();
-          this.player.addShake(0.15);
-        }
-
-        // Environment damage from biome
-        const envDmg = this.biomeSystem.getEnvironmentDamage(playerBiome, this.dayNightSystem.isNight, delta);
-        if (envDmg > 0) {
-          this.player.takeDamage(envDmg);
-        }
-
-        // Nearby bot footsteps (max 3 closest, performance guard)
-        this.botFootstepTimer -= delta;
-        if (this.botFootstepTimer <= 0) {
-          this.botFootstepTimer = 0.4;
-          const playerPos = this.player.state.position;
-          const nearbyBots = this.botSystem.bots
-            .filter(b => !b.isDead && b.state !== 'landing')
-            .map(b => ({ bot: b, dist: b.position.distanceTo(playerPos) }))
-            .filter(b => b.dist < 25)
-            .sort((a, b) => a.dist - b.dist)
-            .slice(0, 3);
-          for (const { bot } of nearbyBots) {
-            const vol = this.soundManager.getDistanceVolume(playerPos, bot.position, 25);
-            if (vol > 0.1) {
-              const pan = this.soundManager.getStereoPan(playerPos, this.player.getYaw(), bot.position);
-              const biome = this.biomeSystem.getBiome(bot.position.x, bot.position.z);
-              const terrain = biome === 'tundra' ? 'snow' : biome === 'desert' ? 'sand' : biome === 'urban' ? 'concrete' : 'grass';
-              this.soundManager.playFootstep3D(terrain, vol * 0.5, pan);
-            }
-          }
-        }
-
-        this.weatherSystem.update(delta, this.player.state.position, playerBiome);
-
-        // Weather affects combat
-        const weather = this.weatherSystem.currentWeather;
-        if (weather === 'storm') {
-          this.weaponSystem.weatherSpreadMultiplier = 1.3;
-          this.botSystem.weatherDetectionMultiplier = 0.6;
-        } else if (weather === 'rain') {
-          this.weaponSystem.weatherSpreadMultiplier = 1.1;
-          this.botSystem.weatherDetectionMultiplier = 0.8;
-        } else if (weather === 'fog') {
-          this.weaponSystem.weatherSpreadMultiplier = 1.0;
-          this.botSystem.weatherDetectionMultiplier = 0.5;
-        } else {
-          this.weaponSystem.weatherSpreadMultiplier = 1.0;
-          this.botSystem.weatherDetectionMultiplier = 1.0;
-        }
-
-        // Reinforcement plane -- spawn new bots periodically to keep the battlefield alive
-        this.updateReinforcements(delta);
-
-        // Rain ambient sound
-        if (this.weatherSystem.currentWeather === 'rain' || this.weatherSystem.currentWeather === 'storm') {
-          this.soundManager.playRainAmbient();
-        } else {
-          this.soundManager.stopRainAmbient();
-        }
-
-        // Check bullet hits and track particle/sound effects
-        const bullets = this.weaponSystem.getBullets();
-        const prevKills = this.player.state.kills;
-        this.botSystem.checkBulletHits(bullets);
-
-        // Bullet-animal collision
-        for (let bi = bullets.length - 1; bi >= 0; bi--) {
-          const bullet = bullets[bi];
-          if (bullet.ownerId !== 'player') continue;
-          for (const animal of this.animalSystem.animals) {
-            if (animal.state === 'dead') continue;
-            if (bullet.position.distanceTo(animal.position) < 1.5) {
-              const killed = this.animalSystem.damageAnimal(animal.id, bullet.damage);
-              this.particleSystem.emitBlood(animal.position.clone());
-              if (killed) {
-                this.particleSystem.emitDeath(animal.position.clone());
-                this.soundManager.playKillConfirm();
-              }
-              this.weaponSystem.removeBullet(bi);
-              break;
-            }
-          }
-        }
-
-        const newKills = this.player.state.kills;
-
-        if (newKills > prevKills) {
-          const killsDelta = newKills - prevKills;
-          for (let k = 0; k < killsDelta; k++) {
-            this.scoreboardSystem.recordKill(false);
-            this.soundManager.playKillConfirm();
-            // Award Wild Points per kill (doubled if XP boost active)
-            let wpGain = 10;
-            if (this.skinSystem.hasXPBoost()) wpGain *= 2;
-            this.skinSystem.purchases.blitzPoints += wpGain;
-          }
-
-          // Boss kill reward + WP bonus (rewardClaimed prevents duplicate)
-          const killedBoss = this.bossSystem.bosses.find(b => b.isDead && !b.rewardClaimed);
-          if (killedBoss) {
-            killedBoss.rewardClaimed = true;
-            this.soundManager.playWaveComplete();
-            this.player.heal(50);
-            this.player.addArmor(50);
-            const bossWpGain = this.skinSystem.hasXPBoost() ? 200 : 100;
-            this.skinSystem.purchases.blitzPoints += bossWpGain;
-          }
-
-          this.skinSystem.save();
-
-          // Kill streak
-          this.killStreakTimer = 5;
-          this.gameState.killStreak = this.scoreboardSystem.stats.currentKillStreak;
-          this.gameState.bestKillStreak = this.scoreboardSystem.stats.bestKillStreak;
-
-          const streakLabel = this.scoreboardSystem.getKillStreakLabel(this.gameState.killStreak);
-          if (streakLabel) {
-            this.soundManager.playKillStreak(this.gameState.killStreak);
-          }
-
-          // Achievement titles
-          if (this.scoreboardSystem.stats.totalKills >= 100 && !this.skinSystem.owns('title_hunter')) {
-            this.skinSystem.purchases.ownedItems.push('title_hunter');
-            this.skinSystem.save();
-          }
-        }
-
-        // Streak timeout
-        if (this.killStreakTimer > 0) {
-          this.killStreakTimer -= delta;
-          if (this.killStreakTimer <= 0) {
-            this.scoreboardSystem.resetStreak();
-            this.gameState.killStreak = 0;
-          }
-        }
-
-        this.scoreboardSystem.updateSurvivalTime(delta);
-
-        this.gameState.playersAlive = this.botSystem.getAliveCount();
-        this.gameState.kills = this.player.state.kills;
-        this.gameState.totalKills = this.player.state.kills;
-
-        if (this.player.state.isDead) {
-          // Check for revive token
-          if (this.skinSystem.purchases.reviveTokens > 0 && !this.reviveOffered) {
-            this.reviveOffered = true;
-            this.reviveTimer = 3.0; // 3 second countdown
-          } else if (this.reviveOffered && this.reviveTimer > 0) {
-            this.reviveTimer -= delta;
-            if (this.reviveTimer <= 0) {
-              // Time expired, die
-              this.reviveOffered = false;
-              this.scoreboardSystem.endGame();
-              this.gameState.phase = 'dead';
-              this.notifyStateChange();
-            }
-          } else if (!this.reviveOffered) {
-            this.scoreboardSystem.endGame();
-            this.gameState.phase = 'dead';
-            this.notifyStateChange();
-          }
-        } else if (this.botSystem.alive <= 0) {
-          // All bots dead - start wave transition
-          this.gameState.phase = 'wave_transition';
-          this.waveManager.startTransition();
-          this.soundManager.playWaveComplete();
-          this.notifyStateChange();
-        }
+        updatePlayingPhase(this, delta);
         break;
       }
       case 'wave_transition': {
         this.particleSystem.update(delta);
         const done = this.waveManager.updateTransition(delta);
         if (done) {
-          this.startNextWave();
+          startNextWave(this);
         }
         break;
       }
@@ -1022,17 +491,6 @@ export class GameEngine {
     this.renderer.render(this.scene, this.camera);
   }
 
-  private updateReinforcements(delta: number): void {
-    this.reinforcementTimer -= delta;
-    if (this.reinforcementTimer <= 0 && this.botSystem.alive < REINFORCEMENT_MIN_ALIVE) {
-      this.reinforcementTimer = this.reinforcementInterval;
-      const spawnCount = REINFORCEMENT_MIN_COUNT + Math.floor(Math.random() * REINFORCEMENT_MAX_EXTRA);
-      this.botSystem.spawnReinforcements(spawnCount);
-      this.gameState.playersAlive = this.botSystem.getAliveCount();
-      this.soundManager.playWaveStart();
-    }
-  }
-
   private onResize(): void {
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
@@ -1041,7 +499,7 @@ export class GameEngine {
     this.renderer.setSize(w, h);
   }
 
-  private notifyStateChange(): void {
+  notifyStateChange(): void {
     if (this.onStateChange) this.onStateChange({ ...this.gameState });
   }
 
