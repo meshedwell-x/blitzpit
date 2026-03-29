@@ -41,6 +41,9 @@ export class PlayerController {
   private adsFOV = 70;
   private targetFOV = 70;
 
+  // Swim / drowning
+  swimTimer = 0;
+
   // Sliding
   private slideTimer = 0;
   private slideCooldown = 0;
@@ -393,7 +396,7 @@ export class PlayerController {
     newPos.z += this.state.velocity.z * delta;
 
     // Building collision -- prevent walking through walls
-    const buildings = this.world.getBuildings();
+    const buildings = this.world.getNearbyBuildings(newPos.x, newPos.z);
     for (const b of buildings) {
       const baseH = this.world.getHeightAt(b.x, b.z);
       if (
@@ -439,6 +442,12 @@ export class PlayerController {
     if (rawGroundHeight <= 4 && newPos.y < WATER_SURFACE + 0.5) {
       // Swimming mode
       this.state.isSwimming = true;
+      this.swimTimer += delta;
+      // Drowning damage after 15 seconds
+      if (this.swimTimer > 15) {
+        this.state.health -= 2 * delta;
+        if (this.state.health < 0) this.state.health = 0;
+      }
       newPos.y = WATER_SURFACE;
       this.state.velocity.y = 0;
       this.state.isGrounded = false;
@@ -451,6 +460,7 @@ export class PlayerController {
       }
     } else {
       this.state.isSwimming = false;
+      this.swimTimer = 0;
       if (newPos.y < surfaceY) {
         newPos.y = surfaceY;
         this.state.velocity.y = 0;

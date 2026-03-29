@@ -390,7 +390,7 @@ export class WeaponSystem {
         }
 
         // Building collision -- bullets stopped by walls, door opening allowed
-        const buildings = this.world.getBuildings();
+        const buildings = this.world.getNearbyBuildings(bullet.position.x, bullet.position.z);
         let hitWall = false;
         for (const b of buildings) {
           // Quick AABB reject before computing baseH

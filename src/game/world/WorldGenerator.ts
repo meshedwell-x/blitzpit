@@ -32,6 +32,8 @@ export class WorldGenerator {
   private noise: SimplexNoise;
   private heightMap: Float32Array;
   private buildings: Building[] = [];
+  private buildingGrid: Map<string, Building[]> = new Map();
+  private gridCellSize = 30;
   itemSpawns: ItemSpawn[] = [];
   treePositions: THREE.Vector3[] = [];
   poiLocations: POILocation[] = [];
@@ -54,6 +56,42 @@ export class WorldGenerator {
     this.addGroundPlane();
     this.addWater();
     this.generatePOIs();
+    this.buildBuildingGrid();
+  }
+
+  private buildBuildingGrid(): void {
+    this.buildingGrid.clear();
+    for (const b of this.buildings) {
+      const minCx = Math.floor(b.x / this.gridCellSize);
+      const maxCx = Math.floor((b.x + b.width) / this.gridCellSize);
+      const minCz = Math.floor(b.z / this.gridCellSize);
+      const maxCz = Math.floor((b.z + b.depth) / this.gridCellSize);
+      for (let cx = minCx; cx <= maxCx; cx++) {
+        for (let cz = minCz; cz <= maxCz; cz++) {
+          const key = `${cx},${cz}`;
+          if (!this.buildingGrid.has(key)) this.buildingGrid.set(key, []);
+          this.buildingGrid.get(key)!.push(b);
+        }
+      }
+    }
+  }
+
+  getNearbyBuildings(x: number, z: number): Building[] {
+    const cx = Math.floor(x / this.gridCellSize);
+    const cz = Math.floor(z / this.gridCellSize);
+    const result: Building[] = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        const key = `${cx + dx},${cz + dz}`;
+        const cell = this.buildingGrid.get(key);
+        if (cell) {
+          for (const b of cell) {
+            if (!result.includes(b)) result.push(b);
+          }
+        }
+      }
+    }
+    return result;
   }
 
   private generateHeightMap(): void {
@@ -712,10 +750,7 @@ export class WorldGenerator {
 
   getEffectiveHeightAt(x: number, z: number): number {
     const h = this.getHeightAt(x, z);
-    // Early exit for positions far from city clusters (buildings concentrated within 0.35 * WORLD_SIZE)
-    if (Math.abs(x) > WORLD_SIZE * 0.4 && Math.abs(z) > WORLD_SIZE * 0.4) return h;
-
-    for (const b of this.buildings) {
+    for (const b of this.getNearbyBuildings(x, z)) {
       if (x >= b.x && x <= b.x + b.width && z >= b.z && z <= b.z + b.depth) {
         const baseH = this.getHeightAt(b.x, b.z);
         return Math.max(h, baseH + b.height);

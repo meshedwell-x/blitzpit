@@ -25,6 +25,8 @@ export class AnimalSystem {
   private biomeSystem: BiomeSystem;
   animals: Animal[] = [];
   private maxAnimals = 30;
+  private _tmpDir = new THREE.Vector3();
+  private _tmpFleeDir = new THREE.Vector3();
 
   constructor(scene: THREE.Scene, world: WorldGenerator, biomeSystem: BiomeSystem) {
     this.scene = scene;
@@ -203,7 +205,7 @@ export class AnimalSystem {
             animal.stateTimer = 5 + Math.random() * 5;
           }
           if (animal.targetPos) {
-            const dir = new THREE.Vector3().subVectors(animal.targetPos, animal.position).setY(0);
+            const dir = this._tmpDir.subVectors(animal.targetPos, animal.position).setY(0);
             if (dir.length() > 1) {
               dir.normalize();
               animal.position.x += dir.x * animal.speed * delta;
@@ -227,7 +229,7 @@ export class AnimalSystem {
 
         case 'aggressive':
           if (distToPlayer > 1.5) {
-            const dir = new THREE.Vector3().subVectors(playerPos, animal.position).setY(0).normalize();
+            const dir = this._tmpDir.subVectors(playerPos, animal.position).setY(0).normalize();
             animal.position.x += dir.x * animal.speed * 1.5 * delta;
             animal.position.z += dir.z * animal.speed * 1.5 * delta;
             animal.mesh.rotation.y = Math.atan2(dir.x, dir.z);
@@ -242,7 +244,7 @@ export class AnimalSystem {
           break;
 
         case 'fleeing': {
-          const fleeDir = new THREE.Vector3().subVectors(animal.position, playerPos).setY(0).normalize();
+          const fleeDir = this._tmpFleeDir.subVectors(animal.position, playerPos).setY(0).normalize();
           animal.position.x += fleeDir.x * animal.speed * 1.3 * delta;
           animal.position.z += fleeDir.z * animal.speed * 1.3 * delta;
           animal.mesh.rotation.y = Math.atan2(fleeDir.x, fleeDir.z);

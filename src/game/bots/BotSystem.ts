@@ -154,7 +154,6 @@ export class BotSystem {
 
   update(delta: number): void {
     const playerPos = this.player.state.position;
-    const buildings = this.world.getBuildings();
 
     for (const bot of this.bots) {
       if (bot.isDead) continue;
@@ -164,8 +163,9 @@ export class BotSystem {
       // Decrement looting timer over time
       if (bot.lootingTimeLeft > 0) bot.lootingTimeLeft -= delta;
 
-      // Check if bot is inside a building
-      bot.inBuilding = buildings.some(b =>
+      // Check if bot is inside a building (spatial grid lookup)
+      const nearbyBuildings = this.world.getNearbyBuildings(bot.position.x, bot.position.z);
+      bot.inBuilding = nearbyBuildings.some(b =>
         bot.position.x >= b.x && bot.position.x <= b.x + b.width &&
         bot.position.z >= b.z && bot.position.z <= b.z + b.depth
       );
@@ -199,7 +199,7 @@ export class BotSystem {
       // Building collision for bots -- only check when bot is moving
       const isMovingBot = bot.velocity.x !== 0 || bot.velocity.z !== 0;
       if (isMovingBot && bot.state !== 'landing') {
-        for (const b of buildings) {
+        for (const b of this.world.getNearbyBuildings(bot.position.x, bot.position.z)) {
           if (
             bot.position.x > b.x + 0.3 && bot.position.x < b.x + b.width - 0.3 &&
             bot.position.z > b.z + 0.3 && bot.position.z < b.z + b.depth - 0.3
@@ -471,7 +471,7 @@ export class BotSystem {
     // Personality: cautious seeks cover earlier
     const coverHpThreshold = bot.personality === 'cautious' ? bot.health * 100 * 0.5 : 50;
     if (bot.health < coverHpThreshold) {
-      const buildings = this.world.getBuildings();
+      const buildings = this.world.getNearbyBuildings(bot.position.x, bot.position.z);
       let nearestBuildingDist = Infinity;
       let ncx = 0, ncz = 0;
       for (const b of buildings) {

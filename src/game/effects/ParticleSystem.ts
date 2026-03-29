@@ -22,6 +22,8 @@ export class ParticleSystem {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
+    const isMobile = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    this.maxParticles = isMobile ? 500 : 2000;
     this.geometry = new THREE.BufferGeometry();
 
     this.positions = new Float32Array(this.maxParticles * 3);
@@ -219,29 +221,22 @@ export class ParticleSystem {
   }
 
   update(delta: number): void {
-    const gravity = -9.8;
+    const gravity = -15;
 
-    for (let i = this.particles.length - 1; i >= 0; i--) {
+    let writeIdx = 0;
+    for (let i = 0; i < this.particles.length; i++) {
       const p = this.particles[i];
       p.life -= delta;
-      if (p.life <= 0) {
-        this.particles.splice(i, 1);
-        continue;
-      }
+      if (p.life <= 0) continue; // skip dead
 
       // Apply gravity to some particles (non-smoke)
       if (p.maxLife < 1.0) {
         p.velocity.y += gravity * delta;
       }
       p.position.addScaledVector(p.velocity, delta);
-    }
 
-    // Update geometry
-    const count = Math.min(this.particles.length, this.maxParticles);
-    for (let i = 0; i < count; i++) {
-      const p = this.particles[i];
       const lifeRatio = p.life / p.maxLife;
-      const idx3 = i * 3;
+      const idx3 = writeIdx * 3;
 
       this.positions[idx3] = p.position.x;
       this.positions[idx3 + 1] = p.position.y;
@@ -251,10 +246,14 @@ export class ParticleSystem {
       this.colors[idx3 + 1] = p.color.g * lifeRatio;
       this.colors[idx3 + 2] = p.color.b * lifeRatio;
 
-      this.sizes[i] = p.size * lifeRatio;
-    }
+      this.sizes[writeIdx] = p.size * lifeRatio;
 
-    this.geometry.setDrawRange(0, count);
+      this.particles[writeIdx] = p;
+      writeIdx++;
+    }
+    this.particles.length = writeIdx;
+
+    this.geometry.setDrawRange(0, writeIdx);
     (this.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
     (this.geometry.attributes.color as THREE.BufferAttribute).needsUpdate = true;
     (this.geometry.attributes.size as THREE.BufferAttribute).needsUpdate = true;

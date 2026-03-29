@@ -563,6 +563,13 @@ export default function GameUI() {
         </div>
       )}
 
+      {/* DROWNING WARNING */}
+      {(engineRef.current?.player.swimTimer ?? 0) > 10 && gameState.phase === 'playing' && (
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 bg-red-900/70 px-4 py-2 rounded animate-pulse">
+          <span className="text-red-300 text-sm font-bold font-mono">DROWNING!</span>
+        </div>
+      )}
+
       {/* NEARBY PROMPTS */}
       {nearbyItem && gameState.phase === 'playing' && (
         <div className="absolute bottom-36 left-1/2 -translate-x-1/2 bg-black/70 px-3 py-1.5 rounded border border-yellow-500/50">

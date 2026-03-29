@@ -272,7 +272,7 @@ export class VehicleSystem {
     const newZ = v.position.z - Math.cos(v.rotation) * v.speed * delta;
 
     // Building collision check BEFORE moving
-    const buildings = this.world.getBuildings();
+    const buildings = this.world.getNearbyBuildings(newX, newZ);
     let blocked = false;
     for (const b of buildings) {
       if (newX > b.x - 2 && newX < b.x + b.width + 2 &&
