@@ -8,15 +8,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const PACKS: Record<string, { name: string; amountUSD: number; coins: number; bonus: number }> = {
-  pack_29:  { name: 'Small Crate - 300 Blitz Coins',       amountUSD: 35,  coins: 300,  bonus: 0    },
-  pack_79:  { name: 'Supply Box - 1000 Blitz Coins',      amountUSD: 95,  coins: 900,  bonus: 100  },
-  pack_149: { name: 'Airdrop - 2300 Blitz Coins',         amountUSD: 179, coins: 2000, bonus: 300  },
-  pack_299: { name: 'War Chest - 5500 Blitz Coins',       amountUSD: 359, coins: 4500, bonus: 1000 },
-  pack_499: { name: 'Arsenal - 10500 Blitz Coins',        amountUSD: 599, coins: 8000, bonus: 2500 },
-  welcome:  { name: 'Welcome Pack - VIP + 500 Coins',     amountUSD: 11,  coins: 500,  bonus: 0    },
-  daily_boost: { name: 'Daily Boost - 200 BC + 2x XP',   amountUSD: 23,  coins: 200,  bonus: 0    },
-  lucky_box:   { name: 'Lucky Box - Random Skin',         amountUSD: 35,  coins: 0,    bonus: 0    },
+const PACKS: Record<string, { name: string; amountINR: number; coins: number; bonus: number }> = {
+  pack_29:  { name: 'Small Crate - 300 Blitz Coins',       amountINR: 4900,  coins: 300,  bonus: 0    },
+  pack_79:  { name: 'Supply Box - 1000 Blitz Coins',      amountINR: 7900,  coins: 900,  bonus: 100  },
+  pack_149: { name: 'Airdrop - 2300 Blitz Coins',         amountINR: 14900, coins: 2000, bonus: 300  },
+  pack_299: { name: 'War Chest - 5500 Blitz Coins',       amountINR: 29900, coins: 4500, bonus: 1000 },
+  pack_499: { name: 'Arsenal - 10500 Blitz Coins',        amountINR: 49900, coins: 8000, bonus: 2500 },
+  welcome:  { name: 'Welcome Pack - VIP + 500 Coins',     amountINR: 4900,  coins: 500,  bonus: 0    },
+  daily_boost: { name: 'Daily Boost - 200 BC + 2x XP',   amountINR: 4900,  coins: 200,  bonus: 0    },
+  lucky_box:   { name: 'Lucky Box - Random Skin',         amountINR: 4900,  coins: 0,    bonus: 0    },
 };
 
 export default {
@@ -61,8 +61,8 @@ async function handleCheckout(request: Request, env: Env): Promise<Response> {
   params.append('mode', 'payment');
   params.append('success_url', body.successUrl + '?session_id={CHECKOUT_SESSION_ID}&pack_id=' + body.packId);
   params.append('cancel_url', body.cancelUrl);
-  params.append('line_items[0][price_data][currency]', 'usd');
-  params.append('line_items[0][price_data][unit_amount]', pack.amountUSD.toString());
+  params.append('line_items[0][price_data][currency]', 'inr');
+  params.append('line_items[0][price_data][unit_amount]', pack.amountINR.toString());
   params.append('line_items[0][price_data][product_data][name]', pack.name);
   params.append('line_items[0][quantity]', '1');
   params.append('metadata[pack_id]', body.packId);

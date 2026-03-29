@@ -67,14 +67,14 @@ export const WELCOME_PACK = {
   id: 'welcome',
   name: 'WELCOME PACK',
   description: '500 BC + VIP Badge + Random Skin',
-  priceINR: 9,
-  priceUSD: 0.11,
+  priceINR: 49,
+  priceUSD: 0.59,
   coins: 500,
   oneTime: true,
 };
 
 export const BLITZ_COIN_PACKS: BlitzCoinPack[] = [
-  { id: 'pack_29', name: 'Small Crate', coins: 300, bonus: 0, priceINR: 29, priceUSD: 0.35 },
+  { id: 'pack_49', name: 'Small Crate', coins: 300, bonus: 0, priceINR: 49, priceUSD: 0.59 },
   { id: 'pack_79', name: 'Supply Box', coins: 900, bonus: 100, priceINR: 79, priceUSD: 0.95 },
   { id: 'pack_149', name: 'Airdrop', coins: 2000, bonus: 300, priceINR: 149, priceUSD: 1.79 },
   { id: 'pack_299', name: 'War Chest', coins: 4500, bonus: 1000, priceINR: 299, priceUSD: 3.59 },
@@ -82,8 +82,8 @@ export const BLITZ_COIN_PACKS: BlitzCoinPack[] = [
 ];
 
 export const DAILY_DEALS = [
-  { id: 'daily_boost', name: 'DAILY BOOST', description: '200 BC + 2x XP 1hr + Random Kill Effect', priceINR: 19, priceUSD: 0.23, daily: true },
-  { id: 'lucky_box', name: 'LUCKY BOX', description: 'Random Skin (Legendary 1%!)', priceINR: 29, priceUSD: 0.35, daily: true },
+  { id: 'daily_boost', name: 'DAILY BOOST', description: '200 BC + 2x XP 1hr + Random Kill Effect', priceINR: 49, priceUSD: 0.59, daily: true },
+  { id: 'lucky_box', name: 'LUCKY BOX', description: 'Random Skin (Legendary 1%!)', priceINR: 49, priceUSD: 0.59, daily: true },
 ];
 
 export const SHOP_ITEMS: ShopItem[] = [
