@@ -20,7 +20,7 @@ jobs:
       - run: npm run build
 
       - name: Deploy to Cloudflare Pages
-        run: npx wrangler pages deploy out --project-name=blitzpit --branch=main --commit-dirty=true
+        run: npx wrangler pages deploy out --project-name=blitzpit --branch=main --commit-dirty=true --commit-message="${GITHUB_SHA:0:7} deploy"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
