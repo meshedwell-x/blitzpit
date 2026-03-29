@@ -192,3 +192,37 @@ export const RANK_THRESHOLDS: [number, string][] = [
   [15, 'Immortal'],
   [20, 'God of War'],
 ];
+
+// Reinforcement
+export const REINFORCEMENT_FIRST_DELAY = 45;
+export const REINFORCEMENT_INTERVAL = 40;
+export const REINFORCEMENT_MIN_ALIVE = 30;
+export const REINFORCEMENT_MIN_COUNT = 5;
+export const REINFORCEMENT_MAX_EXTRA = 6;
+export const REINFORCEMENT_WEAPON_CHANCE = 0.6;
+
+// Bot spawning
+export const BOT_SPAWN_RADIUS_MIN = 80;
+export const BOT_SPAWN_RADIUS_MAX = 350;
+export const BOT_LANDING_HEIGHT_MIN = 15;
+export const BOT_LANDING_HEIGHT_MAX = 25;
+export const BOT_LANDING_SPEED = 40;
+
+// Plane
+export const PLANE_ALTITUDE = 250;
+export const PLANE_SPEED = 50;
+export const PLANE_AUTO_DROP_TIME = 15;
+export const DROP_SPEED_FREEFALL = 55;
+export const DROP_SPEED_PARACHUTE = 8;
+export const DROP_STEER_FREEFALL = 15;
+export const DROP_STEER_PARACHUTE = 8;
+
+// Player
+export const HEALTH_REGEN_RATE = 0.5;
+export const MELEE_DAMAGE_ARMED = 35;
+export const MELEE_DAMAGE_UNARMED = 20;
+export const MELEE_RANGE = 2.5;
+export const MELEE_COOLDOWN = 0.8;
+export const SLIDE_DURATION = 0.8;
+export const SLIDE_SPEED = 16;
+export const SLIDE_COOLDOWN = 1.5;

@@ -6,6 +6,7 @@ export interface ShopItem {
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   priceUSD: number;
   priceCUB: number;
+  preview?: string; // emoji or short label for shop display
   colors?: Record<string, number>; // mesh part -> color hex
   emissive?: number;
   emissiveIntensity?: number;

@@ -14,7 +14,21 @@ import { WeatherSystem } from '../world/WeatherSystem';
 import { DayNightSystem } from '../world/DayNightSystem';
 import { BiomeSystem } from '../world/BiomeSystem';
 import { AnimalSystem } from '../world/AnimalSystem';
-import { WORLD_SIZE, PLAYER_HEAL_BETWEEN_WAVES, WEAPONS } from './constants';
+import {
+  WORLD_SIZE,
+  PLAYER_HEAL_BETWEEN_WAVES,
+  WEAPONS,
+  REINFORCEMENT_FIRST_DELAY,
+  REINFORCEMENT_INTERVAL,
+  REINFORCEMENT_MIN_ALIVE,
+  REINFORCEMENT_MIN_COUNT,
+  REINFORCEMENT_MAX_EXTRA,
+  PLANE_ALTITUDE,
+  PLANE_SPEED,
+  PLANE_AUTO_DROP_TIME,
+  DROP_SPEED_FREEFALL,
+  DROP_SPEED_PARACHUTE,
+} from './constants';
 
 export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'wave_transition' | 'dead';
 
@@ -85,6 +99,10 @@ export class GameEngine {
   // Kill streak tracking
   private killStreakTimer = 0;
   private lastKillCount = 0;
+
+  // Reinforcement plane system -- periodic bot drops
+  private reinforcementTimer = REINFORCEMENT_FIRST_DELAY;
+  private reinforcementInterval = REINFORCEMENT_INTERVAL;
 
   isPaused = false;
 
@@ -365,7 +383,7 @@ export class GameEngine {
     this.gameState.phase = 'plane';
     const angle = Math.random() * Math.PI * 2;
     const edge = WORLD_SIZE / 2 * 0.8;
-    this.planePosition.set(Math.cos(angle) * edge, 250, Math.sin(angle) * edge);
+    this.planePosition.set(Math.cos(angle) * edge, PLANE_ALTITUDE, Math.sin(angle) * edge);
     this.planeDirection.set(-Math.cos(angle), 0, -Math.sin(angle)).normalize();
     this.planeTimer = 0;
     this.player.state.position.copy(this.planePosition);
@@ -382,7 +400,7 @@ export class GameEngine {
     if (this.gameState.phase !== 'plane') return;
     this.gameState.phase = 'dropping';
     this.parachuteOpen = false;
-    this.dropSpeed = 55;
+    this.dropSpeed = DROP_SPEED_FREEFALL;
     this.player.state.velocity.set(
       this.planeDirection.x * 20, -this.dropSpeed, this.planeDirection.z * 20
     );
@@ -396,7 +414,7 @@ export class GameEngine {
   openParachute(): void {
     if (this.gameState.phase !== 'dropping') return;
     this.parachuteOpen = true;
-    this.dropSpeed = 8;
+    this.dropSpeed = DROP_SPEED_PARACHUTE;
     if (this.playerDropMesh) this.playerDropMesh.visible = true;
   }
 
@@ -423,7 +441,7 @@ export class GameEngine {
 
   private updatePlane(delta: number): void {
     this.planeTimer += delta;
-    const speed = 50 * delta;
+    const speed = PLANE_SPEED * delta;
     this.planePosition.x += this.planeDirection.x * speed;
     this.planePosition.y += this.planeDirection.y * speed;
     this.planePosition.z += this.planeDirection.z * speed;
@@ -441,7 +459,7 @@ export class GameEngine {
     );
     this.camera.lookAt(this.planePosition);
 
-    if (this.planeTimer > 15 ||
+    if (this.planeTimer > PLANE_AUTO_DROP_TIME ||
         Math.abs(this.planePosition.x) > 400 ||
         Math.abs(this.planePosition.z) > 400) {
       this.drop();
@@ -610,6 +628,9 @@ export class GameEngine {
         break;
       case 'dropping':
         this.updateDropping(delta);
+        // Bots should still move during player drop (don't freeze mid-air)
+        this.botSystem.update(delta);
+        this.dayNightSystem.update(delta);
         break;
       case 'playing': {
         if (this.vehicleSystem.isPlayerInVehicle()) {
@@ -716,6 +737,9 @@ export class GameEngine {
 
         this.weatherSystem.update(delta, this.player.state.position, playerBiome);
 
+        // Reinforcement plane -- spawn new bots periodically to keep the battlefield alive
+        this.updateReinforcements(delta);
+
         // Rain ambient sound
         if (this.weatherSystem.currentWeather === 'rain' || this.weatherSystem.currentWeather === 'storm') {
           this.soundManager.playRainAmbient();
@@ -809,6 +833,17 @@ export class GameEngine {
     }
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  private updateReinforcements(delta: number): void {
+    this.reinforcementTimer -= delta;
+    if (this.reinforcementTimer <= 0 && this.botSystem.alive < REINFORCEMENT_MIN_ALIVE) {
+      this.reinforcementTimer = this.reinforcementInterval;
+      const spawnCount = REINFORCEMENT_MIN_COUNT + Math.floor(Math.random() * REINFORCEMENT_MAX_EXTRA);
+      this.botSystem.spawnReinforcements(spawnCount);
+      this.gameState.playersAlive = this.botSystem.getAliveCount();
+      this.soundManager.playWaveStart();
+    }
   }
 
   private onResize(): void {

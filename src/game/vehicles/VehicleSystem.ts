@@ -252,9 +252,26 @@ export class VehicleSystem {
     if (this.keys.has('KeyA')) v.rotation += turnSpeed * delta * (v.speed > 0 ? 1 : -1);
     if (this.keys.has('KeyD')) v.rotation -= turnSpeed * delta * (v.speed > 0 ? 1 : -1);
 
-    // Move
-    v.position.x -= Math.sin(v.rotation) * v.speed * delta;
-    v.position.z -= Math.cos(v.rotation) * v.speed * delta;
+    // Calculate new position
+    const newX = v.position.x - Math.sin(v.rotation) * v.speed * delta;
+    const newZ = v.position.z - Math.cos(v.rotation) * v.speed * delta;
+
+    // Building collision check BEFORE moving
+    const buildings = this.world.getBuildings();
+    let blocked = false;
+    for (const b of buildings) {
+      if (newX > b.x - 2 && newX < b.x + b.width + 2 &&
+          newZ > b.z - 2 && newZ < b.z + b.depth + 2) {
+        blocked = true;
+        v.speed = 0;
+        break;
+      }
+    }
+
+    if (!blocked) {
+      v.position.x = newX;
+      v.position.z = newZ;
+    }
 
     // Ground height
     const groundH = this.world.getHeightAt(v.position.x, v.position.z);
@@ -290,17 +307,18 @@ export class VehicleSystem {
   }
 
   setNightMode(isNight: boolean): void {
-    for (const v of this.vehicles) {
+    // Only add headlight to player's vehicle (1 light max for performance)
+    if (this.playerVehicle) {
       if (isNight) {
-        if (!v.headlight) {
-          const light = new THREE.PointLight(0xffee88, 1.5, 30);
+        if (!this.playerVehicle.headlight) {
+          const light = new THREE.PointLight(0xffee88, 1.5, 40);
           light.position.set(0, 1.5, -2);
-          v.mesh.add(light);
-          v.headlight = light;
+          this.playerVehicle.mesh.add(light);
+          this.playerVehicle.headlight = light;
         }
-        v.headlight.visible = true;
+        this.playerVehicle.headlight.visible = true;
       } else {
-        if (v.headlight) v.headlight.visible = false;
+        if (this.playerVehicle.headlight) this.playerVehicle.headlight.visible = false;
       }
     }
   }

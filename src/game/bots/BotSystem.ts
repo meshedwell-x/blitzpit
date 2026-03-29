@@ -1,9 +1,11 @@
 import * as THREE from 'three';
-import { BOT_COUNT, PLAYER_HEIGHT, PLAYER_SPEED, WEAPONS } from '../core/constants';
+import { BOT_COUNT, PLAYER_HEIGHT, PLAYER_SPEED, WEAPONS, BOT_SPAWN_RADIUS_MIN, BOT_SPAWN_RADIUS_MAX, BOT_LANDING_HEIGHT_MIN, BOT_LANDING_HEIGHT_MAX, REINFORCEMENT_WEAPON_CHANCE } from '../core/constants';
 import { WorldGenerator } from '../world/WorldGenerator';
 import { WeaponSystem } from '../weapons/WeaponSystem';
 import { PlayerController } from '../player/PlayerController';
 import { WaveConfig, WaveManager } from '../core/WaveManager';
+import { BotMeshFactory } from '../rendering/BotMeshFactory';
+import { DamageSystem } from '../damage/DamageSystem';
 
 export interface Bot {
   id: string;
@@ -28,16 +30,27 @@ export interface Bot {
 }
 
 const BOT_NAMES = [
+  // Global callsigns
   'Striker', 'Ghost', 'Viper', 'Shadow', 'Phoenix',
   'Hawk', 'Storm', 'Blade', 'Wolf', 'Titan',
   'Cobra', 'Falcon', 'Raven', 'Steel', 'Frost',
-  'Thunder', 'Ninja', 'Sniper', 'Tank', 'Scout',
-  'Rogue', 'Ace', 'Blaze', 'Reaper', 'Hunter',
-  'Eagle', 'Bear', 'Lynx', 'Omega', 'Alpha',
-  'Chaos', 'Fury', 'Wraith', 'Doom', 'Spark',
-  'Flux', 'Onyx', 'Pulse', 'Shade', 'Apex',
-  'Drift', 'Hex', 'Nova', 'Zen', 'Crypt',
-  'Pike', 'Volt', 'Clash', 'Bane',
+  'Thunder', 'Ninja', 'Tank', 'Scout', 'Rogue',
+  'Ace', 'Blaze', 'Reaper', 'Hunter', 'Eagle',
+  'Bear', 'Lynx', 'Omega', 'Alpha', 'Chaos',
+  'Fury', 'Wraith', 'Doom', 'Spark', 'Flux',
+  'Onyx', 'Pulse', 'Shade', 'Apex', 'Drift',
+  'Hex', 'Nova', 'Zen', 'Crypt', 'Volt',
+  // Indian themed
+  'Arjun', 'Kali', 'Shiva', 'Indra', 'Agni',
+  'Vayu', 'Durga', 'Rajan', 'Vikram', 'Ashoka',
+  'Priya', 'Rani', 'Deepak', 'Surya', 'Chandra',
+  'Naga', 'Garuda', 'Raksha', 'Deva', 'Maya',
+  // IO-style random names
+  'xX_Pro_Xx', 'NoScope360', 'BotKiller', 'EZclap',
+  'SendHelp', 'Tryhard', 'Camper69', 'RushB',
+  'Potato', 'Noob', 'GG_WP', 'Clutch',
+  'Sweat', 'Goated', 'TouchGrass', 'Ratio',
+  'Sussy', 'NPC_Andy', 'AimBot', 'Lag',
 ];
 
 export class BotSystem {
@@ -79,47 +92,16 @@ export class BotSystem {
     const lootTime = this.waveManager ? this.waveManager.getLootingTime(1) : 20;
     for (let i = 0; i < BOT_COUNT; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 80 + Math.random() * 270;
+      const radius = BOT_SPAWN_RADIUS_MIN + Math.random() * (BOT_SPAWN_RADIUS_MAX - BOT_SPAWN_RADIUS_MIN);
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       const h = this.world.getHeightAt(x, z);
 
-      const group = new THREE.Group();
-
       const skill = 0.3 + Math.random() * 0.7;
-      const bodyColor = new THREE.Color().setHSL(0.0 + skill * 0.3, 0.7, 0.5);
-      const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor });
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.0, 0.4), bodyMat);
-      body.position.y = 0.5;
-      group.add(body);
-
-      const head = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, 0.4, 0.4),
-        new THREE.MeshLambertMaterial({ color: 0xffdbac })
-      );
-      head.position.y = 1.2;
-      group.add(head);
-
-      const armGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
-      const armMat = new THREE.MeshLambertMaterial({ color: bodyColor });
-      const leftArm = new THREE.Mesh(armGeo, armMat);
-      leftArm.position.set(-0.5, 0.4, 0);
-      group.add(leftArm);
-      const rightArm = new THREE.Mesh(armGeo, armMat);
-      rightArm.position.set(0.5, 0.4, 0);
-      group.add(rightArm);
-
-      const legGeo = new THREE.BoxGeometry(0.25, 0.8, 0.25);
-      const legMat = new THREE.MeshLambertMaterial({ color: 0x333366 });
-      const leftLeg = new THREE.Mesh(legGeo, legMat);
-      leftLeg.position.set(-0.15, -0.4, 0);
-      group.add(leftLeg);
-      const rightLeg = new THREE.Mesh(legGeo, legMat);
-      rightLeg.position.set(0.15, -0.4, 0);
-      group.add(rightLeg);
+      const group = BotMeshFactory.create(skill);
 
       // Start slightly high for landing animation
-      const spawnY = h + 0.6 + PLAYER_HEIGHT + 15 + Math.random() * 10;
+      const spawnY = h + 0.6 + PLAYER_HEIGHT + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
       group.position.set(x, spawnY, z);
       this.scene.add(group);
 
@@ -520,17 +502,11 @@ export class BotSystem {
           // Headshot check
           const headY = bot.position.y + 1.2;
           const isHeadshot = Math.abs(bullet.position.y - headY) < 0.3;
-          const damage = isHeadshot ? bullet.damage * 2.5 : bullet.damage;
+          const result = DamageSystem.calculateDamage(bullet.damage, bot.health, bot.armor, isHeadshot);
+          bot.health = result.remainingHealth;
+          bot.armor = result.remainingArmor;
 
-          if (bot.armor > 0) {
-            const armorAbsorb = Math.min(bot.armor, damage * 0.5);
-            bot.armor -= armorAbsorb;
-            bot.health -= (damage - armorAbsorb);
-          } else {
-            bot.health -= damage;
-          }
-
-          if (this.onBotHit) this.onBotHit(bot.position.clone(), isHeadshot, damage);
+          if (this.onBotHit) this.onBotHit(bot.position.clone(), isHeadshot, result.finalDamage);
 
           // Hit reaction
           if (!bot.isDead && bot.state !== 'fighting') {
@@ -538,7 +514,7 @@ export class BotSystem {
             bot.stateTimer = 5;
           }
 
-          if (bot.health <= 0) {
+          if (result.killed && !bot.isDead) {
             bot.isDead = true;
             bot.health = 0;
             this.alive = Math.max(0, this.alive - 1);
@@ -554,12 +530,7 @@ export class BotSystem {
             const sceneRef = this.scene;
             setTimeout(() => {
               sceneRef.remove(deadMesh);
-              deadMesh.traverse((child) => {
-                if (child instanceof THREE.Mesh) {
-                  child.geometry.dispose();
-                  if (child.material instanceof THREE.Material) child.material.dispose();
-                }
-              });
+              BotMeshFactory.dispose(deadMesh);
             }, 5000);
 
             const killerName = bullet.ownerId === 'player' ? 'You' :
@@ -604,20 +575,16 @@ export class BotSystem {
     const bot = this.bots.find(b => b.id === botId);
     if (!bot || bot.isDead) return;
 
-    if (bot.armor > 0) {
-      const armorAbsorb = Math.min(bot.armor, damage * 0.5);
-      bot.armor -= armorAbsorb;
-      bot.health -= (damage - armorAbsorb);
-    } else {
-      bot.health -= damage;
-    }
+    const result = DamageSystem.calculateDamage(damage, bot.health, bot.armor, false);
+    bot.health = result.remainingHealth;
+    bot.armor = result.remainingArmor;
 
     if (!bot.isDead && bot.state !== 'fighting') {
       bot.state = 'fighting';
       bot.stateTimer = 5;
     }
 
-    if (bot.health <= 0) {
+    if (result.killed && !bot.isDead) {
       bot.isDead = true;
       bot.health = 0;
       this.alive = Math.max(0, this.alive - 1);
@@ -658,14 +625,7 @@ export class BotSystem {
   respawnForWave(config: WaveConfig): void {
     for (const bot of this.bots) {
       this.scene.remove(bot.mesh);
-      bot.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.geometry.dispose();
-          if (child.material instanceof THREE.Material) {
-            child.material.dispose();
-          }
-        }
-      });
+      BotMeshFactory.dispose(bot.mesh);
     }
     this.bots = [];
     this.alive = config.botCount;
@@ -675,47 +635,15 @@ export class BotSystem {
 
     for (let i = 0; i < config.botCount; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 80 + Math.random() * 270;
+      const radius = BOT_SPAWN_RADIUS_MIN + Math.random() * (BOT_SPAWN_RADIUS_MAX - BOT_SPAWN_RADIUS_MIN);
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       const h = this.world.getHeightAt(x, z);
 
-      const group = new THREE.Group();
-
       const skill = config.botSkillMin + Math.random() * (config.botSkillMax - config.botSkillMin);
-      const bodyColor = new THREE.Color().setHSL(0.0 + skill * 0.3, 0.7, 0.5);
-      const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor });
+      const group = BotMeshFactory.create(skill);
 
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.0, 0.4), bodyMat);
-      body.position.y = 0.5;
-      group.add(body);
-
-      const head = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, 0.4, 0.4),
-        new THREE.MeshLambertMaterial({ color: 0xffdbac })
-      );
-      head.position.y = 1.2;
-      group.add(head);
-
-      const armGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
-      const armMat = new THREE.MeshLambertMaterial({ color: bodyColor });
-      const leftArm = new THREE.Mesh(armGeo, armMat);
-      leftArm.position.set(-0.5, 0.4, 0);
-      group.add(leftArm);
-      const rightArm = new THREE.Mesh(armGeo, armMat);
-      rightArm.position.set(0.5, 0.4, 0);
-      group.add(rightArm);
-
-      const legGeo = new THREE.BoxGeometry(0.25, 0.8, 0.25);
-      const legMat = new THREE.MeshLambertMaterial({ color: 0x333366 });
-      const leftLeg = new THREE.Mesh(legGeo, legMat);
-      leftLeg.position.set(-0.15, -0.4, 0);
-      group.add(leftLeg);
-      const rightLeg = new THREE.Mesh(legGeo, legMat);
-      rightLeg.position.set(0.15, -0.4, 0);
-      group.add(rightLeg);
-
-      const spawnY = h + 0.6 + 15 + Math.random() * 10;
+      const spawnY = h + 0.6 + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
       group.position.set(x, spawnY, z);
       this.scene.add(group);
 
@@ -745,6 +673,44 @@ export class BotSystem {
         inBuilding: false,
         flashlight: null,
       });
+    }
+  }
+
+  spawnReinforcements(count: number): void {
+    const weapons = ['pistol', 'smg', 'assault', 'shotgun', 'sniper'];
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 50 + Math.random() * 300;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const h = this.world.getHeightAt(x, z);
+      if (h <= 4) continue;
+
+      const skill = 0.3 + Math.random() * 0.7;
+      const group = BotMeshFactory.create(skill);
+      const spawnY = h + 0.6 + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
+      group.position.set(x, spawnY, z);
+      this.scene.add(group);
+
+      const hasWeapon = Math.random() < REINFORCEMENT_WEAPON_CHANCE;
+      const weaponId = hasWeapon ? weapons[Math.floor(Math.random() * weapons.length)] : null;
+
+      this.bots.push({
+        id: `reinforce_${Date.now()}_${i}`,
+        position: new THREE.Vector3(x, spawnY, z),
+        velocity: new THREE.Vector3(0, 0, 0),
+        health: 100, armor: Math.random() < 0.3 ? 50 : 0,
+        isDead: false, weaponId,
+        mesh: group, targetPos: null,
+        state: 'landing' as const,
+        stateTimer: 2, fireTimer: 0,
+        detectionRange: 20 + skill * 30,
+        accuracy: 0.3 + skill * 0.5, skill,
+        name: BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)] + '_' + Math.floor(Math.random() * 100),
+        lootingTimeLeft: 5 + Math.random() * 5,
+        inBuilding: false, flashlight: null,
+      });
+      this.alive++;
     }
   }
 

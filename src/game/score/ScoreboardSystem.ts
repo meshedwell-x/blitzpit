@@ -89,7 +89,7 @@ export class ScoreboardSystem {
   endGame(): void {
     this.stats.gamesPlayed++;
     const entry: LeaderboardEntry = {
-      name: 'Player',
+      name: (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'Player',
       wave: this.stats.currentWave,
       kills: this.stats.totalKills,
       time: Math.floor(this.stats.survivalTime),
