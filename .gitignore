@@ -36,3 +36,4 @@ yarn-error.log*
 next-env.d.ts
 test-screenshots/
 test-game.ts
+worker/node_modules/
