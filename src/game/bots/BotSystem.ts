@@ -622,9 +622,16 @@ export class BotSystem {
             bot.health = 0;
             this.alive = Math.max(0, this.alive - 1);
 
-            // Death animation - lay down
+            // Death animation - lay down + nudge away from bullet origin
             bot.mesh.rotation.x = Math.PI / 2;
             bot.mesh.position.y -= 0.5;
+            const nudgeX = bot.position.x - bullet.position.x;
+            const nudgeZ = bot.position.z - bullet.position.z;
+            const nudgeLen = Math.sqrt(nudgeX * nudgeX + nudgeZ * nudgeZ);
+            if (nudgeLen > 0) {
+              bot.mesh.position.x += (nudgeX / nudgeLen) * 0.4;
+              bot.mesh.position.z += (nudgeZ / nudgeLen) * 0.4;
+            }
 
             if (this.onBotDeath) this.onBotDeath(bot.position.clone());
 

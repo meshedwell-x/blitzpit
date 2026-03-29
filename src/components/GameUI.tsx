@@ -317,7 +317,7 @@ export default function GameUI() {
         {muted ? 'OFF' : 'SND'}
       </button>
 
-      {/* CUB COINS + WILD POINTS HUD */}
+      {/* CUB COINS + WILD POINTS HUD -- shifted left to not overlap SND button */}
       {gameState.phase === 'playing' && skinSystem.current && (
         <div className="absolute top-2 right-12 bg-black/50 px-2 py-1 rounded text-[10px] font-mono flex gap-2">
           <span className="text-yellow-400">{skinSystem.current.purchases.blitzCoins} CUB</span>
@@ -325,9 +325,9 @@ export default function GameUI() {
         </div>
       )}
 
-      {/* TIME / BIOME / WEATHER HUD */}
+      {/* TIME / BIOME / WEATHER HUD -- placed below minimap (top-10 + 120px height ~= top-40) */}
       {gameState.phase === 'playing' && (
-        <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-[10px] font-mono space-y-0.5">
+        <div className="absolute top-40 left-2 bg-black/50 px-2 py-1 rounded text-[10px] font-mono space-y-0.5">
           <div className="text-gray-300">
             {(() => {
               const period = engineRef.current?.dayNightSystem.getTimePeriod() ?? 'noon';
@@ -469,9 +469,9 @@ export default function GameUI() {
         );
       })()}
 
-      {/* KILL FEED */}
+      {/* KILL FEED -- positioned below the SND/CUB row to avoid overlap */}
       {killFeed.length > 0 && (
-        <div className="absolute top-12 right-10 flex flex-col gap-0.5">
+        <div className="absolute top-12 right-2 flex flex-col gap-0.5">
           {(() => {
             const myName = typeof localStorage !== 'undefined' ? localStorage.getItem('blitzpit_name') || 'You' : 'You';
             return killFeed.map((k, i) => {
@@ -892,6 +892,14 @@ export default function GameUI() {
             }}
           />
         </div>
+      )}
+
+      {/* ZONE OUTSIDE VIGNETTE -- blue edge when outside safe zone */}
+      {gameState.phase === 'playing' && engineRef.current &&
+        !engineRef.current.zoneSystem.isInsideZone(engineRef.current.player.state.position) && (
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,68,255,0.35) 100%)',
+        }} />
       )}
 
       {/* DAMAGE VIGNETTE - enhanced */}

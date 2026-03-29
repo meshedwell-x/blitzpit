@@ -262,6 +262,7 @@ export class WeaponSystem {
   }
 
   private fire(): void {
+    if (this.player.state.isSwimming) return; // no firing while swimming
     const w = this.weapons[this.activeSlot];
     if (!w || w.isReloading || w.currentAmmo <= 0) return;
 
@@ -434,7 +435,7 @@ export class WeaponSystem {
     for (const item of this.items) {
       if (!item.collected) {
         item.mesh.rotation.y = time * 2;
-        item.mesh.position.y = item.position.y + Math.sin(time * 3) * 0.15;
+        item.mesh.position.y = item.position.y + Math.sin(time * 3) * 0.25;
       }
     }
 
@@ -455,6 +456,12 @@ export class WeaponSystem {
 
       if (this.isFiring && w.fireTimer > 0) {
         this.weaponModel.position.add(forward.clone().multiplyScalar(-0.08));
+      }
+
+      // Update weapon model color to match equipped weapon
+      const body = this.weaponModel.children[0] as THREE.Mesh;
+      if (body?.material instanceof THREE.MeshLambertMaterial) {
+        body.material.color.set(w.def.color);
       }
     } else {
       this.weaponModel.visible = false;

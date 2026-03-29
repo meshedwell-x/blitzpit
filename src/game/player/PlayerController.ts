@@ -198,6 +198,26 @@ export class PlayerController {
     helmet.name = 'helmet';
     group.add(helmet);
 
+    // Helmet goggles (two small glass panes on front)
+    const goggleMat = new THREE.MeshLambertMaterial({ color: 0x88bbdd, transparent: true, opacity: 0.7 });
+    const goggleGeo = new THREE.BoxGeometry(0.12, 0.1, 0.05);
+    const leftGoggle = new THREE.Mesh(goggleGeo, goggleMat);
+    leftGoggle.position.set(-0.13, 1.76, -0.29);
+    group.add(leftGoggle);
+    const rightGoggle = new THREE.Mesh(goggleGeo, goggleMat);
+    rightGoggle.position.set(0.13, 1.76, -0.29);
+    group.add(rightGoggle);
+
+    // Boot toes -- slight forward protrusion for detail
+    const toeGeo = new THREE.BoxGeometry(0.22, 0.1, 0.12);
+    const toeMat = new THREE.MeshLambertMaterial({ color: 0x1a0f00 });
+    const leftToe = new THREE.Mesh(toeGeo, toeMat);
+    leftToe.position.set(-0.15, 0.0, -0.14);
+    group.add(leftToe);
+    const rightToe = new THREE.Mesh(toeGeo, toeMat);
+    rightToe.position.set(0.15, 0.0, -0.14);
+    group.add(rightToe);
+
     return group;
   }
 
@@ -279,7 +299,24 @@ export class PlayerController {
   }
 
   update(delta: number): void {
-    if (this.state.isDead) return;
+    if (this.state.isDead) {
+      // Death fall-over animation: smoothly rotate to lying down over 0.5s
+      if (this.deathAnimTimer > 0) {
+        this.deathAnimTimer -= delta;
+        const progress = 1 - Math.max(0, this.deathAnimTimer / 0.5);
+        this.mesh.rotation.x = (Math.PI / 2) * progress;
+        // Apply slight bounce physics
+        this.state.velocity.y += -9.8 * delta;
+        this.state.position.y += this.state.velocity.y * delta;
+        const groundH = this.world.getHeightAt(this.state.position.x, this.state.position.z);
+        if (this.state.position.y < groundH + 0.3) {
+          this.state.position.y = groundH + 0.3;
+          this.state.velocity.y = 0;
+        }
+        this.mesh.position.copy(this.state.position);
+      }
+      return;
+    }
 
     // Slow health regen when not at full health
     if (this.state.health < 100 && this.state.health > 0) {
@@ -522,6 +559,8 @@ export class PlayerController {
     }
   }
 
+  private deathAnimTimer = 0;
+
   takeDamage(amount: number): void {
     if (this.state.isDead) return;
 
@@ -535,8 +574,9 @@ export class PlayerController {
     this.state.health = Math.max(0, this.state.health - dmg);
     if (this.state.health <= 0) {
       this.state.isDead = true;
-      // Death: fall over
-      this.mesh.rotation.x = Math.PI / 2;
+      this.deathAnimTimer = 0.5;
+      // Small upward bounce on death
+      this.state.velocity.y = 4;
     }
   }
 

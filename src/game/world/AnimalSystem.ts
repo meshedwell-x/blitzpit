@@ -263,6 +263,11 @@ export class AnimalSystem {
       animal.position.z = Math.max(-380, Math.min(380, animal.position.z));
 
       animal.mesh.position.copy(animal.position);
+
+      // Body bob when moving -- prevents sliding appearance
+      if (animal.state === 'roaming' || animal.state === 'aggressive' || animal.state === 'fleeing') {
+        animal.mesh.position.y += Math.sin(Date.now() * 0.01 + animal.position.x) * 0.05;
+      }
     }
   }
 

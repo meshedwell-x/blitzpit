@@ -316,6 +316,13 @@ export class VehicleSystem {
     v.mesh.position.copy(v.position);
     v.mesh.rotation.y = v.rotation;
 
+    // Wheel rotation -- spin based on speed
+    const childCount = v.mesh.children.length;
+    for (let wi = Math.max(0, childCount - 4); wi < childCount; wi++) {
+      const wheel = v.mesh.children[wi];
+      if (wheel) wheel.rotation.x += v.speed * delta * 0.5;
+    }
+
     // Visual suspension -- tilt based on terrain slope
     const frontH = this.world.getHeightAt(
       v.position.x - Math.sin(v.rotation) * 1.5,
