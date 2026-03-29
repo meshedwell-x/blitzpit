@@ -16,9 +16,9 @@ import { DayNightSystem } from '../world/DayNightSystem';
 import { BiomeSystem } from '../world/BiomeSystem';
 import { AnimalSystem } from '../world/AnimalSystem';
 import { SkinSystem } from '../shop/SkinSystem';
+import { initCallbacks } from './GameInit';
 import {
   WORLD_SIZE,
-  WEAPONS,
   REINFORCEMENT_FIRST_DELAY,
   REINFORCEMENT_INTERVAL,
   PLANE_ALTITUDE,
@@ -73,28 +73,17 @@ export class GameEngine {
   planeMesh: THREE.Group | null = null;
   playerDropMesh: THREE.Group | null = null;
 
-  // Flash effect
   flashTimer = 0;
-
-  // Damage direction indicator
   lastDamageFrom: THREE.Vector3 | null = null;
   lastDamageTime = 0;
-
-  // Reusable temp vectors
   _tmpBehind = new THREE.Vector3();
-
-  // Bot footstep timer
   botFootstepTimer = 0;
-
-  // Kill streak tracking
   killStreakTimer = 0;
 
-  // Reinforcement plane system -- periodic bot drops
   reinforcementTimer = REINFORCEMENT_FIRST_DELAY;
   reinforcementInterval = REINFORCEMENT_INTERVAL;
 
   isPaused = false;
-
   private _onPointerLockChange: (() => void) | null = null;
 
   skinSystem: SkinSystem = new SkinSystem();
@@ -106,7 +95,6 @@ export class GameEngine {
 
   constructor(container: HTMLElement) {
     this.container = container;
-
     const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     this.renderer = new THREE.WebGLRenderer({ antialias: !isMobile });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
@@ -118,11 +106,7 @@ export class GameEngine {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x87ceeb);
     this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0006);
-
-    this.camera = new THREE.PerspectiveCamera(
-      70, container.clientWidth / container.clientHeight, 0.1, 4000
-    );
-
+    this.camera = new THREE.PerspectiveCamera(70, container.clientWidth / container.clientHeight, 0.1, 4000);
     this.clock = new THREE.Clock();
     this.setupLighting();
 
@@ -149,7 +133,6 @@ export class GameEngine {
 
   private setupLighting(): void {
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-
     const sun = new THREE.DirectionalLight(0xfff5e0, 1.4);
     sun.position.set(100, 150, 80);
     sun.castShadow = true;
@@ -168,44 +151,21 @@ export class GameEngine {
 
   private createPlaneMesh(): THREE.Group {
     const g = new THREE.Group();
-    g.add(Object.assign(new THREE.Mesh(
-      new THREE.BoxGeometry(3, 3, 20),
-      new THREE.MeshLambertMaterial({ color: 0x8a8a8a })
-    ), {}));
-    const cp = new THREE.Mesh(
-      new THREE.BoxGeometry(2.5, 1.5, 3),
-      new THREE.MeshLambertMaterial({ color: 0x4488cc, transparent: true, opacity: 0.6 })
-    );
-    cp.position.set(0, 1.5, -8);
-    g.add(cp);
-    const w = new THREE.Mesh(
-      new THREE.BoxGeometry(28, 0.4, 5),
-      new THREE.MeshLambertMaterial({ color: 0x7a7a7a })
-    );
-    w.position.set(0, 0, -1);
-    g.add(w);
-    const t = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 6, 4),
-      new THREE.MeshLambertMaterial({ color: 0x7a7a7a })
-    );
-    t.position.set(0, 3, 8);
-    g.add(t);
-    const hs = new THREE.Mesh(
-      new THREE.BoxGeometry(10, 0.3, 3),
-      new THREE.MeshLambertMaterial({ color: 0x7a7a7a })
-    );
-    hs.position.set(0, 0, 8);
-    g.add(hs);
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(3, 3, 20), new THREE.MeshLambertMaterial({ color: 0x8a8a8a })));
+    const cp = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.5, 3), new THREE.MeshLambertMaterial({ color: 0x4488cc, transparent: true, opacity: 0.6 }));
+    cp.position.set(0, 1.5, -8); g.add(cp);
+    const w = new THREE.Mesh(new THREE.BoxGeometry(28, 0.4, 5), new THREE.MeshLambertMaterial({ color: 0x7a7a7a }));
+    w.position.set(0, 0, -1); g.add(w);
+    const t = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, 4), new THREE.MeshLambertMaterial({ color: 0x7a7a7a }));
+    t.position.set(0, 3, 8); g.add(t);
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(10, 0.3, 3), new THREE.MeshLambertMaterial({ color: 0x7a7a7a }));
+    hs.position.set(0, 0, 8); g.add(hs);
     const eMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
     const eGeo = new THREE.BoxGeometry(1.5, 1.5, 3);
     const le = new THREE.Mesh(eGeo, eMat); le.position.set(-7, -1.2, -1); g.add(le);
     const re = new THREE.Mesh(eGeo, eMat); re.position.set(7, -1.2, -1); g.add(re);
-    const s = new THREE.Mesh(
-      new THREE.BoxGeometry(3.1, 0.5, 0.1),
-      new THREE.MeshLambertMaterial({ color: 0xcc3333 })
-    );
-    s.position.set(0, 0, -10);
-    g.add(s);
+    const s = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.5, 0.1), new THREE.MeshLambertMaterial({ color: 0xcc3333 }));
+    s.position.set(0, 0, -10); g.add(s);
     return g;
   }
 
@@ -218,10 +178,6 @@ export class GameEngine {
     this.botSystem.spawn();
     this.vehicleSystem.init();
     this.vehicleSystem.spawnVehicles(20);
-    this.vehicleSystem.onHonk = () => {
-      this.soundManager.playHorn();
-    };
-
     this.animalSystem.spawn();
 
     this.planeMesh = this.createPlaneMesh();
@@ -239,122 +195,8 @@ export class GameEngine {
     this.playerDropMesh.visible = false;
     this.scene.add(this.playerDropMesh);
 
-    this.zoneSystem.onBotKill = (_botId: string) => {
-      this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
-    };
-
-    this.grenadeSystem.onExplosion = (pos, _damage, radius, type) => {
-      if (type === 'flash') this.flashTimer = 2.0;
-      if (type === 'frag') {
-        this.particleSystem.emitExplosion(pos, radius);
-        const dist = pos.distanceTo(this.player.state.position);
-        const vol = Math.max(0, 1 - dist / 300);
-        if (vol > 0) {
-          this.soundManager.playExplosion();
-        }
-        if (dist < 30) {
-          this.player.addShake(0.3 * (1 - dist / 30));
-        }
-      }
-    };
-
-    this.grenadeSystem.onBotKill = (_botId: string) => {
-      this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
-      this.scoreboardSystem.recordKill(false);
-      this.player.state.kills++;
-      this.soundManager.playKillConfirm();
-    };
-
-    this.weaponSystem.onFire = (weaponType, pos, dir) => {
-      this.soundManager.playGunshot(weaponType);
-      this.particleSystem.emitMuzzleFlash(pos, dir);
-      const weaponDef = WEAPONS[weaponType];
-      if (weaponDef) {
-        this.player.applyRecoil(weaponDef.recoilVertical, weaponDef.recoilHorizontal);
-      }
-    };
-
-    this.weaponSystem.onBotFire = (pos, _dir, weaponType) => {
-      this.soundManager.playGunshot3D(
-        weaponType,
-        pos,
-        this.player.state.position,
-        this.player.getYaw()
-      );
-    };
-
-    this.weaponSystem.onPickup = (pos) => {
-      this.soundManager.playPickup();
-      this.particleSystem.emitPickupGlow(pos);
-    };
-
-    this.botSystem.onBotHit = (pos, isHeadshot) => {
-      this.particleSystem.emitHitSpark(pos);
-      this.particleSystem.emitBlood(pos);
-      if (isHeadshot) this.soundManager.playHeadshot();
-      this.player.addShake(0.1);
-    };
-
-    this.botSystem.onBotDeath = (pos) => {
-      this.particleSystem.emitDeath(pos);
-    };
-
-    this.botSystem.onPlayerHit = (fromPos) => {
-      this.soundManager.playDamageTaken();
-      this.player.addShake(0.2);
-      this.lastDamageFrom = fromPos.clone();
-      this.lastDamageTime = Date.now();
-    };
-
-    this.weaponSystem.onMelee = (pos) => {
-      this.soundManager.playDamageTaken();
-      this.player.addShake(0.15);
-      const fwd = this.player.getForwardDirection();
-      const meleeTarget = pos.clone().add(fwd.clone().multiplyScalar(2));
-      const meleeDamage = this.weaponSystem.weapons[this.weaponSystem.activeSlot] ? 35 : 20;
-      for (const bot of this.botSystem.bots) {
-        if (bot.isDead) continue;
-        if (bot.position.distanceTo(meleeTarget) < 2.5) {
-          bot.health -= meleeDamage;
-          this.particleSystem.emitHitSpark(bot.position.clone());
-          if (bot.health <= 0 && !bot.isDead) {
-            bot.isDead = true;
-            bot.health = 0;
-            bot.mesh.rotation.x = Math.PI / 2;
-            this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
-            this.player.state.kills++;
-            this.scoreboardSystem.recordKill(false);
-            this.particleSystem.emitDeath(bot.position.clone());
-            this.soundManager.playKillConfirm();
-            bot.deathTime = Date.now();
-            const meleeKillerName = (typeof localStorage !== 'undefined' && localStorage.getItem('blitzpit_name')) || 'You';
-            this.botSystem.killFeed.push({
-              killer: meleeKillerName, victim: bot.name, weapon: 'Melee', time: Date.now()
-            });
-          }
-          break;
-        }
-      }
-    };
-
-    this.player.onFootstep = () => {
-      const groundH = this.world.getHeightAt(this.player.state.position.x, this.player.state.position.z);
-      if (groundH <= 4) {
-        this.soundManager.playFootstep('water');
-        return;
-      }
-      const biome = this.biomeSystem.getBiome(this.player.state.position.x, this.player.state.position.z);
-      const terrain = biome === 'tundra' ? 'snow' : biome === 'desert' ? 'sand' : biome === 'urban' ? 'concrete' : 'grass';
-      this.soundManager.playFootstep(terrain);
-    };
-
-    this.zoneSystem.onShrinkStart = () => {
-      this.soundManager.playZoneWarning();
-    };
-
-    this.zoneSystem.onPlayerOutsideZone = () => {
-      this.soundManager.playZoneWarning();
-    };
+    // Wire up all subsystem callbacks (extracted to GameInit.ts)
+    initCallbacks(this);
 
     this._onPointerLockChange = () => {
       if (!document.pointerLockElement && this.gameState.phase === 'playing') {
@@ -364,11 +206,9 @@ export class GameEngine {
     document.addEventListener('pointerlockchange', this._onPointerLockChange);
 
     this.botSystem.setWaveManager(this.waveManager);
-
     this.player.mesh.visible = false;
     const spawnH = this.world.getHeightAt(0, 0);
     this.player.state.position.set(0, spawnH + 50, 0);
-
     this.camera.position.set(0, 60, 80);
     this.camera.lookAt(0, 10, 0);
 
@@ -376,7 +216,6 @@ export class GameEngine {
     this.gameState.currentWave = 1;
     this.waveManager.currentWave = 1;
     this.notifyStateChange();
-
     this.skinSystem.applySkinToMesh(this.player.mesh);
   }
 
@@ -419,37 +258,15 @@ export class GameEngine {
     if (this.playerDropMesh) this.playerDropMesh.visible = true;
   }
 
-  // Mobile API methods
-  movePlayer(dx: number, dz: number): void {
-    this.player.setMobileInput(dx, dz);
-  }
-
-  rotateCamera(dx: number, dy: number): void {
-    this.player.addRotation(dx, dy);
-  }
-
-  fireWeapon(): void {
-    this.weaponSystem.triggerFire();
-  }
-
-  stopFire(): void {
-    this.weaponSystem.stopFire();
-  }
-
-  throwGrenadeAction(): void {
-    this.grenadeSystem.throwGrenade();
-  }
-
-  resume(): void {
-    this.isPaused = false;
-  }
+  movePlayer(dx: number, dz: number): void { this.player.setMobileInput(dx, dz); }
+  rotateCamera(dx: number, dy: number): void { this.player.addRotation(dx, dy); }
+  fireWeapon(): void { this.weaponSystem.triggerFire(); }
+  stopFire(): void { this.weaponSystem.stopFire(); }
+  throwGrenadeAction(): void { this.grenadeSystem.throwGrenade(); }
+  resume(): void { this.isPaused = false; }
 
   update(): void {
-    if (this.isPaused) {
-      this.renderer.render(this.scene, this.camera);
-      return;
-    }
-
+    if (this.isPaused) { this.renderer.render(this.scene, this.camera); return; }
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.gameState.gameTime += delta;
     if (this.flashTimer > 0) this.flashTimer -= delta;
@@ -461,25 +278,17 @@ export class GameEngine {
         this.camera.lookAt(0, 10, 0);
         break;
       }
-      case 'plane':
-        updatePlane(this, delta);
-        break;
+      case 'plane': updatePlane(this, delta); break;
       case 'dropping':
         updateDropping(this, delta);
-        // Bots should still move during player drop (don't freeze mid-air)
         this.botSystem.update(delta);
         this.dayNightSystem.update(delta);
         break;
-      case 'playing': {
-        updatePlayingPhase(this, delta);
-        break;
-      }
+      case 'playing': updatePlayingPhase(this, delta); break;
       case 'wave_transition': {
         this.particleSystem.update(delta);
         const done = this.waveManager.updateTransition(delta);
-        if (done) {
-          startNextWave(this);
-        }
+        if (done) startNextWave(this);
         break;
       }
       case 'dead':
@@ -487,7 +296,6 @@ export class GameEngine {
         this.particleSystem.update(delta);
         break;
     }
-
     this.renderer.render(this.scene, this.camera);
   }
 
