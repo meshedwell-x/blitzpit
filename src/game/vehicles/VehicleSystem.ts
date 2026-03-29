@@ -14,6 +14,7 @@ export interface Vehicle {
   isOccupied: boolean;
   occupantId: string | null;
   fuel: number;
+  headlight: THREE.PointLight | null;
 }
 
 export class VehicleSystem {
@@ -75,6 +76,7 @@ export class VehicleSystem {
         isOccupied: false,
         occupantId: null,
         fuel: 100,
+        headlight: null,
       });
     }
   }
@@ -284,6 +286,22 @@ export class VehicleSystem {
       this.player.mesh.visible = true;
       this.player.takeDamage(30);
       this.playerVehicle = null;
+    }
+  }
+
+  setNightMode(isNight: boolean): void {
+    for (const v of this.vehicles) {
+      if (isNight) {
+        if (!v.headlight) {
+          const light = new THREE.PointLight(0xffee88, 1.5, 30);
+          light.position.set(0, 1.5, -2);
+          v.mesh.add(light);
+          v.headlight = light;
+        }
+        v.headlight.visible = true;
+      } else {
+        if (v.headlight) v.headlight.visible = false;
+      }
     }
   }
 

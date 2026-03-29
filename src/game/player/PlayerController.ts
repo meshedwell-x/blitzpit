@@ -294,30 +294,36 @@ export class PlayerController {
     this.mesh.rotation.y = this.yaw;
     this.mesh.scale.y = this.state.isCrouching ? 0.7 : 1.0;
 
-    // Walk animation
+    // Walk animation -- Minecraft-style limb swing
+    const leftArm = this.mesh.getObjectByName('leftArm');
+    const rightArm = this.mesh.getObjectByName('rightArm');
+    const leftLeg = this.mesh.getObjectByName('leftLeg');
+    const rightLeg = this.mesh.getObjectByName('rightLeg');
+
     if (isMoving && this.state.isGrounded) {
-      this.animTime += delta * (this.state.isSprinting ? 12 : 8);
-      const swing = Math.sin(this.animTime) * 0.5;
+      const animSpeed = this.state.isSprinting ? 14 : 9;
+      this.animTime += delta * animSpeed;
+      const swing = Math.sin(this.animTime) * 0.8; // wider swing
+      const armSwing = Math.sin(this.animTime) * 0.6;
 
-      const leftArm = this.mesh.getObjectByName('leftArm');
-      const rightArm = this.mesh.getObjectByName('rightArm');
-      const leftLeg = this.mesh.getObjectByName('leftLeg');
-      const rightLeg = this.mesh.getObjectByName('rightLeg');
-
-      if (leftArm) leftArm.rotation.x = swing;
-      if (rightArm) rightArm.rotation.x = -swing;
+      if (leftArm) leftArm.rotation.x = armSwing;
+      if (rightArm) rightArm.rotation.x = -armSwing;
       if (leftLeg) leftLeg.rotation.x = -swing;
       if (rightLeg) rightLeg.rotation.x = swing;
+      // Slight body bob
+      this.mesh.position.y += Math.abs(Math.sin(this.animTime * 2)) * 0.05;
+    } else if (!this.state.isGrounded) {
+      // Airborne -- arms up, legs dangling
+      if (leftArm) leftArm.rotation.x = -0.4;
+      if (rightArm) rightArm.rotation.x = -0.4;
+      if (leftLeg) leftLeg.rotation.x = 0.2;
+      if (rightLeg) rightLeg.rotation.x = 0.2;
     } else {
-      // Reset pose
-      const leftArm = this.mesh.getObjectByName('leftArm');
-      const rightArm = this.mesh.getObjectByName('rightArm');
-      const leftLeg = this.mesh.getObjectByName('leftLeg');
-      const rightLeg = this.mesh.getObjectByName('rightLeg');
-      if (leftArm) leftArm.rotation.x *= 0.9;
-      if (rightArm) rightArm.rotation.x *= 0.9;
-      if (leftLeg) leftLeg.rotation.x *= 0.9;
-      if (rightLeg) rightLeg.rotation.x *= 0.9;
+      // Idle -- smooth return to rest
+      if (leftArm) leftArm.rotation.x *= 0.85;
+      if (rightArm) rightArm.rotation.x *= 0.85;
+      if (leftLeg) leftLeg.rotation.x *= 0.85;
+      if (rightLeg) rightLeg.rotation.x *= 0.85;
     }
 
     // 3rd person camera

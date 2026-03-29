@@ -24,6 +24,7 @@ export interface Bot {
   name: string;
   lootingTimeLeft: number; // required looting time before switching to fighting
   inBuilding: boolean; // is bot currently inside a building
+  flashlight: THREE.PointLight | null;
 }
 
 const BOT_NAMES = [
@@ -142,6 +143,7 @@ export class BotSystem {
         name: BOT_NAMES[i % BOT_NAMES.length] + (i >= BOT_NAMES.length ? `_${Math.floor(i / BOT_NAMES.length)}` : ''),
         lootingTimeLeft: lootTime,
         inBuilding: false,
+        flashlight: null,
       });
     }
   }
@@ -183,11 +185,11 @@ export class BotSystem {
           break;
       }
 
-      // Ground collision
-      const groundH = this.world.getHeightAt(bot.position.x, bot.position.z);
-      const surfaceY = groundH + 0.6;
-      if (bot.position.y < surfaceY) {
-        bot.position.y = surfaceY;
+      // Ground collision -- snap to terrain height (bots always walk on ground)
+      if (bot.state !== 'landing') {
+        const groundH = this.world.getHeightAt(bot.position.x, bot.position.z);
+        const surfaceY = groundH + 0.6;
+        bot.position.y = surfaceY; // Always snap to ground -- no floating
       }
 
       // Map bounds
@@ -197,14 +199,23 @@ export class BotSystem {
       // Update mesh
       bot.mesh.position.copy(bot.position);
 
-      // Walking animation
-      if (bot.velocity.length() > 0.5) {
-        const walkCycle = Math.sin(Date.now() * 0.01) * 0.3;
+      // Walking animation -- Minecraft-style swing based on movement
+      const isMoving = bot.state === 'roaming' || bot.state === 'fighting' || bot.state === 'fleeing' || bot.state === 'looting';
+      if (isMoving && bot.state !== 'landing') {
+        const walkSpeed = bot.state === 'fleeing' ? 0.015 : 0.01;
+        const walkCycle = Math.sin(Date.now() * walkSpeed + bot.position.x * 3) * 0.7;
         const legs = bot.mesh.children;
+        // legs[4]=leftLeg, legs[5]=rightLeg, legs[2]=leftArm, legs[3]=rightArm
         if (legs[4]) legs[4].rotation.x = walkCycle;
         if (legs[5]) legs[5].rotation.x = -walkCycle;
         if (legs[2]) legs[2].rotation.x = -walkCycle * 0.5;
         if (legs[3]) legs[3].rotation.x = walkCycle * 0.5;
+      } else {
+        const legs = bot.mesh.children;
+        if (legs[2]) legs[2].rotation.x *= 0.9;
+        if (legs[3]) legs[3].rotation.x *= 0.9;
+        if (legs[4]) legs[4].rotation.x *= 0.9;
+        if (legs[5]) legs[5].rotation.x *= 0.9;
       }
     }
   }
@@ -282,14 +293,14 @@ export class BotSystem {
       }
     }
 
-    // Bot-vs-bot: detect nearby armed bots
+    // Bot-vs-bot: detect nearby armed bots -- BATTLE ROYALE everyone fights everyone
     if (bot.weaponId && bot.lootingTimeLeft <= 0) {
       for (const other of this.bots) {
         if (other.id === bot.id || other.isDead) continue;
         const d = bot.position.distanceTo(other.position);
-        if (d < bot.detectionRange * 0.4) {
+        if (d < bot.detectionRange * 0.8) {
           bot.state = 'fighting';
-          bot.stateTimer = 3 + Math.random() * 5;
+          bot.stateTimer = 5 + Math.random() * 5;
           break;
         }
       }
@@ -347,79 +358,89 @@ export class BotSystem {
   }
 
   private updateFighting(bot: Bot, delta: number, playerPos: THREE.Vector3): void {
-    if (!bot.weaponId || this.player.state.isDead) {
+    if (!bot.weaponId) {
       bot.state = 'fleeing';
       bot.stateTimer = 5;
       return;
     }
 
-    const distToPlayer = bot.position.distanceTo(playerPos);
     const weapon = WEAPONS[bot.weaponId];
     if (!weapon) return;
 
-    // Detection range reduced in building
+    // Find nearest target: player OR other bot (BATTLE ROYALE -- everyone fights everyone)
+    let targetPos = playerPos;
+    let targetDist = this.player.state.isDead ? Infinity : bot.position.distanceTo(playerPos);
+    for (const other of this.bots) {
+      if (other.id === bot.id || other.isDead) continue;
+      const d = bot.position.distanceTo(other.position);
+      if (d < targetDist) {
+        targetDist = d;
+        targetPos = other.position;
+      }
+    }
+
     const effectiveDetection = bot.inBuilding
       ? bot.detectionRange * 0.5
       : bot.detectionRange;
 
-    // Lose interest if player too far
-    if (distToPlayer > effectiveDetection * 1.5) {
+    // Lose interest if target too far
+    if (targetDist > effectiveDetection * 2) {
       bot.state = 'roaming';
       bot.stateTimer = 5;
       return;
     }
 
-    // Seek cover when health is low (< 50%)
+    // Seek cover when health is low
     if (bot.health < 50) {
       const buildings = this.world.getBuildings();
       let nearestBuildingDist = Infinity;
-      const nearestBuildingCenter = new THREE.Vector3();
+      let ncx = 0, ncz = 0;
       for (const b of buildings) {
         const cx = b.x + b.width / 2;
         const cz = b.z + b.depth / 2;
-        const d = bot.position.distanceTo(new THREE.Vector3(cx, bot.position.y, cz));
+        const dx = bot.position.x - cx;
+        const dz = bot.position.z - cz;
+        const d = Math.sqrt(dx * dx + dz * dz);
         if (d < nearestBuildingDist) {
           nearestBuildingDist = d;
-          nearestBuildingCenter.set(cx, 0, cz);
+          ncx = cx; ncz = cz;
         }
       }
       if (nearestBuildingDist < 40 && !bot.inBuilding) {
-        const dirToCover = new THREE.Vector3()
-          .subVectors(nearestBuildingCenter, bot.position)
-          .setY(0)
-          .normalize();
-        bot.position.x += dirToCover.x * PLAYER_SPEED * 0.7 * delta;
-        bot.position.z += dirToCover.z * PLAYER_SPEED * 0.7 * delta;
-        bot.mesh.rotation.y = Math.atan2(dirToCover.x, dirToCover.z);
+        const dx = ncx - bot.position.x;
+        const dz = ncz - bot.position.z;
+        const len = Math.sqrt(dx * dx + dz * dz) || 1;
+        bot.position.x += (dx / len) * PLAYER_SPEED * 0.7 * delta;
+        bot.position.z += (dz / len) * PLAYER_SPEED * 0.7 * delta;
       }
     }
 
-    // Face player
+    // Face target
     const dir = this._tmpDir
-      .subVectors(playerPos, bot.position)
+      .subVectors(targetPos, bot.position)
       .setY(0)
       .normalize();
     bot.mesh.rotation.y = Math.atan2(dir.x, dir.z);
 
     // Optimal range behavior
     const optimalRange = weapon.range * 0.4;
-    if (distToPlayer > optimalRange * 1.5) {
+    if (targetDist > optimalRange * 1.5) {
       bot.position.x += dir.x * PLAYER_SPEED * 0.5 * delta;
       bot.position.z += dir.z * PLAYER_SPEED * 0.5 * delta;
-    } else if (distToPlayer < optimalRange * 0.5) {
+    } else if (targetDist < optimalRange * 0.5) {
       bot.position.x -= dir.x * PLAYER_SPEED * 0.4 * delta;
       bot.position.z -= dir.z * PLAYER_SPEED * 0.4 * delta;
     } else {
       this._tmpStrafeDir.set(-dir.z, 0, dir.x);
-      const strafeSide = Math.sin(Date.now() * 0.002 + bot.position.x) > 0 ? 1 : -1;
+      const strafeSide = Math.sin(Date.now() * 0.002 + bot.skill * 1000 + bot.position.x * 7.3) > 0 ? 1 : -1;
       bot.position.x += this._tmpStrafeDir.x * PLAYER_SPEED * 0.3 * strafeSide * delta;
       bot.position.z += this._tmpStrafeDir.z * PLAYER_SPEED * 0.3 * strafeSide * delta;
     }
 
-    // Fire at player
-    if (distToPlayer < weapon.range && bot.fireTimer <= 0) {
+    // Fire at target (player or bot)
+    if (targetDist < weapon.range && bot.fireTimer <= 0) {
       const fireDir = this._tmpFireDir
-        .subVectors(playerPos, bot.position)
+        .subVectors(targetPos, bot.position)
         .normalize();
 
       const inaccuracy = (1 - bot.accuracy) * 0.15;
@@ -445,8 +466,6 @@ export class BotSystem {
       bot.stateTimer = 5;
       return;
     }
-
-    this.botVsBotCombat(bot, delta);
   }
 
   private updateFleeing(bot: Bot, delta: number, playerPos: THREE.Vector3): void {
@@ -467,26 +486,7 @@ export class BotSystem {
     }
   }
 
-  private botVsBotCombat(attacker: Bot, _delta: number): void {
-    for (const target of this.bots) {
-      if (target.id === attacker.id || target.isDead) continue;
-      const dist = attacker.position.distanceTo(target.position);
-      if (dist < 20 && dist < attacker.detectionRange * 0.5) {
-        // Occasionally shoot at other bots
-        if (Math.random() < 0.02 && attacker.weaponId) {
-          this._tmpDir
-            .subVectors(target.position, attacker.position)
-            .normalize();
-          this._tmpFirePos.copy(attacker.position);
-          this._tmpFirePos.y += 0.5;
-          this.weaponSystem.fireBotWeapon(
-            this._tmpFirePos,
-            this._tmpDir, attacker.weaponId, attacker.id
-          );
-        }
-      }
-    }
-  }
+  // botVsBotCombat removed -- updateFighting now targets nearest enemy (player OR bot)
 
   checkBulletHits(bullets: { position: THREE.Vector3; damage: number; ownerId: string }[]): void {
     for (let bi = bullets.length - 1; bi >= 0; bi--) {
@@ -743,7 +743,25 @@ export class BotSystem {
         name: BOT_NAMES[i % BOT_NAMES.length] + (i >= BOT_NAMES.length ? `_${Math.floor(i / BOT_NAMES.length)}` : ''),
         lootingTimeLeft: lootTime,
         inBuilding: false,
+        flashlight: null,
       });
+    }
+  }
+
+  setNightMode(isNight: boolean): void {
+    for (const bot of this.bots) {
+      if (bot.isDead) continue;
+      if (isNight) {
+        if (!bot.flashlight) {
+          const light = new THREE.PointLight(0xffddaa, 0.8, 15);
+          light.position.set(0, 1.2, -0.5);
+          bot.mesh.add(light);
+          bot.flashlight = light;
+        }
+        bot.flashlight.visible = true;
+      } else {
+        if (bot.flashlight) bot.flashlight.visible = false;
+      }
     }
   }
 

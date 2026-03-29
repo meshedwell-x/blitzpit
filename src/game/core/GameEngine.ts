@@ -405,10 +405,7 @@ export class GameEngine {
   private updateDropping(delta: number): void {
     const groundH = this.world.getHeightAt(this.player.state.position.x, this.player.state.position.z);
 
-    // Safety auto-open very close to ground (15m)
-    if (!this.parachuteOpen && this.player.state.position.y < groundH + 15) {
-      this.openParachute();
-    }
+    // No safety net -- if you don't open parachute, you take fall damage on landing
 
     // WASD horizontal steering during drop
     const keys = this.player.keys;
@@ -463,6 +460,17 @@ export class GameEngine {
 
     if (this.player.state.position.y <= groundH + 0.6) {
       this.player.state.position.y = groundH + 0.6;
+      // Fall damage based on landing speed -- no parachute = death
+      if (!this.parachuteOpen) {
+        // Freefall at 55 m/s = instant death
+        this.player.takeDamage(200);
+        this.soundManager.playExplosion();
+        this.player.addShake(0.5);
+      } else if (this.dropSpeed > 12) {
+        // Hard landing
+        this.player.takeDamage(20);
+        this.player.addShake(0.3);
+      }
       this.player.state.velocity.set(0, 0, 0);
       this.player.state.isGrounded = true;
       this.gameState.phase = 'playing';
@@ -608,20 +616,31 @@ export class GameEngine {
               }
             }
 
-            // Building collision
+            // Building collision -- push vehicle out completely
             const buildings = this.world.getBuildings();
             for (const b of buildings) {
               const baseH = this.world.getHeightAt(b.x, b.z);
               if (
-                v.position.x > b.x - 1 && v.position.x < b.x + b.width + 1 &&
-                v.position.z > b.z - 1 && v.position.z < b.z + b.depth + 1 &&
+                v.position.x > b.x - 1.5 && v.position.x < b.x + b.width + 1.5 &&
+                v.position.z > b.z - 1.5 && v.position.z < b.z + b.depth + 1.5 &&
                 v.position.y < baseH + b.height + 2
               ) {
                 const speedBefore = Math.abs(v.speed);
                 v.speed = 0;
-                v.health -= speedBefore * 2 + 5;
-                v.position.x -= Math.sin(v.rotation) * 1;
-                v.position.z -= Math.cos(v.rotation) * 1;
+                if (speedBefore > 2) {
+                  v.health -= speedBefore * 2 + 5;
+                  this.soundManager.playExplosion();
+                  this.player.addShake(0.2);
+                }
+                // Push out strongly
+                const cx = b.x + b.width / 2;
+                const cz = b.z + b.depth / 2;
+                const pushX = v.position.x - cx;
+                const pushZ = v.position.z - cz;
+                const pushLen = Math.sqrt(pushX * pushX + pushZ * pushZ) || 1;
+                v.position.x += (pushX / pushLen) * 4;
+                v.position.z += (pushZ / pushLen) * 4;
+                v.mesh.position.copy(v.position);
                 break;
               }
             }
@@ -648,6 +667,9 @@ export class GameEngine {
 
         // Day/night cycle
         this.dayNightSystem.update(delta);
+        // Night mode -- headlights and flashlights
+        this.vehicleSystem.setNightMode(this.dayNightSystem.isNight);
+        this.botSystem.setNightMode(this.dayNightSystem.isNight);
 
         // Biome effects on player
         const playerBiome = this.biomeSystem.getBiome(
