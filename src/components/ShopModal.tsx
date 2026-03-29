@@ -141,7 +141,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
       onClick={onClose}
     >
       <div
-        className="bg-[#12150f]/98 border border-[#c4a35a]/25 w-full max-w-2xl max-h-[92vh] flex flex-col mx-4"
+        className="bg-[#12150f]/98 border border-[#c4a35a]/25 w-full max-w-2xl max-h-[92vh] flex flex-col mx-1 md:mx-4"
         style={{
           fontFamily: "'Rajdhani', sans-serif",
           clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))',
@@ -149,20 +149,20 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative px-5 py-3 border-b border-[#c4a35a]/15">
+        <div className="relative px-3 py-2 md:px-5 md:py-3 border-b border-[#c4a35a]/15">
           {/* Diagonal stripe accent */}
           <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#d4a24e]" />
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-[#c4a35a] font-bold text-2xl tracking-[0.3em] uppercase"
+              <h2 className="text-[#c4a35a] font-bold text-lg md:text-2xl tracking-[0.2em] md:tracking-[0.3em] uppercase"
                 style={{ fontFamily: "'Teko', sans-serif" }}>
                 BLITZ STORE
               </h2>
-              <div className="flex items-center gap-3 mt-0.5">
-                <p className="text-sm font-mono font-bold text-[#d4a24e]">
+              <div className="flex items-center gap-2 md:gap-3 mt-0.5">
+                <p className="text-xs md:text-sm font-mono font-bold text-[#d4a24e]">
                   {skinSystem.purchases.blitzCoins.toLocaleString()} BC
                 </p>
-                <p className="text-sm font-mono font-bold text-[#4a6741]">
+                <p className="text-xs md:text-sm font-mono font-bold text-[#4a6741]">
                   {skinSystem.purchases.blitzPoints.toLocaleString()} WP
                 </p>
                 {skinSystem.purchases.isVIP && (
@@ -174,8 +174,8 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
             </div>
 
             {/* Character Preview */}
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col items-center gap-0.5 p-2 bg-[#1a1f16] border border-[#c4a35a]/10">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="hidden sm:flex flex-col items-center gap-0.5 p-2 bg-[#1a1f16] border border-[#c4a35a]/10">
                 <div className="text-[8px] font-mono text-[#6b7b6a] mb-1 tracking-wider uppercase">PREVIEW</div>
                 <div className="flex flex-col items-center">
                   <div style={{ width: 18, height: 8, background: toHex(previewColors.body), opacity: 0.8 }} />
@@ -206,8 +206,8 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         </div>
 
         {/* Tabs */}
-        <div className="px-3 py-2 border-b border-[#c4a35a]/10 bg-[#0d0f0b]/50">
-          <div className="flex flex-wrap gap-0.5">
+        <div className="px-2 md:px-3 py-1.5 md:py-2 border-b border-[#c4a35a]/10 bg-[#0d0f0b]/50 overflow-x-auto">
+          <div className="flex gap-0.5 min-w-max md:min-w-0 md:flex-wrap">
             {(Object.keys(TAB_LABELS) as ShopTab[]).map(t => (
               <button
                 key={t}
@@ -235,7 +235,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         )}
 
         {/* Content */}
-        <div className="overflow-y-auto flex-1 p-4">
+        <div className="overflow-y-auto flex-1 p-2 md:p-4">
           {tab === 'crates' && (
             <div className="flex flex-col gap-4">
               <p className="text-[#6b7b6a] text-xs font-mono uppercase tracking-wider">Open supply crates for random field equipment. Basic crates cost WP. Premium crates cost BC.</p>
@@ -427,7 +427,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                 </div>
               </div>
               {/* Utility items */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
                 {visibleItems.map(item => {
                   const rarityColor = RARITY_COLORS_HEX[item.rarity];
                   const barColor = RARITY_BAR[item.rarity] ?? '#6b7b6a';
@@ -490,7 +490,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
           )}
 
           {(tab === 'skins' || tab === 'effects' || tab === 'weapons' || tab === 'vehicles') && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
               {visibleItems.map(item => {
                 const owned = skinSystem.owns(item.id);
                 const equipped = isEquipped(item.id, item.category);
@@ -580,9 +580,9 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-2 border-t border-[#c4a35a]/10 text-center">
-          <p className="text-[#6b7b6a] text-[10px] font-mono uppercase tracking-wider">
-            Earn WP by playing (10 per kill, 50 per wave). Earn BC via the BLITZ COINS tab.
+        <div className="px-3 py-1.5 md:px-5 md:py-2 border-t border-[#c4a35a]/10 text-center">
+          <p className="text-[#6b7b6a] text-[8px] md:text-[10px] font-mono uppercase tracking-wider">
+            Earn WP by playing (10/kill, 50/wave). BC via BLITZ COINS tab.
           </p>
         </div>
       </div>

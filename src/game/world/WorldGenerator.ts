@@ -193,53 +193,18 @@ export class WorldGenerator {
   }
 
   private addWater(): void {
-    // Main ocean plane extending far beyond the island
-    const waterGeo = new THREE.PlaneGeometry(WORLD_SIZE * 6, WORLD_SIZE * 6);
+    // Single opaque water plane well below terrain to eliminate z-fighting
+    const waterGeo = new THREE.PlaneGeometry(WORLD_SIZE * 8, WORLD_SIZE * 8);
     const waterMat = new THREE.MeshLambertMaterial({
-      color: 0x2a6bc5,
-      transparent: true,
-      opacity: 0.6,
-      side: THREE.DoubleSide,
+      color: 0x2d6ea3,
+      side: THREE.FrontSide,
       depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
     });
     const water = new THREE.Mesh(waterGeo, waterMat);
     water.rotation.x = -Math.PI / 2;
-    water.position.y = WATER_LEVEL - 0.3;
-    water.renderOrder = 1;
+    water.position.y = WATER_LEVEL - 1.0;
+    water.renderOrder = -1;
     this.scene.add(water);
-
-    // Shallow water ring for coastline transition (lighter color, clearly above water)
-    const shallowGeo = new THREE.RingGeometry(WORLD_SIZE * 0.38, WORLD_SIZE * 0.52, 64);
-    const shallowMat = new THREE.MeshLambertMaterial({
-      color: 0x4a9ad5,
-      transparent: true,
-      opacity: 0.4,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const shallow = new THREE.Mesh(shallowGeo, shallowMat);
-    shallow.rotation.x = -Math.PI / 2;
-    shallow.position.y = WATER_LEVEL - 0.1;
-    shallow.renderOrder = 2;
-    this.scene.add(shallow);
-
-    // Beach foam ring at the waterline
-    const foamGeo = new THREE.RingGeometry(WORLD_SIZE * 0.35, WORLD_SIZE * 0.40, 64);
-    const foamMat = new THREE.MeshLambertMaterial({
-      color: 0x8acfea,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const foam = new THREE.Mesh(foamGeo, foamMat);
-    foam.rotation.x = -Math.PI / 2;
-    foam.position.y = WATER_LEVEL + 0.1;
-    foam.renderOrder = 3;
-    this.scene.add(foam);
   }
 
   private buildTerrainMesh(): void {

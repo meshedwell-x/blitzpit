@@ -28,8 +28,6 @@ import {
   PLANE_ALTITUDE,
   PLANE_SPEED,
   PLANE_AUTO_DROP_TIME,
-  DROP_SPEED_FREEFALL,
-  DROP_SPEED_PARACHUTE,
 } from './constants';
 
 export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'wave_transition' | 'dead';
@@ -441,7 +439,7 @@ export class GameEngine {
     if (this.gameState.phase !== 'plane') return;
     this.gameState.phase = 'dropping';
     this.parachuteOpen = false;
-    this.dropSpeed = DROP_SPEED_FREEFALL;
+    this.dropSpeed = 15; // Start at base spread-eagle speed, player controls acceleration
     this.player.state.velocity.set(
       this.planeDirection.x * 20, -this.dropSpeed, this.planeDirection.z * 20
     );
@@ -455,7 +453,7 @@ export class GameEngine {
   openParachute(): void {
     if (this.gameState.phase !== 'dropping') return;
     this.parachuteOpen = true;
-    this.dropSpeed = DROP_SPEED_PARACHUTE;
+    this.dropSpeed = 5; // Parachute: gentle descent
     if (this.playerDropMesh) this.playerDropMesh.visible = true;
   }
 
@@ -514,30 +512,52 @@ export class GameEngine {
 
   private updateDropping(delta: number): void {
     const groundH = this.world.getHeightAt(this.player.state.position.x, this.player.state.position.z);
+    const altitude = this.player.state.position.y - groundH;
 
-    // No safety net -- if you don't open parachute, you take fall damage on landing
+    // Auto-deploy parachute at very low altitude if player hasn't opened it
+    if (!this.parachuteOpen && altitude < 20) {
+      this.openParachute();
+    }
 
-    // WASD horizontal steering during drop
     const keys = this.player.keys;
     const yaw = this.player.getYaw();
-    const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
-    const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
-    const moveDir = new THREE.Vector3();
-    if (keys.has('KeyW')) moveDir.add(forward);
-    if (keys.has('KeyS')) moveDir.sub(forward);
-    if (keys.has('KeyA')) moveDir.sub(right);
-    if (keys.has('KeyD')) moveDir.add(right);
-    if (moveDir.length() > 0) moveDir.normalize();
 
-    const horizontalSpeed = this.parachuteOpen ? 8 : 15;
+    if (this.parachuteOpen) {
+      // === PARACHUTE PHASE: slow descent, good lateral control ===
+      this.dropSpeed = 5;
+      const lateralSpeed = 12;
+      let fwd = 0;
+      let strafe = 0;
+      if (keys.has('KeyW')) fwd = lateralSpeed;
+      if (keys.has('KeyS')) fwd = -lateralSpeed * 0.5;
+      if (keys.has('KeyA')) strafe -= lateralSpeed;
+      if (keys.has('KeyD')) strafe += lateralSpeed;
 
-    this.player.state.position.y -= this.dropSpeed * delta;
-    if (moveDir.length() > 0) {
-      this.player.state.position.x += moveDir.x * horizontalSpeed * delta;
-      this.player.state.position.z += moveDir.z * horizontalSpeed * delta;
-    } else if (!this.parachuteOpen) {
-      this.player.state.position.x += this.player.state.velocity.x * delta * 0.3;
-      this.player.state.position.z += this.player.state.velocity.z * delta * 0.3;
+      this.player.state.position.x += (-Math.sin(yaw) * fwd + -Math.cos(yaw) * strafe) * delta;
+      this.player.state.position.z += (-Math.cos(yaw) * fwd + Math.sin(yaw) * strafe) * delta;
+      this.player.state.position.y -= this.dropSpeed * delta;
+    } else {
+      // === FREEFALL PHASE: realistic skydiving ===
+      const baseDescend = 15; // base fall speed (spread-eagle default)
+      const diveBoost = keys.has('KeyW') ? 3.0 : 1.0; // W = head-down dive, much faster
+      const spreadSlow = keys.has('KeyS') ? 0.4 : 1.0; // S = spread-eagle, slower
+      const fallSpeed = baseDescend * diveBoost * spreadSlow;
+      this.dropSpeed = fallSpeed;
+
+      // Lateral movement: diving forward gives big forward push, strafe always available
+      const lateralSpeed = 8;
+      const fwd = keys.has('KeyW') ? lateralSpeed * 2 : 0; // dive = strong forward movement
+      const strafe = (keys.has('KeyA') ? -lateralSpeed : 0) + (keys.has('KeyD') ? lateralSpeed : 0);
+
+      const vx = -Math.sin(yaw) * fwd + -Math.cos(yaw) * strafe;
+      const vz = -Math.cos(yaw) * fwd + Math.sin(yaw) * strafe;
+
+      this.player.state.position.x += vx * delta;
+      this.player.state.position.z += vz * delta;
+      this.player.state.position.y -= fallSpeed * delta;
+
+      // Store velocity for momentum on landing
+      this.player.state.velocity.set(vx, -fallSpeed, vz);
     }
 
     this.player.mesh.position.copy(this.player.state.position);

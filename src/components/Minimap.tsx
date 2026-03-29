@@ -146,7 +146,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
 
   return (
     <div className="absolute top-10 left-2">
-      <canvas ref={canvasRef} className="border shadow-lg" style={{ width: 170, height: 170, borderColor: '#4a4535' }} />
+      <canvas ref={canvasRef} className="border shadow-lg w-[100px] h-[100px] md:w-[170px] md:h-[170px]" style={{ borderColor: '#4a4535' }} />
     </div>
   );
 }
