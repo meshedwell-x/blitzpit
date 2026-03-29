@@ -116,7 +116,7 @@ export default function GameUI() {
             if (packId === 'welcome') {
               skinSystem.current.buyWelcomePack();
             }
-            setPaymentSuccess(`Payment successful! ${(data.coins ?? 0) > 0 ? `+${data.coins} CUB` : 'Welcome Pack activated!'}`);
+            setPaymentSuccess(`Payment successful! ${(data.coins ?? 0) > 0 ? `+${data.coins} BC` : 'Welcome Pack activated!'}`);
             setTimeout(() => setPaymentSuccess(null), 5000);
           };
           grantCoins();
@@ -317,10 +317,10 @@ export default function GameUI() {
         {muted ? 'OFF' : 'SND'}
       </button>
 
-      {/* CUB COINS + WILD POINTS HUD -- shifted left to not overlap SND button */}
+      {/* BLITZ COINS + WILD POINTS HUD -- shifted left to not overlap SND button */}
       {gameState.phase === 'playing' && skinSystem.current && (
         <div className="absolute top-2 right-12 bg-black/50 px-2 py-1 rounded text-[10px] font-mono flex gap-2">
-          <span className="text-yellow-400">{skinSystem.current.purchases.blitzCoins} CUB</span>
+          <span className="text-yellow-400">{skinSystem.current.purchases.blitzCoins} BC</span>
           <span className="text-green-400">{skinSystem.current.purchases.blitzPoints} WP</span>
         </div>
       )}
@@ -868,7 +868,7 @@ export default function GameUI() {
           {skinSystem.current && !skinSystem.current.purchases.welcomePurchased && (
             <div className="bg-yellow-900/60 border border-yellow-500 rounded-lg p-3 mb-3 text-center w-80 max-w-[90vw]">
               <div className="text-yellow-400 font-bold text-sm">WELCOME PACK -- &#8377;9</div>
-              <div className="text-gray-300 text-xs">500 CUB + VIP Badge + Random Skin</div>
+              <div className="text-gray-300 text-xs">500 BC + VIP Badge + Random Skin</div>
               <button onClick={() => {
                 skinSystem.current!.buyWelcomePack();
                 setShowShop(false);

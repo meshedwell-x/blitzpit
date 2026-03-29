@@ -66,7 +66,7 @@ export interface BlitzCoinPack {
 export const WELCOME_PACK = {
   id: 'welcome',
   name: 'WELCOME PACK',
-  description: '500 BLITZ + VIP Badge + Random Skin',
+  description: '500 BC + VIP Badge + Random Skin',
   priceINR: 9,
   priceUSD: 0.11,
   coins: 500,
@@ -82,7 +82,7 @@ export const BLITZ_COIN_PACKS: BlitzCoinPack[] = [
 ];
 
 export const DAILY_DEALS = [
-  { id: 'daily_boost', name: 'DAILY BOOST', description: '200 CUB + 2x XP 1hr + Random Kill Effect', priceINR: 19, priceUSD: 0.23, daily: true },
+  { id: 'daily_boost', name: 'DAILY BOOST', description: '200 BC + 2x XP 1hr + Random Kill Effect', priceINR: 19, priceUSD: 0.23, daily: true },
   { id: 'lucky_box', name: 'LUCKY BOX', description: 'Random Skin (Legendary 1%!)', priceINR: 29, priceUSD: 0.35, daily: true },
 ];
 
