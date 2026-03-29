@@ -3,6 +3,30 @@ import { useState } from 'react';
 import { SHOP_ITEMS, BLITZ_COIN_PACKS, RARITY_COLORS_HEX, WELCOME_PACK, DAILY_DEALS, SUPPLY_CRATES } from '../game/shop/monetization';
 import { SkinSystem } from '../game/shop/SkinSystem';
 
+const BLITZPIT_API = 'https://blitzpit-api.meshedwell.workers.dev';
+
+async function stripeCheckout(packId: string): Promise<void> {
+  try {
+    const res = await fetch(`${BLITZPIT_API}/api/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        packId,
+        successUrl: window.location.origin + window.location.pathname,
+        cancelUrl: window.location.origin + window.location.pathname,
+      }),
+    });
+    const data = await res.json() as { url?: string; error?: string };
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      console.error('Stripe checkout error:', data.error);
+    }
+  } catch (err) {
+    console.error('Checkout failed:', err);
+  }
+}
+
 type ShopTab = 'welcome' | 'crates' | 'skins' | 'weapons' | 'vehicles' | 'effects' | 'utility' | 'coins';
 
 export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: SkinSystem; onClose: () => void; onSkinChange?: () => void }) {
@@ -125,20 +149,22 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700 overflow-x-auto">
-          {(Object.keys(TAB_LABELS) as ShopTab[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-2 text-xs font-bold font-mono tracking-wider transition-colors whitespace-nowrap px-2 ${
-                tab === t
-                  ? 'text-white border-b-2 border-purple-500 bg-purple-900/20'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {TAB_LABELS[t]}
-            </button>
-          ))}
+        <div className="px-3 py-2 border-b border-gray-700">
+          <div className="flex flex-wrap gap-1">
+            {(Object.keys(TAB_LABELS) as ShopTab[]).map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-2 py-1 text-[10px] font-mono rounded transition-colors ${
+                  tab === t
+                    ? 'bg-white/20 text-white'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {TAB_LABELS[t]}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Crate Result Popup */}
@@ -224,7 +250,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                   </div>
                 ) : (
                   <button
-                    onClick={() => { skinSystem.buyWelcomePack(); refresh(); }}
+                    onClick={() => stripeCheckout('welcome')}
                     className="w-full py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-sm rounded active:scale-95 transition-all"
                   >
                     GET FOR &#8377;{WELCOME_PACK.priceINR}
@@ -248,7 +274,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                       <p className="text-gray-400 text-xs mb-2">{deal.description}</p>
                       <button
                         className="w-full py-1.5 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded active:scale-95 transition-all"
-                        onClick={() => { skinSystem.addCoins(200); refresh(); }}
+                        onClick={() => stripeCheckout(deal.id)}
                       >
                         BUY &#8377;{deal.priceINR}
                       </button>
@@ -285,10 +311,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                   </div>
                   <button
                     className="w-full py-1.5 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-sm rounded active:scale-95 transition-all"
-                    onClick={() => {
-                      skinSystem.addCoins(pack.coins + pack.bonus);
-                      refresh();
-                    }}
+                    onClick={() => stripeCheckout(pack.id)}
                   >
                     BUY &#8377;{pack.priceINR}
                   </button>
@@ -314,7 +337,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                       <p className="text-gray-400 text-[10px] mb-2">{deal.description}</p>
                       <button
                         className="w-full py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded active:scale-95"
-                        onClick={() => { skinSystem.addCoins(200); refresh(); }}
+                        onClick={() => stripeCheckout(deal.id)}
                       >
                         BUY &#8377;{deal.priceINR}
                       </button>

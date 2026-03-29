@@ -373,11 +373,11 @@ export default function GameUI() {
         return (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="relative" style={{ width: size, height: size }}>
-              <div className="absolute left-1/2 -translate-x-1/2" style={{ top: 0, width: 2, height: gap, background: 'rgba(255,255,255,0.7)' }} />
-              <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: 0, width: 2, height: gap, background: 'rgba(255,255,255,0.7)' }} />
-              <div className="absolute top-1/2 -translate-y-1/2" style={{ left: 0, width: gap, height: 2, background: 'rgba(255,255,255,0.7)' }} />
-              <div className="absolute top-1/2 -translate-y-1/2" style={{ right: 0, width: gap, height: 2, background: 'rgba(255,255,255,0.7)' }} />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-red-500/60" />
+              <div className="absolute left-1/2 -translate-x-1/2" style={{ top: 0, width: 2, height: gap, background: 'rgba(255,255,255,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.8)' }} />
+              <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: 0, width: 2, height: gap, background: 'rgba(255,255,255,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.8)' }} />
+              <div className="absolute top-1/2 -translate-y-1/2" style={{ left: 0, width: gap, height: 2, background: 'rgba(255,255,255,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.8)' }} />
+              <div className="absolute top-1/2 -translate-y-1/2" style={{ right: 0, width: gap, height: 2, background: 'rgba(255,255,255,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.8)' }} />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 border border-red-300/50" />
             </div>
           </div>
         );
@@ -478,7 +478,7 @@ export default function GameUI() {
               const isMyKill = k.killer === myName || k.killer === 'You';
               const isMyDeath = k.victim === myName || k.victim === 'You';
               return (
-                <div key={`${k.time}_${i}`} className={`px-2 py-0.5 rounded text-[12px] font-mono flex gap-1 ${isMyKill ? 'bg-yellow-900/50 border border-yellow-600/40' : 'bg-black/60'}`}>
+                <div key={`${k.time}_${i}`} className={`bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-mono flex gap-1.5 ${isMyKill ? 'border border-yellow-600/40' : ''}`}>
                   <span className={isMyKill ? 'text-yellow-300 font-bold' : 'text-white'}>{k.killer}</span>
                   <span className="text-gray-500">[{k.weapon}]</span>
                   <span className={isMyDeath ? 'text-red-400 font-bold' : 'text-gray-300'}>{k.victim}</span>
@@ -494,7 +494,7 @@ export default function GameUI() {
         <div className="absolute bottom-20 left-3 md:bottom-4 flex flex-col gap-1">
           <div className="flex items-center gap-1.5">
             <span className="text-white text-[10px] font-mono w-5">HP</span>
-            <div className="w-32 md:w-44 h-3 bg-black/60 border border-gray-600 rounded-sm overflow-hidden">
+            <div className="w-36 md:w-48 h-3.5 bg-black/70 border border-gray-600 rounded overflow-hidden">
               <div className="h-full transition-all duration-200" style={{
                 width: `${health}%`,
                 backgroundColor: health > 60 ? '#22c55e' : health > 30 ? '#eab308' : '#ef4444',
@@ -504,7 +504,7 @@ export default function GameUI() {
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-blue-300 text-[10px] font-mono w-5">AR</span>
-            <div className="w-32 md:w-44 h-2.5 bg-black/60 border border-gray-600 rounded-sm overflow-hidden">
+            <div className="w-36 md:w-48 h-3 bg-black/70 border border-gray-600 rounded overflow-hidden">
               <div className="h-full bg-blue-500 transition-all duration-200" style={{ width: `${armor}%` }} />
             </div>
             <span className="text-blue-300 text-[10px] font-mono w-6">{Math.ceil(armor)}</span>
@@ -519,10 +519,10 @@ export default function GameUI() {
             {weapons.map((w, i) => {
               const rarity = w?.def.rarity ?? 'common';
               return (
-                <div key={i} className={`px-2 py-1 border rounded text-[10px] font-mono ${
+                <div key={i} className={`px-3 py-1.5 border-2 rounded-lg text-[11px] font-mono transition-all ${
                   i === activeSlot
-                    ? `${RARITY_COLORS[rarity]} ${RARITY_BG[rarity]} border-2`
-                    : 'border-gray-600 bg-black/50 text-gray-400'
+                    ? `${RARITY_COLORS[rarity]} ${RARITY_BG[rarity]} scale-105`
+                    : 'border-gray-700 bg-black/60 text-gray-500'
                 }`}>
                   <div className="text-[8px] text-gray-500">{i + 1}</div>
                   {w ? w.def.name : 'Empty'}
@@ -582,20 +582,27 @@ export default function GameUI() {
         </div>
       )}
       {inVehicle && (
-        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 bg-black/70 px-4 py-2 rounded border border-blue-500/50 flex gap-4 items-center">
-          <span className="text-blue-300 text-xs font-mono">[E] Exit</span>
-          <span className="text-yellow-300 text-xs font-mono">
-            FUEL {Math.round(engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0)}%
-          </span>
-          <span className="text-white text-xs font-mono">
-            {Math.round(Math.abs(engineRef.current?.vehicleSystem.playerVehicle?.speed ?? 0))} km/h
-          </span>
-          <span className="text-green-400 text-xs font-mono">
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur px-5 py-2.5 rounded-lg border border-gray-600/50 flex gap-5 items-center">
+          <span className="text-blue-300 text-xs font-mono font-bold">[E] Exit</span>
+          <div className="text-center">
+            <div className="text-white text-lg font-mono font-bold">
+              {Math.round(Math.abs(engineRef.current?.vehicleSystem.playerVehicle?.speed ?? 0) * 3.6)}
+            </div>
+            <div className="text-gray-500 text-[8px] font-mono">KM/H</div>
+          </div>
+          <div className="w-16 h-2 bg-gray-800 rounded overflow-hidden">
+            <div className="h-full rounded transition-all"
+              style={{
+                width: `${engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0}%`,
+                backgroundColor: (engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0) < 20 ? '#ef4444' : '#3b82f6',
+              }}
+            />
+          </div>
+          <span className="text-green-400 text-sm font-mono font-bold">
             G{engineRef.current?.vehicleSystem.playerVehicle
               ? engineRef.current.vehicleSystem.getGear(engineRef.current.vehicleSystem.playerVehicle)
               : 0}
           </span>
-          <span className="text-gray-400 text-xs font-mono">WASD Drive</span>
         </div>
       )}
 
@@ -628,27 +635,38 @@ export default function GameUI() {
 
       {/* ESC PAUSE OVERLAY */}
       {engineRef.current?.isPaused && gameState.phase === 'playing' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 z-50">
-          <div className="text-4xl font-black text-white mb-6 tracking-widest">PAUSED</div>
-          <button
-            onClick={() => {
-              engineRef.current?.resume();
-              containerRef.current?.requestPointerLock();
-            }}
-            className="px-10 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-lg rounded transition-all active:scale-95"
-          >
-            RESUME
-          </button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur z-50">
+          <h2 className="text-4xl font-bold text-white mb-6">PAUSED</h2>
+          <div className="flex flex-col gap-3 w-48">
+            <button
+              onClick={() => {
+                engineRef.current?.resume();
+                containerRef.current?.requestPointerLock();
+              }}
+              className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg active:scale-95"
+            >
+              RESUME
+            </button>
+            <button
+              onClick={() => setShowShop(true)}
+              className="px-6 py-3 bg-purple-600 text-white font-bold rounded-lg active:scale-95"
+            >
+              SHOP
+            </button>
+          </div>
         </div>
       )}
 
       {/* LOBBY */}
       {gameState.phase === 'lobby' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-0 tracking-tighter">
-            BLITZ<span className="text-yellow-400">PIT</span>
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-0 tracking-tighter drop-shadow-lg">
+            BLITZ<span className="text-red-500">PIT</span>
           </h1>
-          <p className="text-gray-400 text-sm md:text-lg mb-1 font-mono">Endless Voxel Battle Royale</p>
+          <p className="text-gray-400 text-xs md:text-sm mb-2 font-mono tracking-widest">INFINITE BATTLE ROYALE</p>
+          <div className="text-gray-500 text-xs font-mono mb-4">
+            40 players waiting...
+          </div>
 
           {/* Nickname input -- io game style, no login */}
           <div className="mb-3 mt-2">
@@ -672,7 +690,7 @@ export default function GameUI() {
 
           <button
             onClick={() => engineRef.current?.startGame()}
-            className="px-10 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-lg rounded transition-all active:scale-95"
+            className="px-12 py-4 bg-red-600 hover:bg-red-500 text-white font-black text-xl rounded-lg transition-all active:scale-95 shadow-lg shadow-red-600/30"
           >
             PLAY
           </button>
@@ -754,9 +772,9 @@ export default function GameUI() {
 
       {/* WAVE TRANSITION */}
       {gameState.phase === 'wave_transition' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
-          <h2 className="text-4xl font-black text-green-400 mb-2 animate-pulse">
-            WAVE {gameState.currentWave} COMPLETE
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+          <h2 className="text-5xl font-black text-green-400 mb-3 animate-pulse drop-shadow-lg">
+            WAVE {gameState.currentWave} CLEAR
           </h2>
           <p className="text-white text-lg font-mono">{gameState.totalKills} Total Kills</p>
           <p className="text-gray-400 font-mono mb-4">Rank: {rank}</p>
@@ -773,11 +791,14 @@ export default function GameUI() {
 
       {/* REVIVE PROMPT */}
       {engineRef.current?.reviveOffered && (engineRef.current?.reviveTimer ?? 0) > 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-950/50 z-40">
-          <h2 className="text-3xl font-black text-red-500 mb-2">DOWN!</h2>
-          <p className="text-white font-mono text-lg mb-4">
-            Revive in {Math.ceil(engineRef.current.reviveTimer)}s
-          </p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm z-40">
+          <h2 className="text-4xl font-black text-red-500 mb-3 animate-pulse">ELIMINATED</h2>
+          <div className="bg-gray-900/90 border border-gray-700 rounded-xl p-5 text-center mb-4">
+            <p className="text-white font-mono text-2xl font-bold mb-1">
+              {Math.ceil(engineRef.current?.reviveTimer ?? 0)}
+            </p>
+            <p className="text-gray-400 text-xs font-mono">seconds to revive</p>
+          </div>
           <button
             onClick={() => engineRef.current?.revivePlayer()}
             disabled={!skinSystem.current || skinSystem.current.purchases.reviveTokens <= 0}
@@ -800,7 +821,7 @@ export default function GameUI() {
           <p className="text-gray-300 text-lg font-mono mb-4">Wave {gameState.currentWave}</p>
 
           {/* Final stats card */}
-          <div className="bg-gray-900 border border-gray-600 rounded-lg p-6 w-80 max-w-[90vw] mb-4">
+          <div className="bg-gray-900/90 border border-gray-700 rounded-xl p-6 w-96 max-w-[90vw] mb-4 backdrop-blur">
             <div className="grid grid-cols-2 gap-3 text-center">
               <div>
                 <div className="text-3xl font-bold text-yellow-400">{stats?.totalKills ?? gameState.kills}</div>
@@ -857,16 +878,16 @@ export default function GameUI() {
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={() => window.location.reload()}
-              className="px-10 py-3 bg-yellow-500 text-black font-bold text-lg rounded active:scale-95"
+              className="flex-1 px-6 py-3 bg-red-600 text-white font-bold text-lg rounded-lg active:scale-95"
             >
               PLAY AGAIN
             </button>
             <button
               onClick={() => setShowShop(true)}
-              className="px-8 py-3 bg-purple-600 text-white font-bold text-lg rounded active:scale-95"
+              className="px-6 py-3 bg-purple-600 text-white font-bold text-lg rounded-lg active:scale-95"
             >
               SHOP
             </button>

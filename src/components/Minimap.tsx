@@ -18,7 +18,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
 
     const draw = () => {
       ctx.clearRect(0, 0, size, size);
-      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
       ctx.fillRect(0, 0, size, size);
 
       const scale = size / 800;
@@ -145,7 +145,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
 
   return (
     <div className="absolute top-10 left-2">
-      <canvas ref={canvasRef} className="rounded border border-gray-700" style={{ width: 120, height: 120 }} />
+      <canvas ref={canvasRef} className="rounded-lg border border-gray-600/50 shadow-lg" style={{ width: 130, height: 130 }} />
     </div>
   );
 }
