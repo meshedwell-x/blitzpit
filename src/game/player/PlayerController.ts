@@ -416,9 +416,16 @@ export class PlayerController {
     const buildings = this.world.getNearbyBuildings(newPos.x, newPos.z);
     for (const b of buildings) {
       const baseH = this.world.getHeightAt(b.x, b.z);
+
+      // Expand building AABB by player radius for accurate collision
+      const bMinX = b.x - PLAYER_RADIUS;
+      const bMaxX = b.x + b.width + PLAYER_RADIUS;
+      const bMinZ = b.z - PLAYER_RADIUS;
+      const bMaxZ = b.z + b.depth + PLAYER_RADIUS;
+
       if (
-        newPos.x > b.x && newPos.x < b.x + b.width &&
-        newPos.z > b.z && newPos.z < b.z + b.depth &&
+        newPos.x > bMinX && newPos.x < bMaxX &&
+        newPos.z > bMinZ && newPos.z < bMaxZ &&
         newPos.y < baseH + b.height + 1
       ) {
         // Check if entering through door (front face z === b.z, centered x, height 2 blocks)
@@ -429,21 +436,23 @@ export class PlayerController {
           newPos.y < baseH + 3;
 
         if (!isDoor) {
-          const prevInX =
-            this.state.position.x > b.x && this.state.position.x < b.x + b.width;
-          const prevInZ =
-            this.state.position.z > b.z && this.state.position.z < b.z + b.depth;
+          // Calculate penetration depth on each axis
+          const overlapLeft = newPos.x - bMinX;
+          const overlapRight = bMaxX - newPos.x;
+          const overlapFront = newPos.z - bMinZ;
+          const overlapBack = bMaxZ - newPos.z;
 
-          if (!prevInX) {
-            newPos.x = this.state.position.x;
-          }
-          if (!prevInZ) {
-            newPos.z = this.state.position.z;
-          }
-          if (prevInX && prevInZ) {
-            // Already inside (e.g. spawned inside) -- push back
-            newPos.x = this.state.position.x;
-            newPos.z = this.state.position.z;
+          // Find the smallest overlap (nearest edge to push to)
+          const minOverlap = Math.min(overlapLeft, overlapRight, overlapFront, overlapBack);
+
+          if (minOverlap === overlapLeft) {
+            newPos.x = bMinX;
+          } else if (minOverlap === overlapRight) {
+            newPos.x = bMaxX;
+          } else if (minOverlap === overlapFront) {
+            newPos.z = bMinZ;
+          } else {
+            newPos.z = bMaxZ;
           }
         }
       }

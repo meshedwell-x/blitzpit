@@ -10,19 +10,6 @@ import { InventoryPanel } from './InventoryPanel';
 import { Minimap } from './Minimap';
 import { ShopModal } from './ShopModal';
 
-const RARITY_COLORS: Record<string, string> = {
-  common: 'text-gray-300 border-gray-500',
-  uncommon: 'text-green-300 border-green-500',
-  rare: 'text-blue-300 border-blue-500',
-  epic: 'text-purple-300 border-purple-500',
-};
-
-const RARITY_BG: Record<string, string> = {
-  common: 'bg-gray-700/60',
-  uncommon: 'bg-green-900/40',
-  rare: 'bg-blue-900/40',
-  epic: 'bg-purple-900/40',
-};
 
 export default function GameUI() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -300,8 +287,8 @@ export default function GameUI() {
       {/* PAYMENT SUCCESS NOTIFICATION */}
       {paymentSuccess && (
         <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-          <div className="bg-green-900/90 border border-green-400/60 px-5 py-2.5 rounded-lg text-center shadow-lg">
-            <p className="text-green-300 text-sm font-bold font-mono">{paymentSuccess}</p>
+          <div className="px-5 py-2.5 text-center border" style={{ background: 'rgba(74,103,65,0.9)', borderColor: '#4a6741' }}>
+            <p className="text-sm font-bold font-mono uppercase tracking-wider" style={{ color: '#e8e0d0' }}>{paymentSuccess}</p>
           </div>
         </div>
       )}
@@ -312,23 +299,24 @@ export default function GameUI() {
           engineRef.current?.soundManager.toggleMute();
           setMuted(m => !m);
         }}
-        className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded flex items-center justify-center text-xs text-white border border-gray-600 hover:bg-black/80 z-10"
+        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-xs font-bold border hover:opacity-80 z-10"
+        style={{ background: '#1a1f16', borderColor: '#4a4535', color: muted ? '#c93a3a' : '#d4a24e', fontFamily: "'Teko', sans-serif", letterSpacing: '0.05em' }}
       >
         {muted ? 'OFF' : 'SND'}
       </button>
 
       {/* BLITZ COINS + WILD POINTS HUD -- shifted left to not overlap SND button */}
       {gameState.phase === 'playing' && skinSystem.current && (
-        <div className="absolute top-2 right-12 bg-black/50 px-2 py-1 rounded text-[10px] font-mono flex gap-2">
-          <span className="text-yellow-400">{skinSystem.current.purchases.blitzCoins} BC</span>
-          <span className="text-green-400">{skinSystem.current.purchases.blitzPoints} WP</span>
+        <div className="absolute top-2 right-12 px-2 py-1 text-[10px] font-mono flex gap-2 border" style={{ background: '#1a1f16', borderColor: '#4a4535' }}>
+          <span style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", fontSize: '12px' }}>{skinSystem.current.purchases.blitzCoins} BC</span>
+          <span style={{ color: '#4a6741', fontFamily: "'Teko', sans-serif", fontSize: '12px' }}>{skinSystem.current.purchases.blitzPoints} WP</span>
         </div>
       )}
 
       {/* TIME / BIOME / WEATHER HUD -- placed below minimap (top-10 + 120px height ~= top-40) */}
       {gameState.phase === 'playing' && (
-        <div className="absolute top-40 left-2 bg-black/50 px-2 py-1 rounded text-[10px] font-mono space-y-0.5">
-          <div className="text-gray-300">
+        <div className="absolute top-40 left-2 px-2 py-1 text-[10px] font-mono space-y-0.5 border" style={{ background: '#1a1f16/80', borderColor: '#4a4535' }}>
+          <div style={{ color: '#c4a35a' }}>
             {(() => {
               const period = engineRef.current?.dayNightSystem.getTimePeriod() ?? 'noon';
               const periodNames: Record<string, string> = {
@@ -338,21 +326,21 @@ export default function GameUI() {
               return `${engineRef.current?.dayNightSystem.getTimeString() ?? '12:00'} ${periodNames[period] ?? 'DAY'}`;
             })()}
           </div>
-          <div className="text-gray-400">
+          <div style={{ color: '#8a7e6b' }}>
             {engineRef.current?.biomeSystem.getBiome(
               engineRef.current?.player.state.position.x ?? 0,
               engineRef.current?.player.state.position.z ?? 0
             )?.toUpperCase() ?? 'URBAN'}
           </div>
-          <div className="text-gray-400">
+          <div style={{ color: '#8a7e6b' }}>
             {(() => {
               const weather = engineRef.current?.weatherSystem.currentWeather;
               return (
                 <>
                   {weather?.toUpperCase() ?? 'CLEAR'}
-                  {weather === 'fog' && <span className="text-blue-300 text-[8px]"> -50% detect</span>}
-                  {weather === 'storm' && <span className="text-red-300 text-[8px]"> +30% spread</span>}
-                  {weather === 'rain' && <span className="text-blue-300 text-[8px]"> +10% spread</span>}
+                  {weather === 'fog' && <span className="text-[8px]" style={{ color: '#c4a35a' }}> -50% detect</span>}
+                  {weather === 'storm' && <span className="text-[8px]" style={{ color: '#c93a3a' }}> +30% spread</span>}
+                  {weather === 'rain' && <span className="text-[8px]" style={{ color: '#c4a35a' }}> +10% spread</span>}
                 </>
               );
             })()}
@@ -393,8 +381,8 @@ export default function GameUI() {
       {/* KILL BANNER */}
       {killBanner && gameState.phase === 'playing' && (
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 pointer-events-none">
-          <div className="bg-black/70 border border-red-500/60 px-4 py-1.5 rounded text-center">
-            <span className="text-red-400 text-sm font-bold font-mono">Eliminated {killBanner}</span>
+          <div className="px-4 py-1.5 text-center" style={{ background: 'rgba(26,31,22,0.85)', borderLeft: '3px solid #c93a3a' }}>
+            <span className="text-sm font-bold uppercase tracking-wider" style={{ color: '#c93a3a', fontFamily: "'Teko', sans-serif" }}>ELIMINATED {killBanner}</span>
           </div>
         </div>
       )}
@@ -402,34 +390,34 @@ export default function GameUI() {
       {/* TOP HUD */}
       {['playing', 'dropping', 'plane'].includes(gameState.phase) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-4">
-          <div className="bg-black/70 px-4 py-1.5 rounded flex items-center gap-4 text-xs font-mono">
+          <div className="px-4 py-1.5 flex items-center gap-4 text-xs font-mono border" style={{ background: 'rgba(26,31,22,0.80)', borderColor: '#4a4535' }}>
             {/* Wave indicator */}
             {gameState.phase === 'playing' && (
               <>
                 <div className="text-center">
-                  <div className="text-cyan-400 text-base font-bold animate-pulse">
+                  <div className="text-base font-bold animate-pulse" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
                     W{gameState.currentWave}
                   </div>
-                  <div className="text-gray-400 text-[9px]">WAVE</div>
+                  <div className="text-[9px] uppercase tracking-wider" style={{ color: '#8a7e6b' }}>WAVE</div>
                 </div>
-                <div className="w-px h-6 bg-gray-600" />
+                <div className="w-px h-6" style={{ background: '#4a4535' }} />
               </>
             )}
             <div className="text-center">
-              <div className="text-white text-base font-bold">{gameState.playersAlive}</div>
-              <div className="text-gray-400 text-[9px]">ALIVE</div>
+              <div className="text-base font-bold" style={{ color: '#e8e0d0', fontFamily: "'Teko', sans-serif" }}>{gameState.playersAlive}</div>
+              <div className="text-[9px] uppercase tracking-wider" style={{ color: '#8a7e6b' }}>ALIVE</div>
             </div>
-            <div className="w-px h-6 bg-gray-600" />
+            <div className="w-px h-6" style={{ background: '#4a4535' }} />
             <div className="text-center">
-              <div className="text-yellow-400 text-base font-bold">{gameState.kills}</div>
-              <div className="text-gray-400 text-[9px]">KILLS</div>
+              <div className="text-base font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>{gameState.kills}</div>
+              <div className="text-[9px] uppercase tracking-wider" style={{ color: '#8a7e6b' }}>KILLS</div>
             </div>
-            <div className="w-px h-6 bg-gray-600" />
+            <div className="w-px h-6" style={{ background: '#4a4535' }} />
             <div className="text-center">
-              <div className={`text-base font-bold ${zoneInfo.isShrinking ? 'text-red-400 animate-pulse' : 'text-blue-400'}`}>
+              <div className={`text-base font-bold ${zoneInfo.isShrinking ? 'animate-pulse' : ''}`} style={{ color: zoneInfo.isShrinking ? '#c93a3a' : '#c4a35a', fontFamily: "'Teko', sans-serif" }}>
                 {fmt(zoneInfo.timer)}
               </div>
-              <div className="text-gray-400 text-[9px]">ZONE {zoneInfo.phase}</div>
+              <div className="text-[9px] uppercase tracking-wider" style={{ color: '#8a7e6b' }}>ZONE {zoneInfo.phase}</div>
             </div>
           </div>
         </div>
@@ -438,14 +426,14 @@ export default function GameUI() {
       {/* BOSS HP BAR */}
       {gameState.phase === 'playing' && engineRef.current?.bossSystem.getActiveBosses().map(boss => (
         <div key={boss.id} className="absolute top-16 left-1/2 -translate-x-1/2 w-64">
-          <div className="text-center text-red-400 text-xs font-bold font-mono mb-0.5">
+          <div className="text-center text-xs font-bold font-mono mb-0.5 uppercase tracking-wider" style={{ color: '#c93a3a', fontFamily: "'Teko', sans-serif", fontSize: '14px' }}>
             {boss.name} (Phase {boss.phase})
           </div>
-          <div className="w-full h-3 bg-gray-800 border border-red-600 rounded">
-            <div className="h-full rounded transition-all"
+          <div className="w-full h-3 border" style={{ background: '#1a1f16', borderColor: '#c93a3a' }}>
+            <div className="h-full transition-all"
               style={{
                 width: `${(boss.health / boss.maxHealth) * 100}%`,
-                backgroundColor: boss.phase === 3 ? '#9b59b6' : boss.phase === 2 ? '#e67e22' : '#e74c3c',
+                backgroundColor: boss.phase === 3 ? '#c93a3a' : boss.phase === 2 ? '#d4a24e' : '#c93a3a',
               }}
             />
           </div>
@@ -461,10 +449,10 @@ export default function GameUI() {
         });
         if (!poi) return null;
         const names: Record<string, string> = { military: 'MILITARY BASE', temple: 'ANCIENT TEMPLE', gas_station: 'GAS STATION' };
-        const colors: Record<string, string> = { military: 'text-red-400', temple: 'text-yellow-400', gas_station: 'text-blue-400' };
+        const poiColors: Record<string, string> = { military: '#c93a3a', temple: '#d4a24e', gas_station: '#c4a35a' };
         return (
           <div className="absolute top-20 left-1/2 -translate-x-1/2">
-            <span className={`${colors[poi.type]} text-xs font-mono font-bold`}>{names[poi.type]}</span>
+            <span className="text-xs font-mono font-bold uppercase tracking-wider" style={{ color: poiColors[poi.type] ?? '#c4a35a', fontFamily: "'Teko', sans-serif", fontSize: '14px' }}>{names[poi.type]}</span>
           </div>
         );
       })()}
@@ -478,10 +466,10 @@ export default function GameUI() {
               const isMyKill = k.killer === myName || k.killer === 'You';
               const isMyDeath = k.victim === myName || k.victim === 'You';
               return (
-                <div key={`${k.time}_${i}`} className={`bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-mono flex gap-1.5 ${isMyKill ? 'border border-yellow-600/40' : ''}`}>
-                  <span className={isMyKill ? 'text-yellow-300 font-bold' : 'text-white'}>{k.killer}</span>
-                  <span className="text-gray-500">[{k.weapon}]</span>
-                  <span className={isMyDeath ? 'text-red-400 font-bold' : 'text-gray-300'}>{k.victim}</span>
+                <div key={`${k.time}_${i}`} className="px-2.5 py-1 text-[11px] font-mono flex gap-1.5" style={{ background: isMyKill ? 'rgba(74,103,65,0.5)' : 'rgba(26,31,22,0.7)', borderLeft: isMyKill ? '2px solid #d4a24e' : '2px solid #4a4535' }}>
+                  <span className="font-bold" style={{ color: isMyKill ? '#d4a24e' : '#c4a35a' }}>{k.killer}</span>
+                  <span style={{ color: '#8a7e6b' }}>[{k.weapon}]</span>
+                  <span className="font-bold" style={{ color: isMyDeath ? '#c93a3a' : '#e8e0d0' }}>{k.victim}</span>
                 </div>
               );
             });
@@ -493,21 +481,21 @@ export default function GameUI() {
       {['playing', 'dead'].includes(gameState.phase) && (
         <div className="absolute bottom-20 left-3 md:bottom-4 flex flex-col gap-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-white text-[10px] font-mono w-5">HP</span>
-            <div className="w-36 md:w-48 h-3.5 bg-black/70 border border-gray-600 rounded overflow-hidden">
+            <span className="text-[10px] font-mono w-5" style={{ color: '#c4a35a' }}>HP</span>
+            <div className="w-36 md:w-48 h-3.5 overflow-hidden" style={{ background: '#1a1f16', border: '1px solid #4a4535' }}>
               <div className="h-full transition-all duration-200" style={{
                 width: `${health}%`,
-                backgroundColor: health > 60 ? '#22c55e' : health > 30 ? '#eab308' : '#ef4444',
+                backgroundColor: health > 60 ? '#4a6741' : health > 30 ? '#d4a24e' : '#c93a3a',
               }} />
             </div>
-            <span className="text-white text-[10px] font-mono w-6">{Math.ceil(health)}</span>
+            <span className="text-[10px] font-bold w-6" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", fontSize: '13px' }}>{Math.ceil(health)}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-blue-300 text-[10px] font-mono w-5">AR</span>
-            <div className="w-36 md:w-48 h-3 bg-black/70 border border-gray-600 rounded overflow-hidden">
-              <div className="h-full bg-blue-500 transition-all duration-200" style={{ width: `${armor}%` }} />
+            <span className="text-[10px] font-mono w-5" style={{ color: '#8a7e6b' }}>AR</span>
+            <div className="w-36 md:w-48 h-3 overflow-hidden" style={{ background: '#1a1f16', border: '1px solid #4a4535' }}>
+              <div className="h-full transition-all duration-200" style={{ width: `${armor}%`, backgroundColor: '#c4a35a' }} />
             </div>
-            <span className="text-blue-300 text-[10px] font-mono w-6">{Math.ceil(armor)}</span>
+            <span className="text-[10px] font-bold w-6" style={{ color: '#c4a35a', fontFamily: "'Teko', sans-serif", fontSize: '13px' }}>{Math.ceil(armor)}</span>
           </div>
         </div>
       )}
@@ -517,88 +505,88 @@ export default function GameUI() {
         <div className="absolute bottom-20 right-3 md:bottom-4 flex flex-col items-end gap-1">
           <div className="flex gap-1">
             {weapons.map((w, i) => {
-              const rarity = w?.def.rarity ?? 'common';
               return (
-                <div key={i} className={`px-3 py-1.5 border-2 rounded-lg text-[11px] font-mono transition-all ${
-                  i === activeSlot
-                    ? `${RARITY_COLORS[rarity]} ${RARITY_BG[rarity]} scale-105`
-                    : 'border-gray-700 bg-black/60 text-gray-500'
-                }`}>
-                  <div className="text-[8px] text-gray-500">{i + 1}</div>
+                <div key={i} className="px-3 py-1.5 border text-[11px] font-mono transition-all" style={{
+                  background: i === activeSlot ? 'rgba(74,103,65,0.5)' : '#1a1f16',
+                  borderColor: i === activeSlot ? '#d4a24e' : '#4a4535',
+                  color: i === activeSlot ? '#d4a24e' : '#8a7e6b',
+                  transform: i === activeSlot ? 'scale(1.05)' : 'scale(1)',
+                }}>
+                  <div className="text-[8px]" style={{ color: '#8a7e6b' }}>{i + 1}</div>
                   {w ? w.def.name : 'Empty'}
                 </div>
               );
             })}
           </div>
           {weapon && (
-            <div className="flex items-center gap-2 px-2 py-0.5 bg-black/70 rounded">
+            <div className="flex items-center gap-2 px-2 py-0.5" style={{ background: 'rgba(26,31,22,0.85)' }}>
               {weapon.isReloading ? (
-                <span className="text-yellow-400 text-xs font-mono animate-pulse">RELOADING</span>
+                <span className="text-xs font-mono animate-pulse uppercase tracking-wider" style={{ color: '#d4a24e' }}>RELOADING</span>
               ) : (
                 <>
-                  <span className="text-white text-xl font-mono font-bold">{weapon.currentAmmo}</span>
-                  <span className="text-gray-400 text-xs font-mono">/ {weapon.reserveAmmo}</span>
+                  <span className="text-xl font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>{weapon.currentAmmo}</span>
+                  <span className="text-xs font-mono" style={{ color: '#8a7e6b' }}>/ {weapon.reserveAmmo}</span>
                 </>
               )}
             </div>
           )}
           {/* Grenade indicator */}
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-black/60 rounded text-[10px] font-mono">
-            <span className="text-green-400">{GRENADES[grenadeType]?.name || 'Frag'}</span>
-            <span className="text-gray-400">x{grenadeCount[grenadeType] || 0}</span>
-            <span className="text-gray-500 ml-1">RMB throw</span>
+          <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono" style={{ background: 'rgba(26,31,22,0.7)' }}>
+            <span style={{ color: '#4a6741' }}>{GRENADES[grenadeType]?.name || 'Frag'}</span>
+            <span style={{ color: '#8a7e6b' }}>x{grenadeCount[grenadeType] || 0}</span>
+            <span className="ml-1" style={{ color: '#4a4535' }}>RMB throw</span>
           </div>
         </div>
       )}
 
       {/* WATER OVERLAY */}
       {engineRef.current?.player.state.isSwimming && gameState.phase === 'playing' && (
-        <div className="absolute inset-0 pointer-events-none bg-blue-500/15" />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(74,103,65,0.12)' }} />
       )}
 
       {/* SWIMMING INDICATOR */}
       {engineRef.current?.player.state.isSwimming && gameState.phase === 'playing' && (
-        <div className="absolute bottom-40 left-1/2 -translate-x-1/2 bg-blue-900/70 px-3 py-1 rounded text-blue-200 text-xs font-mono">
+        <div className="absolute bottom-40 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-mono border" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a6741', color: '#c4a35a' }}>
           SWIMMING -- Speed reduced | SPACE to surface
         </div>
       )}
 
       {/* DROWNING WARNING */}
       {(engineRef.current?.player.swimTimer ?? 0) > 10 && gameState.phase === 'playing' && (
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 bg-red-900/70 px-4 py-2 rounded animate-pulse">
-          <span className="text-red-300 text-sm font-bold font-mono">DROWNING!</span>
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 px-4 py-2 animate-pulse" style={{ background: 'rgba(201,58,58,0.3)', border: '1px solid #c93a3a' }}>
+          <span className="text-sm font-bold uppercase tracking-wider" style={{ color: '#c93a3a', fontFamily: "'Teko', sans-serif" }}>DROWNING!</span>
         </div>
       )}
 
       {/* NEARBY PROMPTS */}
       {nearbyItem && gameState.phase === 'playing' && (
-        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 bg-black/70 px-3 py-1.5 rounded border border-yellow-500/50">
-          <span className="text-yellow-300 text-xs font-mono">[F] {nearbyItem}</span>
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 px-3 py-1.5 border" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#d4a24e' }}>
+          <span className="text-xs font-mono uppercase" style={{ color: '#d4a24e' }}>[F] {nearbyItem}</span>
         </div>
       )}
       {nearbyVehicle && !inVehicle && gameState.phase === 'playing' && (
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 bg-black/70 px-3 py-1.5 rounded border border-blue-500/50">
-          <span className="text-blue-300 text-xs font-mono">[E] Enter Vehicle</span>
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 px-3 py-1.5 border" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a6741' }}>
+          <span className="text-xs font-mono uppercase" style={{ color: '#c4a35a' }}>[E] Enter Vehicle</span>
         </div>
       )}
       {inVehicle && (
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur px-5 py-2.5 rounded-lg border border-gray-600/50 flex gap-5 items-center">
-          <span className="text-blue-300 text-xs font-mono font-bold">[E] Exit</span>
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 px-5 py-2.5 border flex gap-5 items-center" style={{ background: 'rgba(26,31,22,0.90)', borderColor: '#4a4535' }}>
+          <span className="text-xs font-mono font-bold" style={{ color: '#c4a35a' }}>[E] Exit</span>
           <div className="text-center">
-            <div className="text-white text-lg font-mono font-bold">
+            <div className="text-lg font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
               {Math.round(Math.abs(engineRef.current?.vehicleSystem.playerVehicle?.speed ?? 0) * 3.6)}
             </div>
-            <div className="text-gray-500 text-[8px] font-mono">KM/H</div>
+            <div className="text-[8px] font-mono uppercase tracking-wider" style={{ color: '#8a7e6b' }}>KM/H</div>
           </div>
-          <div className="w-16 h-2 bg-gray-800 rounded overflow-hidden">
-            <div className="h-full rounded transition-all"
+          <div className="w-16 h-2 overflow-hidden" style={{ background: '#4a4535' }}>
+            <div className="h-full transition-all"
               style={{
                 width: `${engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0}%`,
-                backgroundColor: (engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0) < 20 ? '#ef4444' : '#3b82f6',
+                backgroundColor: (engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0) < 20 ? '#c93a3a' : '#4a6741',
               }}
             />
           </div>
-          <span className="text-green-400 text-sm font-mono font-bold">
+          <span className="text-sm font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
             G{engineRef.current?.vehicleSystem.playerVehicle
               ? engineRef.current.vehicleSystem.getGear(engineRef.current.vehicleSystem.playerVehicle)
               : 0}
@@ -627,7 +615,7 @@ export default function GameUI() {
       {/* KILL STREAK NOTIFICATION */}
       {streakLabel && (
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 animate-bounce pointer-events-none">
-          <div className="text-4xl md:text-5xl font-black text-yellow-400 drop-shadow-lg text-center tracking-wider">
+          <div className="text-4xl md:text-5xl font-black text-center tracking-[0.2em] uppercase" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", filter: 'drop-shadow(0 0 12px rgba(212,162,78,0.5))' }}>
             {streakLabel}
           </div>
         </div>
@@ -635,21 +623,23 @@ export default function GameUI() {
 
       {/* ESC PAUSE OVERLAY */}
       {engineRef.current?.isPaused && gameState.phase === 'playing' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur z-50">
-          <h2 className="text-4xl font-bold text-white mb-6">PAUSED</h2>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-50" style={{ background: 'rgba(26,31,22,0.88)', backdropFilter: 'blur(4px)' }}>
+          <h2 className="text-5xl font-bold mb-6 uppercase tracking-[0.3em]" style={{ fontFamily: "'Teko', sans-serif", color: '#c4a35a' }}>PAUSED</h2>
           <div className="flex flex-col gap-3 w-48">
             <button
               onClick={() => {
                 engineRef.current?.resume();
                 containerRef.current?.requestPointerLock();
               }}
-              className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg active:scale-95"
+              className="px-6 py-3 font-bold active:scale-95 uppercase tracking-wider"
+              style={{ background: '#d4a24e', color: '#1a1f16', fontFamily: "'Teko', sans-serif", fontSize: '1.1rem' }}
             >
               RESUME
             </button>
             <button
               onClick={() => setShowShop(true)}
-              className="px-6 py-3 bg-purple-600 text-white font-bold rounded-lg active:scale-95"
+              className="px-6 py-3 font-bold active:scale-95 uppercase tracking-wider"
+              style={{ background: '#4a6741', color: '#e8e0d0', fontFamily: "'Teko', sans-serif", fontSize: '1.1rem' }}
             >
               SHOP
             </button>
@@ -741,10 +731,10 @@ export default function GameUI() {
       {/* DROPPING */}
       {gameState.phase === 'dropping' && (
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 pointer-events-none w-56">
-          <div className="bg-black/70 px-4 py-3 rounded border border-gray-600 font-mono text-xs space-y-1">
+          <div className="px-4 py-3 font-mono text-xs space-y-1 border" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a4535' }}>
             <div className="flex justify-between">
-              <span className="text-gray-400">ALT</span>
-              <span className="text-white font-bold">
+              <span style={{ color: '#8a7e6b' }}>ALT</span>
+              <span className="font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", fontSize: '14px' }}>
                 {Math.max(0, Math.round(
                   (engineRef.current?.player.state.position.y ?? 0) -
                   (engineRef.current?.world.getHeightAt(
@@ -755,19 +745,20 @@ export default function GameUI() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">SPEED</span>
-              <span className="text-cyan-400 font-bold">
+              <span style={{ color: '#8a7e6b' }}>SPEED</span>
+              <span className="font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", fontSize: '14px' }}>
                 {engineRef.current?.dropSpeed ?? 55} m/s
               </span>
             </div>
-            <div className="border-t border-gray-700 pt-1 text-gray-400 text-center">
+            <div className="pt-1 text-center" style={{ borderTop: '1px solid #4a4535', color: '#8a7e6b' }}>
               SPACE - Open Parachute
             </div>
-            <div className="text-gray-400 text-center">WASD - Steer</div>
+            <div className="text-center" style={{ color: '#8a7e6b' }}>WASD - Steer</div>
           </div>
           <button
             onClick={() => engineRef.current?.openParachute()}
-            className="mt-2 w-full px-6 py-2 bg-orange-500 active:bg-orange-400 text-white font-bold rounded pointer-events-auto"
+            className="mt-2 w-full px-6 py-2 font-bold pointer-events-auto active:scale-95 uppercase tracking-wider"
+            style={{ background: '#d4a24e', color: '#1a1f16', fontFamily: "'Teko', sans-serif" }}
           >
             PARACHUTE
           </button>
@@ -776,17 +767,17 @@ export default function GameUI() {
 
       {/* WAVE TRANSITION */}
       {gameState.phase === 'wave_transition' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-          <h2 className="text-5xl font-black text-green-400 mb-3 animate-pulse drop-shadow-lg">
+        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: 'rgba(26,31,22,0.88)', backdropFilter: 'blur(4px)' }}>
+          <h2 className="text-5xl font-black mb-3 animate-pulse uppercase tracking-[0.2em]" style={{ fontFamily: "'Teko', sans-serif", color: '#4a6741', filter: 'drop-shadow(0 0 12px rgba(74,103,65,0.5))' }}>
             WAVE {gameState.currentWave} CLEAR
           </h2>
-          <p className="text-white text-lg font-mono">{gameState.totalKills} Total Kills</p>
-          <p className="text-gray-400 font-mono mb-4">Rank: {rank}</p>
-          <div className="bg-gray-800/80 rounded-lg p-4 mb-4 text-center">
-            <p className="text-yellow-400 text-2xl font-bold">
+          <p className="text-lg font-mono" style={{ color: '#c4a35a' }}>{gameState.totalKills} Total Kills</p>
+          <p className="font-mono mb-4" style={{ color: '#8a7e6b' }}>Rank: {rank}</p>
+          <div className="p-4 mb-4 text-center border" style={{ background: '#12150f', borderColor: '#4a4535' }}>
+            <p className="text-2xl font-bold uppercase tracking-wider" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
               NEXT WAVE IN {Math.ceil(engineRef.current?.waveManager.transitionTimer ?? 0)}s
             </p>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="text-sm mt-1" style={{ color: '#8a7e6b' }}>
               Wave {gameState.currentWave + 1}: {engineRef.current?.waveManager.getWaveConfig(gameState.currentWave + 1).botCount ?? '?'} enemies
             </p>
           </div>
@@ -795,26 +786,28 @@ export default function GameUI() {
 
       {/* REVIVE PROMPT */}
       {engineRef.current?.reviveOffered && (engineRef.current?.reviveTimer ?? 0) > 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm z-40">
-          <h2 className="text-4xl font-black text-red-500 mb-3 animate-pulse">ELIMINATED</h2>
-          <div className="bg-gray-900/90 border border-gray-700 rounded-xl p-5 text-center mb-4">
-            <p className="text-white font-mono text-2xl font-bold mb-1">
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-40" style={{ background: 'rgba(26,31,22,0.85)', backdropFilter: 'blur(4px)' }}>
+          <h2 className="text-4xl font-black mb-3 animate-pulse uppercase tracking-[0.3em]" style={{ fontFamily: "'Teko', sans-serif", color: '#c93a3a' }}>ELIMINATED</h2>
+          <div className="p-5 text-center mb-4 border" style={{ background: '#12150f', borderColor: '#4a4535' }}>
+            <p className="font-mono text-2xl font-bold mb-1" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
               {Math.ceil(engineRef.current?.reviveTimer ?? 0)}
             </p>
-            <p className="text-gray-400 text-xs font-mono">seconds to revive</p>
+            <p className="text-xs font-mono uppercase tracking-wider" style={{ color: '#8a7e6b' }}>seconds to revive</p>
           </div>
           <button
             onClick={() => engineRef.current?.revivePlayer()}
             disabled={!skinSystem.current || skinSystem.current.purchases.reviveTokens <= 0}
-            className={`px-8 py-3 font-bold text-lg rounded active:scale-95 mb-2 ${
-              skinSystem.current && skinSystem.current.purchases.reviveTokens > 0
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-            }`}
+            className="px-8 py-3 font-bold text-lg active:scale-95 mb-2 uppercase tracking-wider"
+            style={{
+              background: skinSystem.current && skinSystem.current.purchases.reviveTokens > 0 ? '#4a6741' : '#4a4535',
+              color: skinSystem.current && skinSystem.current.purchases.reviveTokens > 0 ? '#e8e0d0' : '#8a7e6b',
+              fontFamily: "'Teko', sans-serif",
+              cursor: (!skinSystem.current || skinSystem.current.purchases.reviveTokens <= 0) ? 'not-allowed' : 'pointer',
+            }}
           >
             REVIVE ({skinSystem.current?.purchases.reviveTokens ?? 0} tokens)
           </button>
-          <p className="text-gray-400 text-xs font-mono">HP 50% | 2s invincible</p>
+          <p className="text-xs font-mono" style={{ color: '#8a7e6b' }}>HP 50% | 2s invincible</p>
         </div>
       )}
 

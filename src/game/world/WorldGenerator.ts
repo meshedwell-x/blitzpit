@@ -120,7 +120,21 @@ export class WorldGenerator {
     const ix = Math.floor(x + WORLD_SIZE / 2);
     const iz = Math.floor(z + WORLD_SIZE / 2);
     if (ix < 0 || ix >= WORLD_SIZE || iz < 0 || iz >= WORLD_SIZE) return WATER_LEVEL;
-    return this.heightMap[ix + iz * WORLD_SIZE];
+    let height = this.heightMap[ix + iz * WORLD_SIZE];
+
+    // Smooth terrain falloff near world edges (within 200 units of boundary)
+    const halfWorld = WORLD_SIZE / 2;
+    const edgeDist = Math.min(
+      x - (-halfWorld), halfWorld - x,
+      z - (-halfWorld), halfWorld - z
+    );
+    const edgeFalloff = 200;
+    if (edgeDist < edgeFalloff) {
+      const edgeFactor = Math.max(0, edgeDist / edgeFalloff);
+      height = WATER_LEVEL + (height - WATER_LEVEL) * edgeFactor * edgeFactor;
+    }
+
+    return height;
   }
 
   private generateBuildings(): void {
@@ -186,23 +200,30 @@ export class WorldGenerator {
       transparent: true,
       opacity: 0.6,
       side: THREE.DoubleSide,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     });
     const water = new THREE.Mesh(waterGeo, waterMat);
     water.rotation.x = -Math.PI / 2;
-    water.position.y = WATER_LEVEL + 0.2;
+    water.position.y = WATER_LEVEL - 0.3;
+    water.renderOrder = 1;
     this.scene.add(water);
 
-    // Shallow water ring for coastline transition (lighter color, slightly higher)
+    // Shallow water ring for coastline transition (lighter color, clearly above water)
     const shallowGeo = new THREE.RingGeometry(WORLD_SIZE * 0.38, WORLD_SIZE * 0.52, 64);
     const shallowMat = new THREE.MeshLambertMaterial({
       color: 0x4a9ad5,
       transparent: true,
       opacity: 0.4,
       side: THREE.DoubleSide,
+      depthWrite: false,
     });
     const shallow = new THREE.Mesh(shallowGeo, shallowMat);
     shallow.rotation.x = -Math.PI / 2;
-    shallow.position.y = WATER_LEVEL + 0.35;
+    shallow.position.y = WATER_LEVEL - 0.1;
+    shallow.renderOrder = 2;
     this.scene.add(shallow);
 
     // Beach foam ring at the waterline
@@ -212,10 +233,12 @@ export class WorldGenerator {
       transparent: true,
       opacity: 0.3,
       side: THREE.DoubleSide,
+      depthWrite: false,
     });
     const foam = new THREE.Mesh(foamGeo, foamMat);
     foam.rotation.x = -Math.PI / 2;
-    foam.position.y = WATER_LEVEL + 0.4;
+    foam.position.y = WATER_LEVEL + 0.1;
+    foam.renderOrder = 3;
     this.scene.add(foam);
   }
 

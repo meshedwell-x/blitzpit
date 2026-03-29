@@ -493,15 +493,17 @@ export class GameEngine {
       this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z) + Math.PI;
     }
 
-    // 3rd person camera BEHIND the plane
+    // 3rd person camera using player yaw/pitch for free-look
+    const planeYaw = this.player.getYaw();
+    const planePitch = this.player.pitch;
+    const camDist = 40;
+    const camHeight = 12;
     this.camera.position.set(
-      this.planePosition.x - this.planeDirection.x * 40,
-      this.planePosition.y + 12,
-      this.planePosition.z - this.planeDirection.z * 40
+      this.planePosition.x + Math.sin(planeYaw) * camDist,
+      this.planePosition.y + camHeight - Math.sin(planePitch) * camDist * 0.5,
+      this.planePosition.z + Math.cos(planeYaw) * camDist
     );
-    // Look ahead of the plane
-    this._tmpBehind.copy(this.planePosition).addScaledVector(this.planeDirection, 30);
-    this.camera.lookAt(this._tmpBehind);
+    this.camera.lookAt(this.planePosition);
 
     if (this.planeTimer > PLANE_AUTO_DROP_TIME ||
         Math.abs(this.planePosition.x) > WORLD_SIZE * 0.6 ||
@@ -543,25 +545,25 @@ export class GameEngine {
       this.playerDropMesh.position.copy(this.player.state.position);
     }
 
-    // Camera: top-down during freefall, follow behind with parachute
+    // Camera: free-look using player yaw/pitch during both freefall and parachute
+    const dropYaw = this.player.getYaw();
+    const dropPitch = this.player.pitch;
     if (!this.parachuteOpen) {
-      // Top-down camera looking down at landing zone
+      // Freefall: camera orbits around player using yaw/pitch
+      const ffDist = 20;
+      const ffHeight = 10;
       this.camera.position.set(
-        this.player.state.position.x,
-        this.player.state.position.y + 20,
-        this.player.state.position.z + 10
+        this.player.state.position.x + Math.sin(dropYaw) * ffDist * Math.cos(dropPitch),
+        this.player.state.position.y + ffHeight - Math.sin(dropPitch) * ffDist,
+        this.player.state.position.z + Math.cos(dropYaw) * ffDist * Math.cos(dropPitch)
       );
-      this.camera.lookAt(
-        this.player.state.position.x,
-        groundH,
-        this.player.state.position.z
-      );
+      this.camera.lookAt(this.player.state.position);
     } else {
-      const yaw = this.player.getYaw();
+      // Parachute: 3rd person follow with free-look
       this.camera.position.set(
-        this.player.state.position.x + Math.sin(yaw) * 12,
-        this.player.state.position.y + 8,
-        this.player.state.position.z + Math.cos(yaw) * 12
+        this.player.state.position.x + Math.sin(dropYaw) * 12 * Math.cos(dropPitch),
+        this.player.state.position.y + 8 - Math.sin(dropPitch) * 12,
+        this.player.state.position.z + Math.cos(dropYaw) * 12 * Math.cos(dropPitch)
       );
       this.camera.lookAt(this.player.state.position);
     }
