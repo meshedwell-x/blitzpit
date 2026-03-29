@@ -98,6 +98,9 @@ export class GameEngine {
   private _tmpBehind = new THREE.Vector3();
   private _tmpSide = new THREE.Vector3();
 
+  // Bot footstep timer
+  private botFootstepTimer = 0;
+
   // Kill streak tracking
   private killStreakTimer = 0;
   private lastKillCount = 0;
@@ -230,6 +233,9 @@ export class GameEngine {
     this.botSystem.spawn();
     this.vehicleSystem.init();
     this.vehicleSystem.spawnVehicles(20);
+    this.vehicleSystem.onHonk = () => {
+      this.soundManager.playHorn();
+    };
 
     this.animalSystem.spawn();
 
@@ -259,7 +265,15 @@ export class GameEngine {
       if (type === 'flash') this.flashTimer = 2.0;
       if (type === 'frag') {
         this.particleSystem.emitExplosion(pos, radius);
-        this.soundManager.playExplosion();
+        const dist = pos.distanceTo(this.player.state.position);
+        const vol = Math.max(0, 1 - dist / 300);
+        if (vol > 0) {
+          this.soundManager.playExplosion();
+        }
+        // Camera shake based on proximity
+        if (dist < 30) {
+          this.player.addShake(0.3 * (1 - dist / 30));
+        }
       }
     };
 
@@ -281,9 +295,14 @@ export class GameEngine {
       }
     };
 
-    // Bot fire callback
+    // Bot fire callback -- 3D positional audio
     this.weaponSystem.onBotFire = (pos, _dir, weaponType) => {
-      this.soundManager.playGunshot(weaponType);
+      this.soundManager.playGunshot3D(
+        weaponType,
+        pos,
+        this.player.state.position,
+        this.player.getYaw()
+      );
     };
 
     // Item pickup callback
@@ -746,6 +765,28 @@ export class GameEngine {
         const envDmg = this.biomeSystem.getEnvironmentDamage(playerBiome, this.dayNightSystem.isNight, delta);
         if (envDmg > 0) {
           this.player.takeDamage(envDmg);
+        }
+
+        // Nearby bot footsteps (max 3 closest, performance guard)
+        this.botFootstepTimer -= delta;
+        if (this.botFootstepTimer <= 0) {
+          this.botFootstepTimer = 0.4;
+          const playerPos = this.player.state.position;
+          const nearbyBots = this.botSystem.bots
+            .filter(b => !b.isDead && b.state !== 'landing')
+            .map(b => ({ bot: b, dist: b.position.distanceTo(playerPos) }))
+            .filter(b => b.dist < 25)
+            .sort((a, b) => a.dist - b.dist)
+            .slice(0, 3);
+          for (const { bot } of nearbyBots) {
+            const vol = this.soundManager.getDistanceVolume(playerPos, bot.position, 25);
+            if (vol > 0.1) {
+              const pan = this.soundManager.getStereoPan(playerPos, this.player.getYaw(), bot.position);
+              const biome = this.biomeSystem.getBiome(bot.position.x, bot.position.z);
+              const terrain = biome === 'tundra' ? 'snow' : biome === 'desert' ? 'sand' : biome === 'urban' ? 'concrete' : 'grass';
+              this.soundManager.playFootstep3D(terrain, vol * 0.5, pan);
+            }
+          }
         }
 
         this.weatherSystem.update(delta, this.player.state.position, playerBiome);

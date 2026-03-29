@@ -26,6 +26,8 @@ export class VehicleSystem {
   private keys: Set<string> = new Set();
   private _onKeyDown: (e: KeyboardEvent) => void = () => {};
   private _onKeyUp: (e: KeyboardEvent) => void = () => {};
+  private honkCooldown = 0;
+  onHonk: (() => void) | null = null;
 
   constructor(scene: THREE.Scene, world: WorldGenerator, player: PlayerController) {
     this.scene = scene;
@@ -37,6 +39,7 @@ export class VehicleSystem {
     this._onKeyDown = (e: KeyboardEvent) => {
       this.keys.add(e.code);
       if (e.code === 'KeyE') this.toggleVehicle();
+      if (e.code === 'KeyH') this.honk();
     };
     this._onKeyUp = (e: KeyboardEvent) => this.keys.delete(e.code);
     document.addEventListener('keydown', this._onKeyDown);
@@ -46,6 +49,12 @@ export class VehicleSystem {
   destroy(): void {
     document.removeEventListener('keydown', this._onKeyDown);
     document.removeEventListener('keyup', this._onKeyUp);
+  }
+
+  private honk(): void {
+    if (this.honkCooldown > 0 || !this.playerVehicle) return;
+    this.honkCooldown = 1.5;
+    if (this.onHonk) this.onHonk();
   }
 
   spawnVehicles(count: number = 12): void {
@@ -239,14 +248,20 @@ export class VehicleSystem {
     const turnSpeed = 2.5;
     const friction = 0.95;
 
-    // Controls
+    // Honk cooldown
+    if (this.honkCooldown > 0) this.honkCooldown -= delta;
+
+    // Controls -- exponential acceleration
     if (this.keys.has('KeyW')) {
-      v.speed = Math.min(v.speed + accel * delta, v.maxSpeed);
+      const targetSpeed = v.maxSpeed;
+      v.speed += (targetSpeed - v.speed) * accel * delta * 0.15;
     } else if (this.keys.has('KeyS')) {
-      v.speed = Math.max(v.speed - accel * 1.5 * delta, -v.maxSpeed * 0.3);
+      const targetSpeed = -v.maxSpeed * 0.3;
+      v.speed += (targetSpeed - v.speed) * accel * delta * 0.2;
     } else {
-      v.speed *= friction;
-      if (Math.abs(v.speed) < 0.5) v.speed = 0;
+      // Friction deceleration (exponential)
+      v.speed *= Math.pow(friction, delta * 60);
+      if (Math.abs(v.speed) < 0.3) v.speed = 0;
     }
 
     if (this.keys.has('KeyA')) v.rotation += turnSpeed * delta * (v.speed > 0 ? 1 : -1);
@@ -277,6 +292,17 @@ export class VehicleSystem {
     const groundH = this.world.getHeightAt(v.position.x, v.position.z);
     v.position.y = groundH + 0.8;
 
+    // Slope physics -- uphill deceleration, downhill acceleration
+    const aheadX = v.position.x - Math.sin(v.rotation) * 2;
+    const aheadZ = v.position.z - Math.cos(v.rotation) * 2;
+    const aheadH = this.world.getHeightAt(aheadX, aheadZ);
+    const slope = (aheadH - groundH) / 2; // -1 to +1
+    v.speed -= slope * 15 * delta;
+    // Steep slope (>45 deg) blocks climbing
+    if (slope > 0.7 && v.speed < 3) {
+      v.speed = Math.max(v.speed, -1);
+    }
+
     // Fuel
     if (v.speed !== 0) {
       v.fuel -= Math.abs(v.speed) * delta * 0.05;
@@ -289,6 +315,18 @@ export class VehicleSystem {
     // Update mesh
     v.mesh.position.copy(v.position);
     v.mesh.rotation.y = v.rotation;
+
+    // Visual suspension -- tilt based on terrain slope
+    const frontH = this.world.getHeightAt(
+      v.position.x - Math.sin(v.rotation) * 1.5,
+      v.position.z - Math.cos(v.rotation) * 1.5
+    );
+    const backH = this.world.getHeightAt(
+      v.position.x + Math.sin(v.rotation) * 1.5,
+      v.position.z + Math.cos(v.rotation) * 1.5
+    );
+    const targetPitch = Math.atan2(backH - frontH, 3.0);
+    v.mesh.rotation.x += (targetPitch - v.mesh.rotation.x) * delta * 5;
 
     // Player follows vehicle
     this.player.state.position.copy(v.position);
