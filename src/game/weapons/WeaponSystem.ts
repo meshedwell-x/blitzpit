@@ -43,6 +43,7 @@ export class WeaponSystem {
   private bulletGeometry: THREE.SphereGeometry;
   private bulletMaterial: THREE.MeshBasicMaterial;
   private weaponModel: THREE.Group;
+  weatherSpreadMultiplier = 1.0;
 
   onFire: ((weaponType: string, position: THREE.Vector3, direction: THREE.Vector3) => void) | null = null;
   onBotFire: ((position: THREE.Vector3, direction: THREE.Vector3, weaponType: string) => void) | null = null;
@@ -280,7 +281,7 @@ export class WeaponSystem {
 
     for (let i = 0; i < pellets; i++) {
       const spreadMult = this.player.getSpreadMultiplier();
-      const spread = w.def.spread * spreadMult;
+      const spread = w.def.spread * spreadMult * this.weatherSpreadMultiplier;
       const bulletDir = dir.clone();
       bulletDir.x += (Math.random() - 0.5) * spread;
       bulletDir.y += (Math.random() - 0.5) * spread;

@@ -84,16 +84,25 @@ export class SkinSystem {
     return null;
   }
 
-  // Apply skin colors to player mesh
+  // Apply skin colors to player mesh using named parts
   applySkinToMesh(mesh: THREE.Group): void {
     const skin = this.getActiveSkin();
     if (!skin || !skin.colors) return;
 
+    const partMap: Record<string, string> = {
+      'torso': 'body',
+      'leftArm': 'arms',
+      'rightArm': 'arms',
+      'leftLeg': 'legs',
+      'rightLeg': 'legs',
+    };
+
     mesh.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
-        // Torso (index 2 in player mesh)
-        if (child.position.y > 0.8 && child.position.y < 1.2 && child.position.x === 0) {
-          if (skin.colors!.body) child.material.color.setHex(skin.colors!.body);
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial && child.name) {
+        const colorKey = partMap[child.name];
+        if (colorKey && skin.colors![colorKey]) {
+          child.material = child.material.clone(); // Don't share material
+          child.material.color.setHex(skin.colors![colorKey]);
           if (skin.emissive) {
             child.material.emissive = new THREE.Color(skin.emissive);
             child.material.emissiveIntensity = skin.emissiveIntensity || 0;

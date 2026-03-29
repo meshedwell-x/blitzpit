@@ -71,6 +71,7 @@ export class BossSystem {
       flashlight: null,
       personality: type === 'sniper_king' ? 'sniper' : 'aggressive',
       level: 'boss',
+      deathTime: 0,
       bossType: type,
       phase: 1,
       specialCooldown: 5,

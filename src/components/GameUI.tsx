@@ -154,7 +154,8 @@ export default function GameUI() {
           // Kill banner: find recently killed bot name from kill feed
           const feed = engine.botSystem.killFeed;
           const latestKill = feed.length > 0 ? feed[feed.length - 1] : null;
-          if (latestKill && latestKill.killer === 'You') {
+          const myNameForBanner = typeof localStorage !== 'undefined' ? localStorage.getItem('cubwild_name') || 'You' : 'You';
+          if (latestKill && (latestKill.killer === myNameForBanner || latestKill.killer === 'You')) {
             if (killBannerTimerRef.current) clearTimeout(killBannerTimerRef.current);
             setKillBanner(latestKill.victim);
             killBannerTimerRef.current = setTimeout(() => setKillBanner(null), 2000);
@@ -282,7 +283,17 @@ export default function GameUI() {
             )?.toUpperCase() ?? 'URBAN'}
           </div>
           <div className="text-gray-400">
-            {engineRef.current?.weatherSystem.currentWeather?.toUpperCase() ?? 'CLEAR'}
+            {(() => {
+              const weather = engineRef.current?.weatherSystem.currentWeather;
+              return (
+                <>
+                  {weather?.toUpperCase() ?? 'CLEAR'}
+                  {weather === 'fog' && <span className="text-blue-300 text-[8px]"> -50% detect</span>}
+                  {weather === 'storm' && <span className="text-red-300 text-[8px]"> +30% spread</span>}
+                  {weather === 'rain' && <span className="text-blue-300 text-[8px]"> +10% spread</span>}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -399,16 +410,20 @@ export default function GameUI() {
       {/* KILL FEED */}
       {killFeed.length > 0 && (
         <div className="absolute top-12 right-10 flex flex-col gap-0.5">
-          {killFeed.map((k, i) => {
-            const isYouKill = k.killer === 'You';
-            return (
-              <div key={`${k.time}_${i}`} className={`px-2 py-0.5 rounded text-[12px] font-mono flex gap-1 ${isYouKill ? 'bg-yellow-900/50 border border-yellow-600/40' : 'bg-black/60'}`}>
-                <span className={isYouKill ? 'text-yellow-300 font-bold' : 'text-white'}>{k.killer}</span>
-                <span className="text-gray-500">[{k.weapon}]</span>
-                <span className={k.victim === 'You' ? 'text-red-400 font-bold' : 'text-gray-300'}>{k.victim}</span>
-              </div>
-            );
-          })}
+          {(() => {
+            const myName = typeof localStorage !== 'undefined' ? localStorage.getItem('cubwild_name') || 'You' : 'You';
+            return killFeed.map((k, i) => {
+              const isMyKill = k.killer === myName || k.killer === 'You';
+              const isMyDeath = k.victim === myName || k.victim === 'You';
+              return (
+                <div key={`${k.time}_${i}`} className={`px-2 py-0.5 rounded text-[12px] font-mono flex gap-1 ${isMyKill ? 'bg-yellow-900/50 border border-yellow-600/40' : 'bg-black/60'}`}>
+                  <span className={isMyKill ? 'text-yellow-300 font-bold' : 'text-white'}>{k.killer}</span>
+                  <span className="text-gray-500">[{k.weapon}]</span>
+                  <span className={isMyDeath ? 'text-red-400 font-bold' : 'text-gray-300'}>{k.victim}</span>
+                </div>
+              );
+            });
+          })()}
         </div>
       )}
 

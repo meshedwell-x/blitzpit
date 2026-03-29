@@ -15,6 +15,7 @@ import { WeatherSystem } from '../world/WeatherSystem';
 import { DayNightSystem } from '../world/DayNightSystem';
 import { BiomeSystem } from '../world/BiomeSystem';
 import { AnimalSystem } from '../world/AnimalSystem';
+import { SkinSystem } from '../shop/SkinSystem';
 import {
   WORLD_SIZE,
   PLAYER_HEAL_BETWEEN_WAVES,
@@ -353,8 +354,10 @@ export class GameEngine {
             this.scoreboardSystem.recordKill(false);
             this.particleSystem.emitDeath(bot.position.clone());
             this.soundManager.playKillConfirm();
+            bot.deathTime = Date.now();
+            const meleeKillerName = (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'You';
             this.botSystem.killFeed.push({
-              killer: 'You', victim: bot.name, weapon: 'Melee', time: Date.now()
+              killer: meleeKillerName, victim: bot.name, weapon: 'Melee', time: Date.now()
             });
           }
           break;
@@ -399,6 +402,10 @@ export class GameEngine {
     this.gameState.currentWave = 1;
     this.waveManager.currentWave = 1;
     this.notifyStateChange();
+
+    // Apply purchased skin to player mesh
+    const skinSystem = new SkinSystem();
+    skinSystem.applySkinToMesh(this.player.mesh);
   }
 
   startGame(): void {
@@ -690,8 +697,10 @@ export class GameEngine {
                     this.scoreboardSystem.recordKill(false);
                     this.particleSystem.emitDeath(bot.position.clone());
                     this.soundManager.playKillConfirm();
+                    bot.deathTime = Date.now();
+                    const vehicleKillerName = (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'You';
                     this.botSystem.killFeed.push({
-                      killer: 'You', victim: bot.name, weapon: 'Vehicle', time: Date.now()
+                      killer: vehicleKillerName, victim: bot.name, weapon: 'Vehicle', time: Date.now()
                     });
                   }
                 }
@@ -790,6 +799,22 @@ export class GameEngine {
         }
 
         this.weatherSystem.update(delta, this.player.state.position, playerBiome);
+
+        // Weather affects combat
+        const weather = this.weatherSystem.currentWeather;
+        if (weather === 'storm') {
+          this.weaponSystem.weatherSpreadMultiplier = 1.3;
+          this.botSystem.weatherDetectionMultiplier = 0.6;
+        } else if (weather === 'rain') {
+          this.weaponSystem.weatherSpreadMultiplier = 1.1;
+          this.botSystem.weatherDetectionMultiplier = 0.8;
+        } else if (weather === 'fog') {
+          this.weaponSystem.weatherSpreadMultiplier = 1.0;
+          this.botSystem.weatherDetectionMultiplier = 0.5;
+        } else {
+          this.weaponSystem.weatherSpreadMultiplier = 1.0;
+          this.botSystem.weatherDetectionMultiplier = 1.0;
+        }
 
         // Reinforcement plane -- spawn new bots periodically to keep the battlefield alive
         this.updateReinforcements(delta);

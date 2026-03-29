@@ -33,6 +33,7 @@ export class PlayerController {
   private animTime = 0;
   private mobileInput = { x: 0, z: 0 };
   biomeSpeedMultiplier = 1.0;
+  weatherSpreadMultiplier = 1.0;
 
   // ADS
   isADS = false;
@@ -120,6 +121,7 @@ export class PlayerController {
       new THREE.MeshLambertMaterial({ color: 0x4a3520 })
     );
     belt.position.y = 0.65;
+    belt.name = 'belt';
     group.add(belt);
 
     // --- Arms ---
@@ -169,9 +171,11 @@ export class PlayerController {
     const bootMat = new THREE.MeshLambertMaterial({ color: 0x2a1a0a });
     const leftBoot = new THREE.Mesh(bootGeo, bootMat);
     leftBoot.position.set(-0.15, 0.0, -0.03);
+    leftBoot.name = 'leftBoot';
     group.add(leftBoot);
     const rightBoot = new THREE.Mesh(bootGeo, bootMat);
     rightBoot.position.set(0.15, 0.0, -0.03);
+    rightBoot.name = 'rightBoot';
     group.add(rightBoot);
 
     // --- Backpack ---
@@ -180,6 +184,7 @@ export class PlayerController {
       new THREE.MeshLambertMaterial({ color: 0x5a4a30 })
     );
     backpack.position.set(0, 1.05, 0.3);
+    backpack.name = 'backpack';
     group.add(backpack);
 
     // --- Helmet ---
@@ -188,6 +193,7 @@ export class PlayerController {
       new THREE.MeshLambertMaterial({ color: 0x4a5a3a })
     );
     helmet.position.y = 1.75;
+    helmet.name = 'helmet';
     group.add(helmet);
 
     return group;
@@ -528,6 +534,7 @@ export class PlayerController {
     if (isMoving && this.state.isSprinting) mult *= 2.5;
     else if (isMoving) mult *= 1.3;
     if (!this.state.isGrounded) mult *= 3.0;
+    mult *= this.weatherSpreadMultiplier;
     return mult;
   }
 

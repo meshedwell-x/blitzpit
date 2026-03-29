@@ -29,6 +29,7 @@ export interface Bot {
   flashlight: THREE.PointLight | null;
   personality: 'aggressive' | 'cautious' | 'sniper' | 'scavenger' | 'camper';
   level: 'recruit' | 'soldier' | 'veteran' | 'elite' | 'boss';
+  deathTime: number; // timestamp when bot died, 0 if alive or mesh already cleaned
 }
 
 const BOT_NAMES = [
@@ -82,6 +83,8 @@ export class BotSystem {
   private _tmpFireDir = new THREE.Vector3();
   private _tmpStrafeDir = new THREE.Vector3();
   private _tmpFirePos = new THREE.Vector3();
+
+  weatherDetectionMultiplier = 1.0;
 
   onBotHit: ((position: THREE.Vector3, isHeadshot: boolean, damage: number) => void) | null = null;
   onBotDeath: ((position: THREE.Vector3) => void) | null = null;
@@ -144,6 +147,7 @@ export class BotSystem {
         flashlight: null,
         personality,
         level: skillToLevel(skill),
+        deathTime: 0,
       });
     }
   }
@@ -218,6 +222,16 @@ export class BotSystem {
         if (legs[5]) legs[5].rotation.x *= 0.9;
       }
     }
+
+    // Clean up dead bot meshes after 5 seconds
+    const now = Date.now();
+    for (const bot of this.bots) {
+      if (bot.isDead && bot.deathTime > 0 && now - bot.deathTime > 5000) {
+        this.scene.remove(bot.mesh);
+        BotMeshFactory.dispose(bot.mesh);
+        bot.deathTime = 0; // Mark as cleaned
+      }
+    }
   }
 
   private updateLanding(bot: Bot, delta: number): void {
@@ -235,10 +249,10 @@ export class BotSystem {
   private updateRoaming(bot: Bot, delta: number, playerPos: THREE.Vector3): void {
     const distToPlayer = bot.position.distanceTo(playerPos);
 
-    // Detection range reduced when inside building
-    const effectiveDetection = bot.inBuilding
+    // Detection range reduced when inside building or by weather
+    const effectiveDetection = (bot.inBuilding
       ? bot.detectionRange * 0.5
-      : bot.detectionRange;
+      : bot.detectionRange) * this.weatherDetectionMultiplier;
 
     // Unarmed bots flee from player if detected
     if (distToPlayer < effectiveDetection && !this.player.state.isDead) {
@@ -409,11 +423,11 @@ export class BotSystem {
       }
     }
 
-    // Personality: aggressive has extended detection
+    // Personality: aggressive has extended detection, weather reduces it
     const detectionMult = bot.personality === 'aggressive' ? 1.3 : 1.0;
-    const effectiveDetection = bot.inBuilding
+    const effectiveDetection = (bot.inBuilding
       ? bot.detectionRange * 0.5 * detectionMult
-      : bot.detectionRange * detectionMult;
+      : bot.detectionRange * detectionMult) * this.weatherDetectionMultiplier;
 
     // Lose interest if target too far
     if (targetDist > effectiveDetection * 2) {
@@ -582,15 +596,11 @@ export class BotSystem {
 
             if (this.onBotDeath) this.onBotDeath(bot.position.clone());
 
-            // Remove dead bot mesh after 5 seconds
-            const deadMesh = bot.mesh;
-            const sceneRef = this.scene;
-            setTimeout(() => {
-              sceneRef.remove(deadMesh);
-              BotMeshFactory.dispose(deadMesh);
-            }, 5000);
+            // Schedule mesh removal via deathTime (cleaned in update())
+            bot.deathTime = Date.now();
 
-            const killerName = bullet.ownerId === 'player' ? 'You' :
+            const playerName = (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'You';
+            const killerName = bullet.ownerId === 'player' ? playerName :
               (this.bots.find(b => b.id === bullet.ownerId)?.name || 'Bot');
             const weaponName = bullet.ownerId === 'player' ?
               (this.weaponSystem.getActiveWeapon()?.def.name || 'Unknown') :
@@ -644,11 +654,13 @@ export class BotSystem {
     if (result.killed && !bot.isDead) {
       bot.isDead = true;
       bot.health = 0;
+      bot.deathTime = Date.now();
       this.alive = Math.max(0, this.alive - 1);
       bot.mesh.rotation.x = Math.PI / 2;
       bot.mesh.position.y -= 0.5;
 
-      const killerName = killerId === 'player' ? 'You' :
+      const playerName = (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'You';
+      const killerName = killerId === 'player' ? playerName :
         (this.bots.find(b => b.id === killerId)?.name || 'Bot');
       const weaponName = killerId === 'player' ?
         (this.weaponSystem.getActiveWeapon()?.def.name || 'Unknown') :
@@ -732,6 +744,7 @@ export class BotSystem {
         flashlight: null,
         personality: wavePersonality,
         level: skillToLevel(skill),
+        deathTime: 0,
       });
     }
   }
@@ -771,6 +784,7 @@ export class BotSystem {
         inBuilding: false, flashlight: null,
         personality: randomPersonality(),
         level: skillToLevel(skill),
+        deathTime: 0,
       });
       this.alive++;
     }
