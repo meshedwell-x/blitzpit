@@ -67,6 +67,16 @@ export class GrenadeSystem {
 
   destroy(): void {
     document.removeEventListener('keydown', this._onKeyDown);
+    // Clean up active grenades
+    for (const g of this.grenades) {
+      this.scene.remove(g.mesh);
+    }
+    this.grenades = [];
+    // Clean up smoke clouds
+    for (const s of this.smokeClouds) {
+      this.scene.remove(s.mesh);
+    }
+    this.smokeClouds = [];
   }
 
   throwGrenade(direction?: THREE.Vector3): void {
@@ -189,8 +199,9 @@ export class GrenadeSystem {
         if (dist < def.radius) {
           const falloff = 1 - dist / def.radius;
           bot.health -= def.damage * falloff;
-          if (bot.health <= 0) {
+          if (bot.health <= 0 && !bot.isDead) {
             bot.isDead = true;
+            bot.health = 0;
             bot.mesh.rotation.x = Math.PI / 2;
             bot.mesh.position.y -= 0.5;
             if (this.onBotKill) this.onBotKill(bot.id);

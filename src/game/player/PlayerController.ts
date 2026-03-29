@@ -37,6 +37,7 @@ export class PlayerController {
   private _onKeyUp: (e: KeyboardEvent) => void = () => {};
   private _onMouseMove: (e: MouseEvent) => void = () => {};
   private _onPointerLockChange: () => void = () => {};
+  private _onClick: () => void = () => {};
   private _container: HTMLElement | null = null;
 
   constructor(camera: THREE.PerspectiveCamera, world: WorldGenerator, scene: THREE.Scene) {
@@ -200,11 +201,12 @@ export class PlayerController {
     document.addEventListener('mousemove', this._onMouseMove);
     document.addEventListener('pointerlockchange', this._onPointerLockChange);
 
-    container.addEventListener('click', () => {
+    this._onClick = () => {
       if (!this.isLocked) {
         container.requestPointerLock();
       }
-    });
+    };
+    container.addEventListener('click', this._onClick);
   }
 
   destroy(): void {
@@ -212,6 +214,9 @@ export class PlayerController {
     document.removeEventListener('keyup', this._onKeyUp);
     document.removeEventListener('mousemove', this._onMouseMove);
     document.removeEventListener('pointerlockchange', this._onPointerLockChange);
+    if (this._container) {
+      this._container.removeEventListener('click', this._onClick);
+    }
   }
 
   update(delta: number): void {

@@ -41,7 +41,6 @@ export class WeaponSystem {
   private bulletGeometry: THREE.SphereGeometry;
   private bulletMaterial: THREE.MeshBasicMaterial;
   private weaponModel: THREE.Group;
-  private raycaster = new THREE.Raycaster();
 
   private _onMouseDown: (e: MouseEvent) => void = () => {};
   private _onMouseUp: (e: MouseEvent) => void = () => {};
@@ -115,6 +114,21 @@ export class WeaponSystem {
     document.removeEventListener('mouseup', this._onMouseUp);
     document.removeEventListener('keydown', this._onKeyDown);
     document.removeEventListener('wheel', this._onWheel);
+    // Clean up active bullets
+    for (const bullet of this.bullets) {
+      this.scene.remove(bullet.mesh);
+    }
+    this.bullets = [];
+    // Clean up item meshes
+    for (const item of this.items) {
+      if (!item.collected) {
+        this.scene.remove(item.mesh);
+      }
+    }
+    this.items = [];
+    // Dispose shared geometry/material
+    this.bulletGeometry.dispose();
+    this.bulletMaterial.dispose();
   }
 
   spawnItems(spawns: { position: THREE.Vector3; type: string; weaponId?: string }[]): void {

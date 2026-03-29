@@ -10,7 +10,7 @@ import { WaveManager } from './WaveManager';
 import { ScoreboardSystem } from '../score/ScoreboardSystem';
 import { SoundManager } from '../audio/SoundManager';
 import { ParticleSystem } from '../effects/ParticleSystem';
-import { WORLD_SIZE, PLAYER_HEAL_BETWEEN_WAVES, WEAPONS } from './constants';
+import { WORLD_SIZE, PLAYER_HEAL_BETWEEN_WAVES } from './constants';
 
 export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'wave_transition' | 'dead';
 
@@ -66,11 +66,16 @@ export class GameEngine {
   // Flash effect
   flashTimer = 0;
 
+  // Reusable temp vectors
+  private _tmpBehind = new THREE.Vector3();
+  private _tmpSide = new THREE.Vector3();
+
   // Kill streak tracking
   private killStreakTimer = 0;
   private lastKillCount = 0;
 
   onStateChange: ((state: GameState) => void) | null = null;
+  private _onResize: () => void = () => {};
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -105,7 +110,8 @@ export class GameEngine {
     this.soundManager = new SoundManager();
     this.particleSystem = new ParticleSystem(this.scene);
 
-    window.addEventListener('resize', () => this.onResize());
+    this._onResize = () => this.onResize();
+    window.addEventListener('resize', this._onResize);
   }
 
   private setupLighting(): void {
@@ -202,6 +208,11 @@ export class GameEngine {
     this.playerDropMesh.visible = false;
     this.scene.add(this.playerDropMesh);
 
+    // Zone bot kill callback -> decrement alive
+    this.zoneSystem.onBotKill = (_botId: string) => {
+      this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
+    };
+
     // Grenade explosion callback
     this.grenadeSystem.onExplosion = (pos, _damage, radius, type) => {
       if (type === 'flash') this.flashTimer = 2.0;
@@ -244,7 +255,11 @@ export class GameEngine {
     if (this.planeMesh) {
       this.planeMesh.visible = true;
       this.planeMesh.position.copy(this.planePosition);
-      this.planeMesh.lookAt(this.planePosition.clone().add(this.planeDirection.clone().multiplyScalar(10)));
+      this._tmpBehind.copy(this.planePosition);
+      this._tmpBehind.x += this.planeDirection.x * 10;
+      this._tmpBehind.y += this.planeDirection.y * 10;
+      this._tmpBehind.z += this.planeDirection.z * 10;
+      this.planeMesh.lookAt(this._tmpBehind);
     }
     this.notifyStateChange();
   }
@@ -291,12 +306,15 @@ export class GameEngine {
 
   private updatePlane(delta: number): void {
     this.planeTimer += delta;
-    this.planePosition.add(this.planeDirection.clone().multiplyScalar(60 * delta));
+    const speed = 60 * delta;
+    this.planePosition.x += this.planeDirection.x * speed;
+    this.planePosition.y += this.planeDirection.y * speed;
+    this.planePosition.z += this.planeDirection.z * speed;
     this.player.state.position.copy(this.planePosition);
     if (this.planeMesh) this.planeMesh.position.copy(this.planePosition);
 
-    const side = new THREE.Vector3(-this.planeDirection.z * 25, 15, this.planeDirection.x * 25);
-    this.camera.position.copy(this.planePosition).add(side);
+    this._tmpSide.set(-this.planeDirection.z * 25, 15, this.planeDirection.x * 25);
+    this.camera.position.copy(this.planePosition).add(this._tmpSide);
     this.camera.lookAt(this.planePosition);
 
     if (this.planeTimer > 15) this.drop();
@@ -320,11 +338,10 @@ export class GameEngine {
       this.playerDropMesh.position.copy(this.player.state.position);
     }
 
-    const behind = this.planeDirection.clone().multiplyScalar(12);
     this.camera.position.set(
-      this.player.state.position.x + behind.x,
+      this.player.state.position.x + this.planeDirection.x * 12,
       this.player.state.position.y + 8,
-      this.player.state.position.z + behind.z
+      this.player.state.position.z + this.planeDirection.z * 12
     );
     this.camera.lookAt(this.player.state.position);
 
@@ -348,12 +365,15 @@ export class GameEngine {
     this.zoneSystem.reset();
     this.zoneSystem.speedMultiplier = config.zoneShrinkSpeedMultiplier;
 
-    // Clean up old items from previous wave (mark them all collected)
+    // Clean up old items from previous wave
     for (const item of this.weaponSystem.items) {
       if (!item.collected) {
         item.collected = true;
         this.scene.remove(item.mesh);
       }
+      // Dispose mesh resources
+      if (item.mesh.geometry) item.mesh.geometry.dispose();
+      if (item.mesh.material instanceof THREE.Material) item.mesh.material.dispose();
     }
     this.weaponSystem.items = [];
 
@@ -401,12 +421,12 @@ export class GameEngine {
         if (this.vehicleSystem.isPlayerInVehicle()) {
           this.vehicleSystem.update(delta);
           const v = this.vehicleSystem.playerVehicle!;
-          const behind = new THREE.Vector3(
+          this._tmpBehind.set(
             Math.sin(v.rotation) * 10,
             6,
             Math.cos(v.rotation) * 10
           );
-          this.camera.position.copy(v.position).add(behind);
+          this.camera.position.copy(v.position).add(this._tmpBehind);
           this.camera.lookAt(v.position);
           this.soundManager.playVehicleEngine(v.speed);
         } else {
@@ -501,6 +521,7 @@ export class GameEngine {
   }
 
   destroy(): void {
+    window.removeEventListener('resize', this._onResize);
     this.player.destroy();
     this.weaponSystem.destroy();
     this.grenadeSystem.destroy();

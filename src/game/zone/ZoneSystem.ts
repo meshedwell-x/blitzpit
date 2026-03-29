@@ -18,6 +18,7 @@ export class ZoneSystem {
   private zoneMesh: THREE.Mesh;
   private zoneEdgeMesh: THREE.Mesh;
   private safeZoneMesh: THREE.Mesh;
+  onBotKill: ((botId: string) => void) | null = null;
 
   constructor(scene: THREE.Scene, player: PlayerController) {
     this.scene = scene;
@@ -133,10 +134,11 @@ export class ZoneSystem {
         .distanceTo(this.center);
       if (botDist > this.currentRadius) {
         bot.health -= phase.damage * delta;
-        if (bot.health <= 0) {
+        if (bot.health <= 0 && !bot.isDead) {
           bot.isDead = true;
           bot.mesh.rotation.x = Math.PI / 2;
           bot.mesh.position.y -= 0.5;
+          if (this.onBotKill) this.onBotKill(bot.id);
         }
 
         // Bots try to run into the zone

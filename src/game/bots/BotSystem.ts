@@ -45,6 +45,11 @@ export class BotSystem {
   private scene: THREE.Scene;
   alive = BOT_COUNT;
   killFeed: { killer: string; victim: string; weapon: string; time: number }[] = [];
+  // Reusable temp vectors to reduce GC pressure
+  private _tmpDir = new THREE.Vector3();
+  private _tmpFireDir = new THREE.Vector3();
+  private _tmpStrafeDir = new THREE.Vector3();
+  private _tmpFirePos = new THREE.Vector3();
 
   constructor(
     scene: THREE.Scene,
@@ -300,7 +305,7 @@ export class BotSystem {
     if (!weapon) return;
 
     // Face player
-    const dir = new THREE.Vector3()
+    const dir = this._tmpDir
       .subVectors(playerPos, bot.position)
       .setY(0)
       .normalize();
@@ -318,15 +323,15 @@ export class BotSystem {
       bot.position.z -= dir.z * PLAYER_SPEED * 0.4 * delta;
     } else {
       // Strafe
-      const strafeDir = new THREE.Vector3(-dir.z, 0, dir.x);
+      this._tmpStrafeDir.set(-dir.z, 0, dir.x);
       const strafeSide = Math.sin(Date.now() * 0.002 + bot.position.x) > 0 ? 1 : -1;
-      bot.position.x += strafeDir.x * PLAYER_SPEED * 0.3 * strafeSide * delta;
-      bot.position.z += strafeDir.z * PLAYER_SPEED * 0.3 * strafeSide * delta;
+      bot.position.x += this._tmpStrafeDir.x * PLAYER_SPEED * 0.3 * strafeSide * delta;
+      bot.position.z += this._tmpStrafeDir.z * PLAYER_SPEED * 0.3 * strafeSide * delta;
     }
 
     // Fire at player
     if (distToPlayer < weapon.range && bot.fireTimer <= 0) {
-      const fireDir = new THREE.Vector3()
+      const fireDir = this._tmpFireDir
         .subVectors(playerPos, bot.position)
         .normalize();
 
@@ -337,8 +342,10 @@ export class BotSystem {
       fireDir.z += (Math.random() - 0.5) * inaccuracy;
       fireDir.normalize();
 
+      this._tmpFirePos.copy(bot.position);
+      this._tmpFirePos.y += 0.5;
       this.weaponSystem.fireBotWeapon(
-        bot.position.clone().add(new THREE.Vector3(0, 0.5, 0)),
+        this._tmpFirePos,
         fireDir,
         bot.weaponId,
         bot.id
@@ -389,12 +396,14 @@ export class BotSystem {
       if (dist < 20 && dist < attacker.detectionRange * 0.5) {
         // Occasionally shoot at other bots
         if (Math.random() < 0.02 && attacker.weaponId) {
-          const dir = new THREE.Vector3()
+          this._tmpDir
             .subVectors(target.position, attacker.position)
             .normalize();
+          this._tmpFirePos.copy(attacker.position);
+          this._tmpFirePos.y += 0.5;
           this.weaponSystem.fireBotWeapon(
-            attacker.position.clone().add(new THREE.Vector3(0, 0.5, 0)),
-            dir, attacker.weaponId, attacker.id
+            this._tmpFirePos,
+            this._tmpDir, attacker.weaponId, attacker.id
           );
         }
       }
@@ -451,7 +460,7 @@ export class BotSystem {
           if (bot.health <= 0) {
             bot.isDead = true;
             bot.health = 0;
-            this.alive--;
+            this.alive = Math.max(0, this.alive - 1);
 
             // Death animation - lay down
             bot.mesh.rotation.x = Math.PI / 2;
@@ -551,9 +560,17 @@ export class BotSystem {
   }
 
   respawnForWave(config: WaveConfig): void {
-    // Remove existing bot meshes
+    // Remove and dispose existing bot meshes
     for (const bot of this.bots) {
       this.scene.remove(bot.mesh);
+      bot.mesh.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          if (child.material instanceof THREE.Material) {
+            child.material.dispose();
+          }
+        }
+      });
     }
     this.bots = [];
     this.alive = config.botCount;

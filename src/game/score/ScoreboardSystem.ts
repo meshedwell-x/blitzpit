@@ -1,4 +1,4 @@
-import { RANK_THRESHOLDS, KILL_STREAK_LABELS } from '../core/constants';
+import { RANK_THRESHOLDS, KILL_STREAK_LABELS, KILL_STREAK_TIMEOUT } from '../core/constants';
 
 export interface PlayerStats {
   totalKills: number;
@@ -27,7 +27,6 @@ export class ScoreboardSystem {
   stats: PlayerStats;
   private leaderboard: LeaderboardEntry[];
   private killStreakTimer = 0;
-  private readonly streakTimeout = 5;
 
   constructor() {
     this.stats = this.defaultStats();
@@ -51,7 +50,7 @@ export class ScoreboardSystem {
   recordKill(isHeadshot: boolean): void {
     this.stats.totalKills++;
     this.stats.currentKillStreak++;
-    this.killStreakTimer = this.streakTimeout;
+    this.killStreakTimer = KILL_STREAK_TIMEOUT;
 
     if (isHeadshot) {
       this.stats.headshotCount++;
@@ -129,14 +128,6 @@ export class ScoreboardSystem {
   }
 
   getKillStreakLabel(streak: number): string | null {
-    // Find the highest matching threshold
-    let label: string | null = null;
-    for (const key of Object.keys(KILL_STREAK_LABELS).map(Number).sort((a, b) => a - b)) {
-      if (streak >= key) {
-        label = KILL_STREAK_LABELS[key];
-      }
-    }
-    // Only return if it's an exact match (streak just reached this threshold)
     const exactLabel = KILL_STREAK_LABELS[streak];
     return exactLabel || null;
   }

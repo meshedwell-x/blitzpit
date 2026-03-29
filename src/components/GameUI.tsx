@@ -5,29 +5,64 @@ import { GameEngine, GameState } from '../game/core/GameEngine';
 import { WeaponInstance } from '../game/weapons/WeaponSystem';
 import { GRENADES } from '../game/weapons/GrenadeSystem';
 
+const RARITY_COLORS: Record<string, string> = {
+  common: 'text-gray-300 border-gray-500',
+  uncommon: 'text-green-300 border-green-500',
+  rare: 'text-blue-300 border-blue-500',
+  epic: 'text-purple-300 border-purple-500',
+};
+
+const RARITY_BG: Record<string, string> = {
+  common: 'bg-gray-700/60',
+  uncommon: 'bg-green-900/40',
+  rare: 'bg-blue-900/40',
+  epic: 'bg-purple-900/40',
+};
+
 export default function GameUI() {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const animFrameRef = useRef<number>(0);
+  const lastUIUpdate = useRef(0);
 
-  const [gameState, setGameState] = useState<GameState>({
-    phase: 'lobby', playersAlive: 40, kills: 0, gameTime: 0,
+  // Refs for per-frame data (no render trigger)
+  const gameDataRef = useRef({
+    health: 100,
+    armor: 0,
+    weapon: null as WeaponInstance | null,
+    weapons: [null, null] as (WeaponInstance | null)[],
+    activeSlot: 0,
+    zoneInfo: { phase: 1, timer: 60, isShrinking: false, damage: 1 },
+    killFeed: [] as { killer: string; victim: string; weapon: string; time: number }[],
+    grenadeType: 'frag',
+    grenadeCount: {} as Record<string, number>,
+    inVehicle: false,
+    nearbyItem: null as string | null,
+    nearbyVehicle: false,
+    flashAlpha: 0,
+    gameState: { phase: 'lobby', playersAlive: 40, kills: 0, gameTime: 0, currentWave: 1, totalKills: 0, killStreak: 0, bestKillStreak: 0 } as GameState,
   });
-  const [health, setHealth] = useState(100);
-  const [armor, setArmor] = useState(0);
-  const [weapon, setWeapon] = useState<WeaponInstance | null>(null);
-  const [weapons, setWeapons] = useState<(WeaponInstance | null)[]>([null, null]);
-  const [activeSlot, setActiveSlot] = useState(0);
-  const [zoneInfo, setZoneInfo] = useState({ phase: 1, timer: 60, isShrinking: false, damage: 1 });
-  const [killFeed, setKillFeed] = useState<{ killer: string; victim: string; weapon: string; time: number }[]>([]);
-  const [nearbyItem, setNearbyItem] = useState<string | null>(null);
-  const [nearbyVehicle, setNearbyVehicle] = useState(false);
-  const [inVehicle, setInVehicle] = useState(false);
-  const [grenadeType, setGrenadeType] = useState('frag');
-  const [grenadeCount, setGrenadeCount] = useState<Record<string, number>>({});
-  const [showInventory, setShowInventory] = useState(false);
+
+  // Single state tick for low-frequency UI updates
+  const [uiTick, setUiTick] = useState(0);
+
+  // Event-driven states
+  const [gameState, setGameState] = useState<GameState>(gameDataRef.current.gameState);
   const [isMobile, setIsMobile] = useState(false);
-  const [flashAlpha, setFlashAlpha] = useState(0);
+  const [showInventory, setShowInventory] = useState(false);
+  const [muted, setMuted] = useState(false);
+
+  // Kill streak notification
+  const [streakLabel, setStreakLabel] = useState<string | null>(null);
+  const streakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastStreakLabelRef = useRef<string | null>(null);
+  const lastStreakValueRef = useRef(0);
+
+  // Edge flash states for kill / wave start
+  const [killFlashActive, setKillFlashActive] = useState(false);
+  const [waveFlashActive, setWaveFlashActive] = useState(false);
+  const lastKillsRef = useRef(0);
+  const lastPhaseRef = useRef<GameState['phase']>('lobby');
 
   useEffect(() => {
     setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
@@ -37,37 +72,76 @@ export default function GameUI() {
     if (!containerRef.current) return;
     const engine = new GameEngine(containerRef.current);
     engineRef.current = engine;
-    engine.onStateChange = (s) => setGameState(s);
+
+    engine.onStateChange = (s) => {
+      setGameState({ ...s });
+      gameDataRef.current.gameState = { ...s };
+
+      // Wave start flash
+      if (s.phase === 'playing' && lastPhaseRef.current === 'wave_transition') {
+        setWaveFlashActive(true);
+        setTimeout(() => setWaveFlashActive(false), 400);
+      }
+      lastPhaseRef.current = s.phase;
+    };
 
     const handleKey = (e: KeyboardEvent) => {
+      const engine = engineRef.current;
+      if (!engine) return;
       if (e.code === 'Space' && engine.gameState.phase === 'plane') engine.drop();
       else if (e.code === 'Space' && engine.gameState.phase === 'dropping') engine.openParachute();
       if (e.code === 'Tab') { e.preventDefault(); setShowInventory(v => !v); }
+      if (e.code === 'KeyM') {
+        engine.soundManager.toggleMute();
+        setMuted(engine.soundManager.isMuted());
+      }
     };
     document.addEventListener('keydown', handleKey);
 
     engine.init().then(() => {
       const loop = () => {
         engine.update();
-        setHealth(engine.player.state.health);
-        setArmor(engine.player.state.armor);
-        setWeapon(engine.weaponSystem.getActiveWeapon());
-        setWeapons([...engine.weaponSystem.weapons]);
-        setActiveSlot(engine.weaponSystem.activeSlot);
-        setZoneInfo(engine.zoneSystem.getPhaseInfo());
-        setKillFeed(engine.botSystem.killFeed.slice(-5));
-        setGrenadeType(engine.grenadeSystem.selectedGrenade);
-        setGrenadeCount({ ...engine.grenadeSystem.inventory });
-        setInVehicle(engine.vehicleSystem.isPlayerInVehicle());
-        setFlashAlpha(Math.max(0, engine.flashTimer));
-        setGameState({
-          phase: engine.gameState.phase,
-          playersAlive: engine.gameState.playersAlive,
-          kills: engine.gameState.kills,
-          gameTime: engine.gameState.gameTime,
-        });
 
-        // Nearby items/vehicles
+        // Per-frame ref updates (no render trigger)
+        const d = gameDataRef.current;
+        d.health = engine.player.state.health;
+        d.armor = engine.player.state.armor;
+        d.weapon = engine.weaponSystem.getActiveWeapon();
+        d.weapons = [...engine.weaponSystem.weapons];
+        d.activeSlot = engine.weaponSystem.activeSlot;
+        d.zoneInfo = engine.zoneSystem.getPhaseInfo();
+        d.killFeed = engine.botSystem.killFeed.slice(-5);
+        d.grenadeType = engine.grenadeSystem.selectedGrenade;
+        d.grenadeCount = { ...engine.grenadeSystem.inventory };
+        d.inVehicle = engine.vehicleSystem.isPlayerInVehicle();
+        d.flashAlpha = Math.max(0, engine.flashTimer);
+        d.gameState = { ...engine.gameState };
+
+        // Kill flash detection
+        const newKills = engine.player.state.kills;
+        if (newKills > lastKillsRef.current) {
+          setKillFlashActive(true);
+          setTimeout(() => setKillFlashActive(false), 100);
+          lastKillsRef.current = newKills;
+        }
+
+        // Kill streak label detection
+        const streak = engine.scoreboardSystem.stats.currentKillStreak;
+        if (streak !== lastStreakValueRef.current) {
+          lastStreakValueRef.current = streak;
+          const label = engine.scoreboardSystem.getKillStreakLabel(streak);
+          if (label && label !== lastStreakLabelRef.current) {
+            lastStreakLabelRef.current = label;
+            setStreakLabel(label);
+            if (streakTimerRef.current) clearTimeout(streakTimerRef.current);
+            streakTimerRef.current = setTimeout(() => {
+              setStreakLabel(null);
+              lastStreakLabelRef.current = null;
+            }, 2500);
+          }
+        }
+
+        // Nearby items/vehicles check
         const pp = engine.player.state.position;
         let item: string | null = null;
         for (const i of engine.weaponSystem.items) {
@@ -77,13 +151,20 @@ export default function GameUI() {
           else if (i.type === 'ammo') item = 'Pick up Ammo';
           break;
         }
-        setNearbyItem(item);
+        d.nearbyItem = item;
 
         let vNear = false;
         for (const v of engine.vehicleSystem.vehicles) {
           if (!v.isOccupied && v.health > 0 && v.position.distanceTo(pp) < 4) { vNear = true; break; }
         }
-        setNearbyVehicle(vNear);
+        d.nearbyVehicle = vNear;
+
+        // 10fps UI update: single setState
+        const now = performance.now();
+        if (now - lastUIUpdate.current > 100) {
+          lastUIUpdate.current = now;
+          setUiTick(t => t + 1);
+        }
 
         animFrameRef.current = requestAnimationFrame(loop);
       };
@@ -93,15 +174,41 @@ export default function GameUI() {
     return () => {
       cancelAnimationFrame(animFrameRef.current);
       document.removeEventListener('keydown', handleKey);
+      if (streakTimerRef.current) clearTimeout(streakTimerRef.current);
       engine.destroy();
     };
   }, []);
 
+  // Snapshot from ref for rendering (updated at 10fps)
+  const d = gameDataRef.current;
+  const { health, armor, weapon, weapons, activeSlot, zoneInfo, killFeed, grenadeType, grenadeCount, inVehicle, nearbyItem, nearbyVehicle, flashAlpha } = d;
+
   const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+
+  // Wave transition data
+  // waveInfo available via engineRef.current?.waveManager.getWaveInfo(gameState.playersAlive)
+  const stats = engineRef.current?.scoreboardSystem.stats;
+  const rank = engineRef.current?.scoreboardSystem.getRank(gameState.currentWave, gameState.totalKills) ?? 'ROOKIE';
+  const leaderboard = engineRef.current?.scoreboardSystem.getLeaderboard() ?? [];
+  const bestLeaderboardEntry = leaderboard.length > 0 ? leaderboard[0] : null;
+
+  // Suppress unused variable warning for uiTick (it drives re-renders)
+  void uiTick;
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black select-none touch-none">
       <div ref={containerRef} className="w-full h-full" />
+
+      {/* SOUND TOGGLE */}
+      <button
+        onClick={() => {
+          engineRef.current?.soundManager.toggleMute();
+          setMuted(m => !m);
+        }}
+        className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded flex items-center justify-center text-xs text-white border border-gray-600 hover:bg-black/80 z-10"
+      >
+        {muted ? 'OFF' : 'SND'}
+      </button>
 
       {/* CROSSHAIR */}
       {gameState.phase === 'playing' && (
@@ -119,7 +226,19 @@ export default function GameUI() {
       {/* TOP HUD */}
       {['playing', 'dropping', 'plane'].includes(gameState.phase) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-4">
-          <div className="bg-black/70 px-4 py-1.5 rounded flex items-center gap-5 text-xs font-mono">
+          <div className="bg-black/70 px-4 py-1.5 rounded flex items-center gap-4 text-xs font-mono">
+            {/* Wave indicator */}
+            {gameState.phase === 'playing' && (
+              <>
+                <div className="text-center">
+                  <div className="text-cyan-400 text-base font-bold animate-pulse">
+                    W{gameState.currentWave}
+                  </div>
+                  <div className="text-gray-400 text-[9px]">WAVE</div>
+                </div>
+                <div className="w-px h-6 bg-gray-600" />
+              </>
+            )}
             <div className="text-center">
               <div className="text-white text-base font-bold">{gameState.playersAlive}</div>
               <div className="text-gray-400 text-[9px]">ALIVE</div>
@@ -142,7 +261,7 @@ export default function GameUI() {
 
       {/* KILL FEED */}
       {killFeed.length > 0 && (
-        <div className="absolute top-12 right-2 flex flex-col gap-0.5">
+        <div className="absolute top-12 right-10 flex flex-col gap-0.5">
           {killFeed.map((k, i) => (
             <div key={`${k.time}_${i}`} className="bg-black/60 px-2 py-0.5 rounded text-[10px] font-mono flex gap-1">
               <span className={k.killer === 'You' ? 'text-yellow-400' : 'text-white'}>{k.killer}</span>
@@ -180,14 +299,19 @@ export default function GameUI() {
       {gameState.phase === 'playing' && (
         <div className="absolute bottom-20 right-3 md:bottom-4 flex flex-col items-end gap-1">
           <div className="flex gap-1">
-            {weapons.map((w, i) => (
-              <div key={i} className={`px-2 py-1 border rounded text-[10px] font-mono ${
-                i === activeSlot ? 'border-yellow-400 bg-black/80 text-white' : 'border-gray-600 bg-black/50 text-gray-400'
-              }`}>
-                <div className="text-[8px] text-gray-500">{i + 1}</div>
-                {w ? w.def.name : 'Empty'}
-              </div>
-            ))}
+            {weapons.map((w, i) => {
+              const rarity = w?.def.rarity ?? 'common';
+              return (
+                <div key={i} className={`px-2 py-1 border rounded text-[10px] font-mono ${
+                  i === activeSlot
+                    ? `${RARITY_COLORS[rarity]} ${RARITY_BG[rarity]} border-2`
+                    : 'border-gray-600 bg-black/50 text-gray-400'
+                }`}>
+                  <div className="text-[8px] text-gray-500">{i + 1}</div>
+                  {w ? w.def.name : 'Empty'}
+                </div>
+              );
+            })}
           </div>
           {weapon && (
             <div className="flex items-center gap-2 px-2 py-0.5 bg-black/70 rounded">
@@ -205,6 +329,7 @@ export default function GameUI() {
           <div className="flex items-center gap-1 px-2 py-0.5 bg-black/60 rounded text-[10px] font-mono">
             <span className="text-green-400">{GRENADES[grenadeType]?.name || 'Frag'}</span>
             <span className="text-gray-400">x{grenadeCount[grenadeType] || 0}</span>
+            <span className="text-gray-500 ml-1">RMB throw</span>
           </div>
         </div>
       )}
@@ -239,25 +364,48 @@ export default function GameUI() {
           weapons={weapons}
           activeSlot={activeSlot}
           grenadeCount={grenadeCount}
+          gameState={gameState}
           onClose={() => setShowInventory(false)}
         />
+      )}
+
+      {/* KILL STREAK NOTIFICATION */}
+      {streakLabel && (
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 animate-bounce pointer-events-none">
+          <div className="text-4xl md:text-5xl font-black text-yellow-400 drop-shadow-lg text-center tracking-wider">
+            {streakLabel}
+          </div>
+        </div>
       )}
 
       {/* LOBBY */}
       {gameState.phase === 'lobby' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-1 tracking-tighter">
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-0 tracking-tighter">
             VOXEL<span className="text-yellow-400">GROUND</span>
           </h1>
-          <p className="text-gray-400 text-sm md:text-lg mb-6 font-mono">Battle Royale</p>
-          <button onClick={() => engineRef.current?.startGame()}
-            className="px-10 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-lg rounded transition-all active:scale-95">
+          <p className="text-gray-400 text-sm md:text-lg mb-1 font-mono">Infinite Survival Battle Royale</p>
+
+          {/* Personal best */}
+          {bestLeaderboardEntry && (
+            <div className="mb-4 text-center">
+              <span className="text-gray-500 text-xs font-mono">PERSONAL BEST: </span>
+              <span className="text-yellow-400 text-sm font-bold">Wave {bestLeaderboardEntry.wave} | {bestLeaderboardEntry.kills} Kills</span>
+            </div>
+          )}
+
+          <button
+            onClick={() => engineRef.current?.startGame()}
+            className="px-10 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-lg rounded transition-all active:scale-95"
+          >
             START GAME
           </button>
-          <div className="mt-8 text-gray-500 text-[11px] font-mono space-y-0.5 text-center">
+
+          <div className="mt-6 text-gray-500 text-[11px] font-mono space-y-0.5 text-center">
             <p>WASD Move | SHIFT Sprint | C Crouch | SPACE Jump</p>
             <p>Mouse Aim | Click Shoot | R Reload | F Pickup</p>
-            <p>1/2 Weapons | G Grenade | E Vehicle | TAB Inventory</p>
+            <p>1/2 Weapons | T Grenade Type | Q Drop | E Vehicle</p>
+            <p>TAB Inventory | M Mute | RMB Throw Grenade</p>
           </div>
         </div>
       )}
@@ -269,8 +417,10 @@ export default function GameUI() {
             <p className="text-white text-xl font-mono font-bold text-center">IN FLIGHT</p>
             <p className="text-gray-300 text-sm font-mono text-center mt-1">Press SPACE or tap to jump</p>
           </div>
-          <button onClick={() => engineRef.current?.drop()}
-            className="mt-3 px-8 py-3 bg-red-500 active:bg-red-400 text-white font-bold text-lg rounded pointer-events-auto">
+          <button
+            onClick={() => engineRef.current?.drop()}
+            className="mt-3 px-8 py-3 bg-red-500 active:bg-red-400 text-white font-bold text-lg rounded pointer-events-auto"
+          >
             JUMP!
           </button>
         </div>
@@ -283,46 +433,117 @@ export default function GameUI() {
             <p className="text-white text-lg font-mono text-center">DROPPING</p>
             <p className="text-gray-400 text-xs font-mono text-center">Tap / SPACE for parachute</p>
           </div>
-          <button onClick={() => engineRef.current?.openParachute()}
-            className="mt-2 w-full px-6 py-2 bg-orange-500 active:bg-orange-400 text-white font-bold rounded pointer-events-auto">
+          <button
+            onClick={() => engineRef.current?.openParachute()}
+            className="mt-2 w-full px-6 py-2 bg-orange-500 active:bg-orange-400 text-white font-bold rounded pointer-events-auto"
+          >
             PARACHUTE
           </button>
         </div>
       )}
 
-      {/* DEATH */}
+      {/* WAVE TRANSITION */}
+      {gameState.phase === 'wave_transition' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+          <h2 className="text-4xl font-black text-green-400 mb-2 animate-pulse">
+            WAVE {gameState.currentWave} COMPLETE
+          </h2>
+          <p className="text-white text-lg font-mono">{gameState.totalKills} Total Kills</p>
+          <p className="text-gray-400 font-mono mb-4">Rank: {rank}</p>
+          <div className="bg-gray-800/80 rounded-lg p-4 mb-4 text-center">
+            <p className="text-yellow-400 text-2xl font-bold">
+              NEXT WAVE IN {Math.ceil(engineRef.current?.waveManager.transitionTimer ?? 0)}s
+            </p>
+            <p className="text-gray-400 text-sm mt-1">
+              Wave {gameState.currentWave + 1}: {engineRef.current?.waveManager.getWaveConfig(gameState.currentWave + 1).botCount ?? '?'} enemies
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* GAME OVER */}
       {gameState.phase === 'dead' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-950/50">
-          <h2 className="text-4xl md:text-5xl font-black text-red-500 mb-3">ELIMINATED</h2>
-          <p className="text-white text-lg font-mono">#{gameState.playersAlive + 1} / 40</p>
-          <p className="text-gray-300 font-mono mb-6">Kills: {gameState.kills}</p>
-          <button onClick={() => window.location.reload()}
-            className="px-8 py-3 bg-white text-black font-bold text-lg rounded active:scale-95">PLAY AGAIN</button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
+          <h2 className="text-5xl font-black text-red-500 mb-1">GAME OVER</h2>
+          <p className="text-gray-300 text-lg font-mono mb-4">Wave {gameState.currentWave}</p>
+
+          {/* Final stats card */}
+          <div className="bg-gray-900 border border-gray-600 rounded-lg p-6 w-80 max-w-[90vw] mb-4">
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <div>
+                <div className="text-3xl font-bold text-yellow-400">{stats?.totalKills ?? gameState.kills}</div>
+                <div className="text-gray-500 text-xs font-mono">TOTAL KILLS</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-green-400">{gameState.currentWave}</div>
+                <div className="text-gray-500 text-xs font-mono">WAVES SURVIVED</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-400">{fmt(stats?.survivalTime ?? gameState.gameTime)}</div>
+                <div className="text-gray-500 text-xs font-mono">SURVIVAL TIME</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-orange-400">{stats?.bestKillStreak ?? gameState.bestKillStreak}</div>
+                <div className="text-gray-500 text-xs font-mono">BEST STREAK</div>
+              </div>
+            </div>
+
+            {/* Rank */}
+            <div className="mt-4 text-center border-t border-gray-700 pt-3">
+              <div className="text-gray-400 text-xs">RANK</div>
+              <div className="text-2xl font-black text-purple-400">{rank}</div>
+            </div>
+          </div>
+
+          {/* Leaderboard top 5 */}
+          <div className="bg-gray-900/80 border border-gray-700 rounded-lg p-4 w-80 max-w-[90vw] mb-4">
+            <h3 className="text-white font-bold text-sm mb-2 text-center">ALL-TIME LEADERBOARD</h3>
+            {leaderboard.slice(0, 5).map((entry, i) => (
+              <div key={i} className="flex justify-between text-xs font-mono py-0.5 border-b border-gray-800">
+                <span className="text-gray-400">#{i + 1}</span>
+                <span className="text-white">{entry.name}</span>
+                <span className="text-yellow-400">W{entry.wave}</span>
+                <span className="text-gray-300">{entry.kills}K</span>
+              </div>
+            ))}
+            {leaderboard.length === 0 && (
+              <p className="text-gray-600 text-xs text-center font-mono">No records yet</p>
+            )}
+          </div>
+
+          <button
+            onClick={() => window.location.reload()}
+            className="px-10 py-3 bg-yellow-500 text-black font-bold text-lg rounded active:scale-95"
+          >
+            PLAY AGAIN
+          </button>
         </div>
       )}
 
-      {/* VICTORY */}
-      {gameState.phase === 'victory' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-yellow-900/40">
-          <h2 className="text-5xl md:text-6xl font-black text-yellow-400 mb-2">WINNER WINNER</h2>
-          <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">CHICKEN DINNER!</h3>
-          <p className="text-gray-200 text-lg font-mono">#1 / 40</p>
-          <p className="text-gray-300 font-mono mb-6">Kills: {gameState.kills}</p>
-          <button onClick={() => window.location.reload()}
-            className="px-8 py-3 bg-yellow-500 text-black font-bold text-lg rounded active:scale-95">PLAY AGAIN</button>
-        </div>
-      )}
-
-      {/* DAMAGE VIGNETTE */}
-      {health < 50 && gameState.phase === 'playing' && (
+      {/* DAMAGE VIGNETTE - enhanced */}
+      {health < 60 && ['playing', 'dead'].includes(gameState.phase) && (
         <div className="absolute inset-0 pointer-events-none" style={{
-          background: `radial-gradient(ellipse at center, transparent 50%, rgba(255,0,0,${(50 - health) / 100}) 100%)`,
+          background: `radial-gradient(ellipse at center, transparent 30%, rgba(255,0,0,${Math.min(0.75, (60 - health) / 70)}) 100%)`,
         }} />
       )}
 
-      {/* FLASH EFFECT */}
+      {/* FLASH EFFECT (grenade) */}
       {flashAlpha > 0 && (
         <div className="absolute inset-0 pointer-events-none bg-white" style={{ opacity: Math.min(1, flashAlpha) }} />
+      )}
+
+      {/* KILL EDGE FLASH - yellow */}
+      {killFlashActive && (
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse at center, transparent 60%, rgba(234,179,8,0.35) 100%)',
+        }} />
+      )}
+
+      {/* WAVE START EDGE FLASH - blue */}
+      {waveFlashActive && (
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(59,130,246,0.4) 100%)',
+        }} />
       )}
     </div>
   );
@@ -335,6 +556,7 @@ function MobileControls({ engine }: { engine: GameEngine | null }) {
   const joyTouchId = useRef<number | null>(null);
   const aimTouchId = useRef<number | null>(null);
   const joyStart = useRef({ x: 0, y: 0 });
+  const lastAimPos = useRef({ x: 0, y: 0 });
   const [joyDelta, setJoyDelta] = useState({ x: 0, y: 0 });
 
   const handleJoyStart = useCallback((e: React.TouchEvent) => {
@@ -367,14 +589,17 @@ function MobileControls({ engine }: { engine: GameEngine | null }) {
   const handleAimStart = useCallback((e: React.TouchEvent) => {
     const t = e.changedTouches[0];
     aimTouchId.current = t.identifier;
+    lastAimPos.current = { x: t.clientX, y: t.clientY };
   }, []);
 
   const handleAimMove = useCallback((e: React.TouchEvent) => {
     for (let i = 0; i < e.changedTouches.length; i++) {
       const t = e.changedTouches[i];
       if (t.identifier === aimTouchId.current) {
-        engine?.rotateCamera(t.clientX - (e.target as HTMLElement).getBoundingClientRect().left - 100,
-          t.clientY - (e.target as HTMLElement).getBoundingClientRect().top - 100);
+        const dx = t.clientX - lastAimPos.current.x;
+        const dy = t.clientY - lastAimPos.current.y;
+        lastAimPos.current = { x: t.clientX, y: t.clientY };
+        engine?.rotateCamera(dx, dy);
       }
     }
   }, [engine]);
@@ -421,51 +646,87 @@ function MobileControls({ engine }: { engine: GameEngine | null }) {
       </button>
 
       {/* AIM/SCOPE button */}
-      <button className="absolute right-28 bottom-28 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
-        onTouchStart={() => {}}>
+      <button
+        className="absolute right-28 bottom-28 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
+        onTouchStart={() => {}}
+      >
         <span className="text-white text-xs font-mono">AIM</span>
       </button>
 
       {/* JUMP */}
-      <button className="absolute right-6 bottom-52 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
-        onTouchStart={() => engine?.player.triggerJump()}>
+      <button
+        className="absolute right-6 bottom-52 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
+        onTouchStart={() => engine?.player.triggerJump()}
+      >
         <span className="text-white text-[10px] font-mono">JUMP</span>
       </button>
 
       {/* CROUCH */}
-      <button className="absolute right-24 bottom-52 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
-        onTouchStart={() => engine?.player.toggleCrouch()}>
+      <button
+        className="absolute right-24 bottom-52 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
+        onTouchStart={() => engine?.player.toggleCrouch()}
+      >
         <span className="text-white text-[10px] font-mono">CRCH</span>
       </button>
 
       {/* RELOAD */}
-      <button className="absolute right-6 bottom-[280px] w-12 h-12 rounded-full bg-white/15 border border-white/30 flex items-center justify-center active:bg-white/25"
-        onTouchStart={() => { /* trigger reload via key event */ const e = new KeyboardEvent('keydown', { code: 'KeyR' }); document.dispatchEvent(e); }}>
+      <button
+        className="absolute right-6 bottom-[280px] w-12 h-12 rounded-full bg-white/15 border border-white/30 flex items-center justify-center active:bg-white/25"
+        onTouchStart={() => {
+          const ev = new KeyboardEvent('keydown', { code: 'KeyR' });
+          document.dispatchEvent(ev);
+        }}
+      >
         <span className="text-white text-[9px] font-mono">RLD</span>
       </button>
 
       {/* PICKUP (F) */}
-      <button className="absolute left-1/2 -translate-x-1/2 bottom-44 px-4 py-2 bg-yellow-500/80 rounded active:bg-yellow-400"
-        onTouchStart={() => { const e = new KeyboardEvent('keydown', { code: 'KeyF' }); document.dispatchEvent(e); }}>
+      <button
+        className="absolute left-1/2 -translate-x-1/2 bottom-44 px-4 py-2 bg-yellow-500/80 rounded active:bg-yellow-400"
+        onTouchStart={() => {
+          const ev = new KeyboardEvent('keydown', { code: 'KeyF' });
+          document.dispatchEvent(ev);
+        }}
+      >
         <span className="text-black text-xs font-bold">PICK UP</span>
       </button>
 
       {/* GRENADE */}
-      <button className="absolute left-8 bottom-44 w-12 h-12 rounded-full bg-green-700/60 border border-green-400/50 flex items-center justify-center active:bg-green-600"
-        onTouchStart={() => engine?.throwGrenadeAction()}>
+      <button
+        className="absolute left-8 bottom-44 w-12 h-12 rounded-full bg-green-700/60 border border-green-400/50 flex items-center justify-center active:bg-green-600"
+        onTouchStart={() => engine?.throwGrenadeAction()}
+      >
         <span className="text-white text-[9px] font-mono">GRN</span>
       </button>
 
+      {/* GRENADE TYPE SWITCH (T) */}
+      <button
+        className="absolute left-24 bottom-44 w-12 h-12 rounded-full bg-orange-700/60 border border-orange-400/50 flex items-center justify-center active:bg-orange-600"
+        onTouchStart={() => {
+          const ev = new KeyboardEvent('keydown', { code: 'KeyT' });
+          document.dispatchEvent(ev);
+        }}
+      >
+        <span className="text-white text-[9px] font-mono">SWT</span>
+      </button>
+
       {/* VEHICLE */}
-      <button className="absolute left-24 bottom-44 w-12 h-12 rounded-full bg-blue-700/60 border border-blue-400/50 flex items-center justify-center active:bg-blue-600"
-        onTouchStart={() => { const e = new KeyboardEvent('keydown', { code: 'KeyE' }); document.dispatchEvent(e); }}>
+      <button
+        className="absolute left-40 bottom-44 w-12 h-12 rounded-full bg-blue-700/60 border border-blue-400/50 flex items-center justify-center active:bg-blue-600"
+        onTouchStart={() => {
+          const ev = new KeyboardEvent('keydown', { code: 'KeyE' });
+          document.dispatchEvent(ev);
+        }}
+      >
         <span className="text-white text-[9px] font-mono">VHC</span>
       </button>
 
       {/* SPRINT (hold) */}
-      <button className="absolute left-8 bottom-[175px] w-10 h-10 rounded bg-white/15 border border-white/30 flex items-center justify-center"
+      <button
+        className="absolute left-8 bottom-[175px] w-10 h-10 rounded bg-white/15 border border-white/30 flex items-center justify-center"
         onTouchStart={() => engine?.player.setSprint(true)}
-        onTouchEnd={() => engine?.player.setSprint(false)}>
+        onTouchEnd={() => engine?.player.setSprint(false)}
+      >
         <span className="text-white text-[8px] font-mono">RUN</span>
       </button>
     </>
@@ -473,13 +734,17 @@ function MobileControls({ engine }: { engine: GameEngine | null }) {
 }
 
 // ============ INVENTORY PANEL ============
-function InventoryPanel({ engine, weapons, activeSlot, grenadeCount, onClose }: {
+function InventoryPanel({ engine, weapons, activeSlot, grenadeCount, gameState, onClose }: {
   engine: GameEngine | null;
   weapons: (WeaponInstance | null)[];
   activeSlot: number;
   grenadeCount: Record<string, number>;
+  gameState: GameState;
   onClose: () => void;
 }) {
+  const rank = engine?.scoreboardSystem.getRank(gameState.currentWave, gameState.totalKills) ?? 'ROOKIE';
+  const stats = engine?.scoreboardSystem.stats;
+
   return (
     <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-gray-900 border border-gray-600 rounded-lg p-4 w-80 max-w-[90vw]" onClick={e => e.stopPropagation()}>
@@ -488,21 +753,46 @@ function InventoryPanel({ engine, weapons, activeSlot, grenadeCount, onClose }: 
           <button onClick={onClose} className="text-gray-400 hover:text-white">X</button>
         </div>
 
+        {/* Wave + stats */}
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          <div className="bg-gray-800 p-2 rounded text-center">
+            <div className="text-cyan-400 text-lg font-bold">{gameState.currentWave}</div>
+            <div className="text-gray-500 text-[10px] font-mono">WAVE</div>
+          </div>
+          <div className="bg-gray-800 p-2 rounded text-center">
+            <div className="text-yellow-400 text-lg font-bold">{stats?.totalKills ?? gameState.kills}</div>
+            <div className="text-gray-500 text-[10px] font-mono">TOTAL KILLS</div>
+          </div>
+          <div className="bg-gray-800 p-2 rounded text-center">
+            <div className="text-orange-400 text-lg font-bold">{stats?.currentKillStreak ?? gameState.killStreak}</div>
+            <div className="text-gray-500 text-[10px] font-mono">STREAK</div>
+          </div>
+          <div className="bg-gray-800 p-2 rounded text-center">
+            <div className="text-purple-400 text-sm font-bold">{rank}</div>
+            <div className="text-gray-500 text-[10px] font-mono">RANK</div>
+          </div>
+        </div>
+
         {/* Weapons */}
         <div className="mb-3">
           <p className="text-gray-400 text-xs mb-1 font-mono">WEAPONS</p>
-          {weapons.map((w, i) => (
-            <div key={i} className={`flex justify-between items-center p-2 mb-1 rounded ${
-              i === activeSlot ? 'bg-yellow-900/40 border border-yellow-600' : 'bg-gray-800'
-            }`}>
-              <span className="text-white text-sm">{w ? w.def.name : `Slot ${i + 1} (Empty)`}</span>
-              {w && (
-                <span className="text-gray-400 text-xs">
-                  {w.currentAmmo}/{w.def.magazineSize} | {w.reserveAmmo}
+          {weapons.map((w, i) => {
+            const rarity = w?.def.rarity ?? 'common';
+            return (
+              <div key={i} className={`flex justify-between items-center p-2 mb-1 rounded ${
+                i === activeSlot ? `${RARITY_BG[rarity]} border ${RARITY_COLORS[rarity]}` : 'bg-gray-800'
+              }`}>
+                <span className={`text-sm ${i === activeSlot ? RARITY_COLORS[rarity].split(' ')[0] : 'text-white'}`}>
+                  {w ? w.def.name : `Slot ${i + 1} (Empty)`}
                 </span>
-              )}
-            </div>
-          ))}
+                {w && (
+                  <span className="text-gray-400 text-xs">
+                    {w.currentAmmo}/{w.def.magazineSize} | {w.reserveAmmo}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Grenades */}
@@ -518,12 +808,12 @@ function InventoryPanel({ engine, weapons, activeSlot, grenadeCount, onClose }: 
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Status */}
         <div>
           <p className="text-gray-400 text-xs mb-1 font-mono">STATUS</p>
           <div className="bg-gray-800 p-2 rounded text-xs text-gray-300 space-y-0.5">
             <p>HP: {Math.ceil(engine?.player.state.health || 0)} | Armor: {Math.ceil(engine?.player.state.armor || 0)}</p>
-            <p>Kills: {engine?.player.state.kills || 0}</p>
+            <p>Kills: {engine?.player.state.kills || 0} | Best Streak: {stats?.bestKillStreak ?? 0}</p>
           </div>
         </div>
 
@@ -545,6 +835,8 @@ function Minimap({ engine }: { engine: GameEngine | null }) {
     const size = 150;
     canvas.width = size;
     canvas.height = size;
+
+    let rafId: number;
 
     const draw = () => {
       ctx.clearRect(0, 0, size, size);
@@ -619,9 +911,11 @@ function Minimap({ engine }: { engine: GameEngine | null }) {
       ctx.lineWidth = 0.5;
       ctx.strokeRect(0, 0, size, size);
 
-      requestAnimationFrame(draw);
+      rafId = requestAnimationFrame(draw);
     };
-    requestAnimationFrame(draw);
+
+    rafId = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafId);
   }, [engine]);
 
   return (
