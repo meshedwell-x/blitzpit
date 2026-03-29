@@ -3,7 +3,7 @@ import { BOT_COUNT, PLAYER_HEIGHT, PLAYER_SPEED, WEAPONS } from '../core/constan
 import { WorldGenerator } from '../world/WorldGenerator';
 import { WeaponSystem } from '../weapons/WeaponSystem';
 import { PlayerController } from '../player/PlayerController';
-import { WaveConfig } from '../core/WaveManager';
+import { WaveConfig, WaveManager } from '../core/WaveManager';
 
 export interface Bot {
   id: string;
@@ -22,6 +22,8 @@ export interface Bot {
   accuracy: number;
   skill: number; // 0-1
   name: string;
+  lootingTimeLeft: number; // required looting time before switching to fighting
+  inBuilding: boolean; // is bot currently inside a building
 }
 
 const BOT_NAMES = [
@@ -43,6 +45,7 @@ export class BotSystem {
   private weaponSystem: WeaponSystem;
   private player: PlayerController;
   private scene: THREE.Scene;
+  private waveManager: WaveManager | null = null;
   alive = BOT_COUNT;
   killFeed: { killer: string; victim: string; weapon: string; time: number }[] = [];
   // Reusable temp vectors to reduce GC pressure
@@ -63,34 +66,35 @@ export class BotSystem {
     this.player = player;
   }
 
+  setWaveManager(wm: WaveManager): void {
+    this.waveManager = wm;
+  }
+
   spawn(): void {
+    const lootTime = this.waveManager ? this.waveManager.getLootingTime(1) : 20;
     for (let i = 0; i < BOT_COUNT; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 30 + Math.random() * 120;
+      const radius = 80 + Math.random() * 270;
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       const h = this.world.getHeightAt(x, z);
 
-      // Bot mesh (simple colored box figure)
       const group = new THREE.Group();
 
-      // Body
-      const bodyGeo = new THREE.BoxGeometry(0.6, 1.0, 0.4);
       const skill = 0.3 + Math.random() * 0.7;
       const bodyColor = new THREE.Color().setHSL(0.0 + skill * 0.3, 0.7, 0.5);
       const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor });
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.0, 0.4), bodyMat);
       body.position.y = 0.5;
       group.add(body);
 
-      // Head
-      const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-      const headMat = new THREE.MeshLambertMaterial({ color: 0xffdbac });
-      const head = new THREE.Mesh(headGeo, headMat);
+      const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 0.4, 0.4),
+        new THREE.MeshLambertMaterial({ color: 0xffdbac })
+      );
       head.position.y = 1.2;
       group.add(head);
 
-      // Arms
       const armGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
       const armMat = new THREE.MeshLambertMaterial({ color: bodyColor });
       const leftArm = new THREE.Mesh(armGeo, armMat);
@@ -100,7 +104,6 @@ export class BotSystem {
       rightArm.position.set(0.5, 0.4, 0);
       group.add(rightArm);
 
-      // Legs
       const legGeo = new THREE.BoxGeometry(0.25, 0.8, 0.25);
       const legMat = new THREE.MeshLambertMaterial({ color: 0x333366 });
       const leftLeg = new THREE.Mesh(legGeo, legMat);
@@ -110,41 +113,52 @@ export class BotSystem {
       rightLeg.position.set(0.15, -0.4, 0);
       group.add(rightLeg);
 
-      group.position.set(x, h + 0.6 + PLAYER_HEIGHT, z);
+      // Start high for landing animation
+      const spawnY = h + 0.6 + PLAYER_HEIGHT + 80 + Math.random() * 40;
+      group.position.set(x, spawnY, z);
       this.scene.add(group);
 
-      const weapons = ['pistol', 'smg', 'assault', 'shotgun', 'sniper'];
-      const weaponId = Math.random() < 0.3 ? null : weapons[Math.floor(Math.random() * weapons.length)];
-
+      // Wave 1: all bots unarmed, start looting
       this.bots.push({
         id: `bot_${i}`,
-        position: new THREE.Vector3(x, h + 0.6 + PLAYER_HEIGHT, z),
+        position: new THREE.Vector3(x, spawnY, z),
         velocity: new THREE.Vector3(0, 0, 0),
         health: 100,
         armor: Math.random() < 0.3 ? 50 : 0,
         isDead: false,
-        weaponId,
+        weaponId: null,
         mesh: group,
         targetPos: null,
-        state: 'roaming',
+        state: 'landing',
         stateTimer: 2 + Math.random() * 5,
         fireTimer: 0,
-        detectionRange: 30 + skill * 40,
+        detectionRange: 20 + skill * 30,
         accuracy: 0.3 + skill * 0.5,
         skill,
         name: BOT_NAMES[i % BOT_NAMES.length] + (i >= BOT_NAMES.length ? `_${Math.floor(i / BOT_NAMES.length)}` : ''),
+        lootingTimeLeft: lootTime,
+        inBuilding: false,
       });
     }
   }
 
   update(delta: number): void {
     const playerPos = this.player.state.position;
+    const buildings = this.world.getBuildings();
 
     for (const bot of this.bots) {
       if (bot.isDead) continue;
 
       bot.stateTimer -= delta;
       if (bot.fireTimer > 0) bot.fireTimer -= delta;
+      // Decrement looting timer over time
+      if (bot.lootingTimeLeft > 0) bot.lootingTimeLeft -= delta;
+
+      // Check if bot is inside a building
+      bot.inBuilding = buildings.some(b =>
+        bot.position.x >= b.x && bot.position.x <= b.x + b.width &&
+        bot.position.z >= b.z && bot.position.z <= b.z + b.depth
+      );
 
       // State machine
       switch (bot.state) {
@@ -190,22 +204,36 @@ export class BotSystem {
   private updateLanding(bot: Bot, delta: number): void {
     const groundH = this.world.getHeightAt(bot.position.x, bot.position.z);
     const surfaceY = groundH + 0.6 + PLAYER_HEIGHT;
-    bot.position.y -= 12 * delta; // fall speed
+    bot.position.y -= 12 * delta;
     if (bot.position.y <= surfaceY) {
       bot.position.y = surfaceY;
-      bot.state = 'roaming';
-      bot.stateTimer = 2 + Math.random() * 5;
+      // All bots start by looting after landing
+      bot.state = 'looting';
+      bot.stateTimer = bot.lootingTimeLeft;
     }
   }
 
   private updateRoaming(bot: Bot, delta: number, playerPos: THREE.Vector3): void {
     const distToPlayer = bot.position.distanceTo(playerPos);
 
-    // Detect player
-    if (distToPlayer < bot.detectionRange && bot.weaponId && !this.player.state.isDead) {
-      bot.state = 'fighting';
-      bot.stateTimer = 3 + Math.random() * 5;
-      return;
+    // Detection range reduced when inside building
+    const effectiveDetection = bot.inBuilding
+      ? bot.detectionRange * 0.5
+      : bot.detectionRange;
+
+    // Unarmed bots flee from player if detected
+    if (distToPlayer < effectiveDetection && !this.player.state.isDead) {
+      if (!bot.weaponId) {
+        bot.state = 'fleeing';
+        bot.stateTimer = 8;
+        return;
+      }
+      // Armed bot: can loot timer expired -> fight
+      if (bot.lootingTimeLeft <= 0) {
+        bot.state = 'fighting';
+        bot.stateTimer = 3 + Math.random() * 5;
+        return;
+      }
     }
 
     // Pick new target
@@ -239,7 +267,6 @@ export class BotSystem {
       bot.position.x += bot.velocity.x * delta;
       bot.position.z += bot.velocity.z * delta;
 
-      // Face direction
       bot.mesh.rotation.y = Math.atan2(dir.x, dir.z);
 
       if (bot.position.distanceTo(bot.targetPos) < 3) {
@@ -304,6 +331,43 @@ export class BotSystem {
     const weapon = WEAPONS[bot.weaponId];
     if (!weapon) return;
 
+    // Detection range reduced in building
+    const effectiveDetection = bot.inBuilding
+      ? bot.detectionRange * 0.5
+      : bot.detectionRange;
+
+    // Lose interest if player too far
+    if (distToPlayer > effectiveDetection * 1.5) {
+      bot.state = 'roaming';
+      bot.stateTimer = 5;
+      return;
+    }
+
+    // Seek cover when health is low (< 50%)
+    if (bot.health < 50) {
+      const buildings = this.world.getBuildings();
+      let nearestBuildingDist = Infinity;
+      const nearestBuildingCenter = new THREE.Vector3();
+      for (const b of buildings) {
+        const cx = b.x + b.width / 2;
+        const cz = b.z + b.depth / 2;
+        const d = bot.position.distanceTo(new THREE.Vector3(cx, bot.position.y, cz));
+        if (d < nearestBuildingDist) {
+          nearestBuildingDist = d;
+          nearestBuildingCenter.set(cx, 0, cz);
+        }
+      }
+      if (nearestBuildingDist < 40 && !bot.inBuilding) {
+        const dirToCover = new THREE.Vector3()
+          .subVectors(nearestBuildingCenter, bot.position)
+          .setY(0)
+          .normalize();
+        bot.position.x += dirToCover.x * PLAYER_SPEED * 0.7 * delta;
+        bot.position.z += dirToCover.z * PLAYER_SPEED * 0.7 * delta;
+        bot.mesh.rotation.y = Math.atan2(dirToCover.x, dirToCover.z);
+      }
+    }
+
     // Face player
     const dir = this._tmpDir
       .subVectors(playerPos, bot.position)
@@ -314,15 +378,12 @@ export class BotSystem {
     // Optimal range behavior
     const optimalRange = weapon.range * 0.4;
     if (distToPlayer > optimalRange * 1.5) {
-      // Move closer
       bot.position.x += dir.x * PLAYER_SPEED * 0.5 * delta;
       bot.position.z += dir.z * PLAYER_SPEED * 0.5 * delta;
     } else if (distToPlayer < optimalRange * 0.5) {
-      // Back away
       bot.position.x -= dir.x * PLAYER_SPEED * 0.4 * delta;
       bot.position.z -= dir.z * PLAYER_SPEED * 0.4 * delta;
     } else {
-      // Strafe
       this._tmpStrafeDir.set(-dir.z, 0, dir.x);
       const strafeSide = Math.sin(Date.now() * 0.002 + bot.position.x) > 0 ? 1 : -1;
       bot.position.x += this._tmpStrafeDir.x * PLAYER_SPEED * 0.3 * strafeSide * delta;
@@ -335,7 +396,6 @@ export class BotSystem {
         .subVectors(playerPos, bot.position)
         .normalize();
 
-      // Add inaccuracy based on skill
       const inaccuracy = (1 - bot.accuracy) * 0.15;
       fireDir.x += (Math.random() - 0.5) * inaccuracy;
       fireDir.y += (Math.random() - 0.5) * inaccuracy;
@@ -354,20 +414,12 @@ export class BotSystem {
       bot.fireTimer = 1 / weapon.fireRate * (1 + (1 - bot.skill) * 0.5);
     }
 
-    // Switch to fleeing if low health
     if (bot.health < 30) {
       bot.state = 'fleeing';
       bot.stateTimer = 5;
       return;
     }
 
-    // Lose interest if player too far
-    if (distToPlayer > bot.detectionRange * 1.5) {
-      bot.state = 'roaming';
-      bot.stateTimer = 5;
-    }
-
-    // Also fight other bots
     this.botVsBotCombat(bot, delta);
   }
 
@@ -560,7 +612,6 @@ export class BotSystem {
   }
 
   respawnForWave(config: WaveConfig): void {
-    // Remove and dispose existing bot meshes
     for (const bot of this.bots) {
       this.scene.remove(bot.mesh);
       bot.mesh.traverse((child) => {
@@ -575,9 +626,12 @@ export class BotSystem {
     this.bots = [];
     this.alive = config.botCount;
 
+    const wave = this.waveManager ? this.waveManager.currentWave : 1;
+    const lootTime = this.waveManager ? this.waveManager.getLootingTime(wave) : 15;
+
     for (let i = 0; i < config.botCount; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 30 + Math.random() * 120;
+      const radius = 80 + Math.random() * 270;
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       const h = this.world.getHeightAt(x, z);
@@ -617,8 +671,7 @@ export class BotSystem {
       rightLeg.position.set(0.15, -0.4, 0);
       group.add(rightLeg);
 
-      // Start high for landing animation
-      const spawnY = h + 0.6 + PLAYER_HEIGHT + 60 + Math.random() * 20;
+      const spawnY = h + 0.6 + PLAYER_HEIGHT + 80 + Math.random() * 40;
       group.position.set(x, spawnY, z);
       this.scene.add(group);
 
@@ -639,10 +692,12 @@ export class BotSystem {
         state: 'landing',
         stateTimer: 2 + Math.random() * 5,
         fireTimer: 0,
-        detectionRange: 30 + skill * 40,
+        detectionRange: 20 + skill * 30,
         accuracy: 0.3 + skill * 0.5,
         skill,
         name: BOT_NAMES[i % BOT_NAMES.length] + (i >= BOT_NAMES.length ? `_${Math.floor(i / BOT_NAMES.length)}` : ''),
+        lootingTimeLeft: lootTime,
+        inBuilding: false,
       });
     }
   }

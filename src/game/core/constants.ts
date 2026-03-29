@@ -1,4 +1,4 @@
-export const WORLD_SIZE = 400;
+export const WORLD_SIZE = 800;
 export const CHUNK_SIZE = 16;
 export const BLOCK_SIZE = 1;
 export const MAX_HEIGHT = 64;
@@ -21,7 +21,7 @@ export const CAMERA_HEIGHT = 3;
 export const CAMERA_SMOOTH = 8;
 
 export const ZONE_PHASES = [
-  { delay: 90, shrinkTime: 60, damage: 1, radiusPercent: 1.0 },
+  { delay: 120, shrinkTime: 60, damage: 1, radiusPercent: 1.0 },
   { delay: 60, shrinkTime: 50, damage: 2, radiusPercent: 0.6 },
   { delay: 50, shrinkTime: 40, damage: 3, radiusPercent: 0.35 },
   { delay: 40, shrinkTime: 30, damage: 5, radiusPercent: 0.15 },
@@ -45,6 +45,7 @@ export const BLOCK_TYPES = {
   ROOF: 12,
   ROAD: 13,
   CRATE: 14,
+  ROCK: 15,
 } as const;
 
 export const BLOCK_COLORS: Record<number, string> = {
@@ -62,6 +63,7 @@ export const BLOCK_COLORS: Record<number, string> = {
   [BLOCK_TYPES.ROOF]: '#9b5020',
   [BLOCK_TYPES.ROAD]: '#505050',
   [BLOCK_TYPES.CRATE]: '#d8a040',
+  [BLOCK_TYPES.ROCK]: '#707070',
 };
 
 export type WeaponType = 'pistol' | 'shotgun' | 'smg' | 'assault' | 'sniper';

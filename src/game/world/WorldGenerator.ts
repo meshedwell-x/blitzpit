@@ -39,6 +39,7 @@ export class WorldGenerator {
     this.buildTerrainMesh();
     this.buildBuildingMeshes();
     this.generateTrees();
+    this.generateRocks();
     this.generateItemSpawns();
     this.addGroundPlane();
     this.addWater();
@@ -75,12 +76,12 @@ export class WorldGenerator {
 
   private generateBuildings(): void {
     const rand = this.seededRandom(12345);
-    const cityCount = 6;
+    const cityCount = 12;
 
     for (let c = 0; c < cityCount; c++) {
       const cx = (rand() - 0.5) * WORLD_SIZE * 0.55;
       const cz = (rand() - 0.5) * WORLD_SIZE * 0.55;
-      const buildingCount = 6 + Math.floor(rand() * 10);
+      const buildingCount = 10 + Math.floor(rand() * 11);
 
       for (let b = 0; b < buildingCount; b++) {
         const bx = cx + (rand() - 0.5) * 50;
@@ -291,13 +292,55 @@ export class WorldGenerator {
     createBatch(cratePositions, BLOCK_COLORS[BLOCK_TYPES.CRATE]);
   }
 
+  private generateRocks(): void {
+    const rand = this.seededRandom(55555);
+    const rockPositions: THREE.Matrix4[] = [];
+    const matrix = new THREE.Matrix4();
+    const count = 250;
+
+    for (let i = 0; i < count; i++) {
+      const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.75);
+      const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.75);
+      const height = this.getHeightAt(x, z);
+
+      if (height <= WATER_LEVEL + 1) continue;
+
+      const inBuilding = this.buildings.some(b =>
+        x >= b.x - 2 && x <= b.x + b.width + 2 &&
+        z >= b.z - 2 && z <= b.z + b.depth + 2
+      );
+      if (inBuilding) continue;
+
+      const rockH = 2 + Math.floor(rand() * 3);
+      for (let y = 0; y < rockH; y++) {
+        const scale = 1 + rand() * 0.5;
+        matrix.makeScale(scale, 1, scale);
+        matrix.setPosition(x, height + y + 0.5, z);
+        rockPositions.push(matrix.clone());
+      }
+    }
+
+    if (rockPositions.length > 0) {
+      const rockGeo = new THREE.BoxGeometry(1.5, 1.0, 1.5);
+      const rockMat = new THREE.MeshLambertMaterial({ color: BLOCK_COLORS[BLOCK_TYPES.ROCK] });
+      const rockMesh = new THREE.InstancedMesh(rockGeo, rockMat, rockPositions.length);
+      rockMesh.castShadow = true;
+      rockMesh.receiveShadow = true;
+      for (let i = 0; i < rockPositions.length; i++) {
+        rockMesh.setMatrixAt(i, rockPositions[i]);
+      }
+      rockMesh.instanceMatrix.needsUpdate = true;
+      this.scene.add(rockMesh);
+    }
+  }
+
   private generateTrees(): void {
     const rand = this.seededRandom(9999);
     const trunkPositions: THREE.Matrix4[] = [];
     const leafPositions: THREE.Matrix4[] = [];
     const matrix = new THREE.Matrix4();
 
-    for (let i = 0; i < 600; i++) {
+    for (let i = 0; i < 1200; i++) {
       const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.7);
       const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.7);
       const height = this.getHeightAt(x, z);
@@ -398,7 +441,7 @@ export class WorldGenerator {
       }
     }
 
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < 300; i++) {
       const x = (rand() - 0.5) * WORLD_SIZE * 0.6;
       const z = (rand() - 0.5) * WORLD_SIZE * 0.6;
       const h = this.getHeightAt(x, z);

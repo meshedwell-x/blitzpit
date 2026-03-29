@@ -58,7 +58,7 @@ export class GameEngine {
   private planePosition = new THREE.Vector3();
   private planeDirection = new THREE.Vector3();
   private planeTimer = 0;
-  private dropSpeed = 30;
+  dropSpeed = 55;
   private parachuteOpen = false;
   private planeMesh: THREE.Group | null = null;
   private playerDropMesh: THREE.Group | null = null;
@@ -190,7 +190,7 @@ export class GameEngine {
     this.grenadeSystem.init();
     this.botSystem.spawn();
     this.vehicleSystem.init();
-    this.vehicleSystem.spawnVehicles(12);
+    this.vehicleSystem.spawnVehicles(20);
 
     this.planeMesh = this.createPlaneMesh();
     this.planeMesh.visible = false;
@@ -230,6 +230,8 @@ export class GameEngine {
       this.soundManager.playKillConfirm();
     };
 
+    this.botSystem.setWaveManager(this.waveManager);
+
     this.player.mesh.visible = false;
     const spawnH = this.world.getHeightAt(0, 0);
     this.player.state.position.set(0, spawnH + 50, 0);
@@ -247,7 +249,7 @@ export class GameEngine {
     this.gameState.phase = 'plane';
     const angle = Math.random() * Math.PI * 2;
     const edge = WORLD_SIZE / 2 * 0.8;
-    this.planePosition.set(Math.cos(angle) * edge, 100, Math.sin(angle) * edge);
+    this.planePosition.set(Math.cos(angle) * edge, 250, Math.sin(angle) * edge);
     this.planeDirection.set(-Math.cos(angle), 0, -Math.sin(angle)).normalize();
     this.planeTimer = 0;
     this.player.state.position.copy(this.planePosition);
@@ -268,7 +270,7 @@ export class GameEngine {
     if (this.gameState.phase !== 'plane') return;
     this.gameState.phase = 'dropping';
     this.parachuteOpen = false;
-    this.dropSpeed = 40;
+    this.dropSpeed = 55;
     this.player.state.velocity.set(
       this.planeDirection.x * 20, -this.dropSpeed, this.planeDirection.z * 20
     );
@@ -279,7 +281,7 @@ export class GameEngine {
   openParachute(): void {
     if (this.gameState.phase !== 'dropping') return;
     this.parachuteOpen = true;
-    this.dropSpeed = 6;
+    this.dropSpeed = 8;
     if (this.playerDropMesh) this.playerDropMesh.visible = true;
   }
 
@@ -306,7 +308,7 @@ export class GameEngine {
 
   private updatePlane(delta: number): void {
     this.planeTimer += delta;
-    const speed = 60 * delta;
+    const speed = 50 * delta;
     this.planePosition.x += this.planeDirection.x * speed;
     this.planePosition.y += this.planeDirection.y * speed;
     this.planePosition.z += this.planeDirection.z * speed;
@@ -317,20 +319,38 @@ export class GameEngine {
     this.camera.position.copy(this.planePosition).add(this._tmpSide);
     this.camera.lookAt(this.planePosition);
 
-    if (this.planeTimer > 15) this.drop();
+    if (this.planeTimer > 25) this.drop();
   }
 
   private updateDropping(delta: number): void {
     const groundH = this.world.getHeightAt(this.player.state.position.x, this.player.state.position.z);
-    if (!this.parachuteOpen && this.player.state.position.y < groundH + 30) this.openParachute();
+
+    // Safety auto-open very close to ground (5m)
+    if (!this.parachuteOpen && this.player.state.position.y < groundH + 5) {
+      this.openParachute();
+    }
+
+    // WASD horizontal steering during drop
+    const keys = this.player.keys;
+    const yaw = this.player.getYaw();
+    const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
+    const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
+    const moveDir = new THREE.Vector3();
+    if (keys.has('KeyW')) moveDir.add(forward);
+    if (keys.has('KeyS')) moveDir.sub(forward);
+    if (keys.has('KeyA')) moveDir.sub(right);
+    if (keys.has('KeyD')) moveDir.add(right);
+    if (moveDir.length() > 0) moveDir.normalize();
+
+    const horizontalSpeed = this.parachuteOpen ? 8 : 15;
 
     this.player.state.position.y -= this.dropSpeed * delta;
-    if (this.parachuteOpen) {
-      this.player.state.position.x += this.planeDirection.x * 5 * delta;
-      this.player.state.position.z += this.planeDirection.z * 5 * delta;
-    } else {
-      this.player.state.position.x += this.player.state.velocity.x * delta * 0.5;
-      this.player.state.position.z += this.player.state.velocity.z * delta * 0.5;
+    if (moveDir.length() > 0) {
+      this.player.state.position.x += moveDir.x * horizontalSpeed * delta;
+      this.player.state.position.z += moveDir.z * horizontalSpeed * delta;
+    } else if (!this.parachuteOpen) {
+      this.player.state.position.x += this.player.state.velocity.x * delta * 0.3;
+      this.player.state.position.z += this.player.state.velocity.z * delta * 0.3;
     }
 
     this.player.mesh.position.copy(this.player.state.position);
@@ -338,12 +358,27 @@ export class GameEngine {
       this.playerDropMesh.position.copy(this.player.state.position);
     }
 
-    this.camera.position.set(
-      this.player.state.position.x + this.planeDirection.x * 12,
-      this.player.state.position.y + 8,
-      this.player.state.position.z + this.planeDirection.z * 12
-    );
-    this.camera.lookAt(this.player.state.position);
+    // Camera: top-down during freefall, follow behind with parachute
+    if (!this.parachuteOpen) {
+      // Top-down camera looking down at landing zone
+      this.camera.position.set(
+        this.player.state.position.x,
+        this.player.state.position.y + 20,
+        this.player.state.position.z + 10
+      );
+      this.camera.lookAt(
+        this.player.state.position.x,
+        groundH,
+        this.player.state.position.z
+      );
+    } else {
+      this.camera.position.set(
+        this.player.state.position.x + this.planeDirection.x * 12,
+        this.player.state.position.y + 8,
+        this.player.state.position.z + this.planeDirection.z * 12
+      );
+      this.camera.lookAt(this.player.state.position);
+    }
 
     if (this.player.state.position.y <= groundH + 0.6) {
       this.player.state.position.y = groundH + 0.6;

@@ -428,10 +428,30 @@ export default function GameUI() {
 
       {/* DROPPING */}
       {gameState.phase === 'dropping' && (
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 pointer-events-none">
-          <div className="bg-black/50 px-4 py-2 rounded">
-            <p className="text-white text-lg font-mono text-center">DROPPING</p>
-            <p className="text-gray-400 text-xs font-mono text-center">Tap / SPACE for parachute</p>
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 pointer-events-none w-56">
+          <div className="bg-black/70 px-4 py-3 rounded border border-gray-600 font-mono text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-gray-400">ALT</span>
+              <span className="text-white font-bold">
+                {Math.max(0, Math.round(
+                  (engineRef.current?.player.state.position.y ?? 0) -
+                  (engineRef.current?.world.getHeightAt(
+                    engineRef.current?.player.state.position.x ?? 0,
+                    engineRef.current?.player.state.position.z ?? 0
+                  ) ?? 0)
+                ))}m
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">SPEED</span>
+              <span className="text-cyan-400 font-bold">
+                {engineRef.current?.dropSpeed ?? 55} m/s
+              </span>
+            </div>
+            <div className="border-t border-gray-700 pt-1 text-gray-400 text-center">
+              SPACE - Open Parachute
+            </div>
+            <div className="text-gray-400 text-center">WASD - Steer</div>
           </div>
           <button
             onClick={() => engineRef.current?.openParachute()}

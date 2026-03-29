@@ -23,7 +23,7 @@ export class PlayerController {
   camera: THREE.PerspectiveCamera;
   state: PlayerState;
   mesh: THREE.Group;
-  private keys: Set<string> = new Set();
+  keys: Set<string> = new Set();
   private yaw = 0;
   private pitch = -0.3;
   private world: WorldGenerator;
@@ -273,7 +273,7 @@ export class PlayerController {
     }
 
     // World bounds
-    const halfWorld = 200;
+    const halfWorld = 400;
     newPos.x = Math.max(-halfWorld, Math.min(halfWorld, newPos.x));
     newPos.z = Math.max(-halfWorld, Math.min(halfWorld, newPos.z));
 
