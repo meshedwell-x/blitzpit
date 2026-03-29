@@ -247,11 +247,15 @@ export class BotSystem {
         bot.stateTimer = 8;
         return;
       }
-      // Armed bot: can loot timer expired -> fight
+      // Armed bot: can loot timer expired -> fight (scavenger: only 50% chance)
       if (bot.lootingTimeLeft <= 0) {
-        bot.state = 'fighting';
-        bot.stateTimer = 3 + Math.random() * 5;
-        return;
+        if (bot.personality === 'scavenger' && Math.random() < 0.5) {
+          // Scavenger keeps roaming instead of engaging
+        } else {
+          bot.state = 'fighting';
+          bot.stateTimer = 3 + Math.random() * 5;
+          return;
+        }
       }
     }
 

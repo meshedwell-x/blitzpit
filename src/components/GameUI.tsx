@@ -356,6 +356,23 @@ export default function GameUI() {
         </div>
       )}
 
+      {/* BOSS HP BAR */}
+      {gameState.phase === 'playing' && engineRef.current?.bossSystem.getActiveBosses().map(boss => (
+        <div key={boss.id} className="absolute top-16 left-1/2 -translate-x-1/2 w-64">
+          <div className="text-center text-red-400 text-xs font-bold font-mono mb-0.5">
+            {boss.name} (Phase {boss.phase})
+          </div>
+          <div className="w-full h-3 bg-gray-800 border border-red-600 rounded">
+            <div className="h-full rounded transition-all"
+              style={{
+                width: `${(boss.health / boss.maxHealth) * 100}%`,
+                backgroundColor: boss.phase === 3 ? '#9b59b6' : boss.phase === 2 ? '#e67e22' : '#e74c3c',
+              }}
+            />
+          </div>
+        </div>
+      ))}
+
       {/* KILL FEED */}
       {killFeed.length > 0 && (
         <div className="absolute top-12 right-10 flex flex-col gap-0.5">

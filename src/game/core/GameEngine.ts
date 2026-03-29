@@ -4,6 +4,7 @@ import { PlayerController } from '../player/PlayerController';
 import { WeaponSystem } from '../weapons/WeaponSystem';
 import { GrenadeSystem } from '../weapons/GrenadeSystem';
 import { BotSystem } from '../bots/BotSystem';
+import { BossSystem } from '../ai/BossSystem';
 import { ZoneSystem } from '../zone/ZoneSystem';
 import { VehicleSystem } from '../vehicles/VehicleSystem';
 import { WaveManager } from './WaveManager';
@@ -65,6 +66,7 @@ export class GameEngine {
   dayNightSystem: DayNightSystem;
   biomeSystem: BiomeSystem;
   animalSystem: AnimalSystem;
+  bossSystem: BossSystem;
 
   gameState: GameState = {
     phase: 'lobby',
@@ -145,6 +147,7 @@ export class GameEngine {
     this.biomeSystem = new BiomeSystem();
     this.dayNightSystem = new DayNightSystem(this.scene);
     this.animalSystem = new AnimalSystem(this.scene, this.world, this.biomeSystem);
+    this.bossSystem = new BossSystem();
 
     this._onResize = () => this.onResize();
     window.addEventListener('resize', this._onResize);
@@ -579,6 +582,15 @@ export class GameEngine {
     // Respawn bots
     this.botSystem.respawnForWave(config);
 
+    // Boss spawn check
+    const bossTypes = this.bossSystem.shouldSpawnBoss(wave);
+    for (const type of bossTypes) {
+      const boss = this.bossSystem.createBoss(type, wave, this.scene, this.world);
+      this.botSystem.bots.push(boss);
+      this.botSystem.alive++;
+    }
+    this.bossSystem.updatePhases();
+
     // Spawn new weapons
     this.weaponSystem.spawnItems(this.world.itemSpawns);
 
@@ -702,6 +714,7 @@ export class GameEngine {
         this.weaponSystem.update(delta);
         this.grenadeSystem.update(delta, this.botSystem.bots);
         this.botSystem.update(delta);
+        this.bossSystem.updatePhases();
         this.zoneSystem.update(delta, this.botSystem.bots);
         this.particleSystem.update(delta);
 
@@ -779,6 +792,15 @@ export class GameEngine {
             this.scoreboardSystem.recordKill(false);
             this.soundManager.playKillConfirm();
           }
+
+          // Boss kill reward
+          const killedBoss = this.bossSystem.bosses.find(b => b.isDead && b.id.startsWith('boss_'));
+          if (killedBoss) {
+            this.soundManager.playWaveComplete();
+            this.player.heal(50);
+            this.player.addArmor(50);
+          }
+
           // Kill streak
           this.killStreakTimer = 5;
           this.gameState.killStreak = this.scoreboardSystem.stats.currentKillStreak;
