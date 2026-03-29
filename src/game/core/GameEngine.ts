@@ -752,13 +752,21 @@ export class GameEngine {
 
             // Building collision is now handled in VehicleSystem.update() BEFORE movement
 
+            // Vehicle camera: free-look with mouse (yaw/pitch from player)
+            const vCamDist = 10;
+            const vCamHeight = 4;
+            const pYaw = this.player.yaw;
+            const pPitch = this.player.pitch;
             this._tmpBehind.set(
-              Math.sin(v.rotation) * 10,
-              6,
-              Math.cos(v.rotation) * 10
+              Math.sin(pYaw) * vCamDist * Math.cos(pPitch),
+              vCamHeight - Math.sin(pPitch) * vCamDist,
+              Math.cos(pYaw) * vCamDist * Math.cos(pPitch)
             );
             this.camera.position.copy(v.position).add(this._tmpBehind);
-            this.camera.lookAt(v.position);
+            // Look ahead of vehicle, not at vehicle center
+            const vLookTarget = v.position.clone();
+            vLookTarget.y += 1.5;
+            this.camera.lookAt(vLookTarget);
             this.soundManager.playVehicleEngine(v.speed);
           }
         } else {

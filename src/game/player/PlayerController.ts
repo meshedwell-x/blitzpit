@@ -25,8 +25,8 @@ export class PlayerController {
   state: PlayerState;
   mesh: THREE.Group;
   keys: Set<string> = new Set();
-  private yaw = 0;
-  private pitch = -0.3;
+  yaw = 0;
+  pitch = -0.3;
   private world: WorldGenerator;
   private isLocked = false;
   private sensitivity = 0.002;
@@ -536,23 +536,54 @@ export class PlayerController {
     this.camera.fov = this.adsFOV;
     this.camera.updateProjectionMatrix();
 
-    const camDist = this.isADS ? 2.5 : CAMERA_DISTANCE;
-    const camHeight = this.isADS ? 2.0 : (this.state.isSwimming ? CAMERA_HEIGHT * 0.6 : CAMERA_HEIGHT);
+    // PUBG-style over-the-shoulder (OTS) camera
+    // ADS = true first-person (through character head, no model visible)
+    const RIGHT_SHOULDER_OFFSET = 0.8; // X offset to the right of character
 
-    // Camera orbits behind player
-    const camX = this.state.position.x + Math.sin(this.yaw) * camDist * Math.cos(this.pitch);
-    const camZ = this.state.position.z + Math.cos(this.yaw) * camDist * Math.cos(this.pitch);
-    const camY = this.state.position.y + camHeight - Math.sin(this.pitch) * camDist;
+    if (this.isADS) {
+      // --- ADS: True first-person view through character's eyes ---
+      const headHeight = 1.6;
+      const eyeX = this.state.position.x - Math.sin(this.yaw) * 0.3;
+      const eyeZ = this.state.position.z - Math.cos(this.yaw) * 0.3;
+      const eyeY = this.state.position.y + headHeight;
 
-    this.camera.position.set(camX, camY, camZ);
+      this.camera.position.set(eyeX, eyeY, eyeZ);
 
-    // Look at player head area
-    const lookTarget = new THREE.Vector3(
-      this.state.position.x,
-      this.state.position.y + 1.5,
-      this.state.position.z
-    );
-    this.camera.lookAt(lookTarget);
+      // Look forward from eyes
+      const lookDist = 50;
+      const lookX = eyeX - Math.sin(this.yaw) * lookDist * Math.cos(this.pitch);
+      const lookZ = eyeZ - Math.cos(this.yaw) * lookDist * Math.cos(this.pitch);
+      const lookY = eyeY + Math.sin(this.pitch) * lookDist;
+      this.camera.lookAt(lookX, lookY, lookZ);
+
+      // Hide player mesh during ADS
+      if (this.mesh.visible) this.mesh.visible = false;
+    } else {
+      // --- Normal: PUBG-style over-right-shoulder 3rd person ---
+      if (!this.mesh.visible) this.mesh.visible = true;
+
+      const camDist = CAMERA_DISTANCE;
+      const camHeight = this.state.isSwimming ? CAMERA_HEIGHT * 0.6 : CAMERA_HEIGHT;
+
+      // Right-hand side offset perpendicular to look direction
+      const rightX = -Math.cos(this.yaw) * RIGHT_SHOULDER_OFFSET;
+      const rightZ = Math.sin(this.yaw) * RIGHT_SHOULDER_OFFSET;
+
+      // Camera orbits behind player, offset to the right
+      const camX = this.state.position.x + Math.sin(this.yaw) * camDist * Math.cos(this.pitch) + rightX;
+      const camZ = this.state.position.z + Math.cos(this.yaw) * camDist * Math.cos(this.pitch) + rightZ;
+      const camY = this.state.position.y + camHeight - Math.sin(this.pitch) * camDist;
+
+      this.camera.position.set(camX, camY, camZ);
+
+      // Look at player's right shoulder area (not center)
+      const lookTarget = new THREE.Vector3(
+        this.state.position.x + rightX,
+        this.state.position.y + 1.5,
+        this.state.position.z + rightZ
+      );
+      this.camera.lookAt(lookTarget);
+    }
 
     // Camera shake
     if (this.shakeAmount > 0) {
