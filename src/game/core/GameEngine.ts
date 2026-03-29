@@ -361,7 +361,7 @@ export class GameEngine {
             this.particleSystem.emitDeath(bot.position.clone());
             this.soundManager.playKillConfirm();
             bot.deathTime = Date.now();
-            const meleeKillerName = (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'You';
+            const meleeKillerName = (typeof localStorage !== 'undefined' && localStorage.getItem('blitzpit_name')) || 'You';
             this.botSystem.killFeed.push({
               killer: meleeKillerName, victim: bot.name, weapon: 'Melee', time: Date.now()
             });
@@ -635,7 +635,7 @@ export class GameEngine {
 
     // Award Wild Points for wave clear (doubled if XP boost active)
     const waveWpGain = this.skinSystem.hasXPBoost() ? 100 : 50;
-    this.skinSystem.purchases.wildPoints += waveWpGain;
+    this.skinSystem.purchases.blitzPoints += waveWpGain;
     this.skinSystem.save();
 
     // Achievement titles on wave milestones
@@ -719,7 +719,7 @@ export class GameEngine {
                     this.particleSystem.emitDeath(bot.position.clone());
                     this.soundManager.playKillConfirm();
                     bot.deathTime = Date.now();
-                    const vehicleKillerName = (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'You';
+                    const vehicleKillerName = (typeof localStorage !== 'undefined' && localStorage.getItem('blitzpit_name')) || 'You';
                     this.botSystem.killFeed.push({
                       killer: vehicleKillerName, victim: bot.name, weapon: 'Vehicle', time: Date.now()
                     });
@@ -881,7 +881,7 @@ export class GameEngine {
             // Award Wild Points per kill (doubled if XP boost active)
             let wpGain = 10;
             if (this.skinSystem.hasXPBoost()) wpGain *= 2;
-            this.skinSystem.purchases.wildPoints += wpGain;
+            this.skinSystem.purchases.blitzPoints += wpGain;
           }
 
           // Boss kill reward + WP bonus (rewardClaimed prevents duplicate)
@@ -892,7 +892,7 @@ export class GameEngine {
             this.player.heal(50);
             this.player.addArmor(50);
             const bossWpGain = this.skinSystem.hasXPBoost() ? 200 : 100;
-            this.skinSystem.purchases.wildPoints += bossWpGain;
+            this.skinSystem.purchases.blitzPoints += bossWpGain;
           }
 
           this.skinSystem.save();

@@ -155,7 +155,7 @@ export default function GameUI() {
           // Kill banner: find recently killed bot name from kill feed
           const feed = engine.botSystem.killFeed;
           const latestKill = feed.length > 0 ? feed[feed.length - 1] : null;
-          const myNameForBanner = typeof localStorage !== 'undefined' ? localStorage.getItem('cubwild_name') || 'You' : 'You';
+          const myNameForBanner = typeof localStorage !== 'undefined' ? localStorage.getItem('blitzpit_name') || 'You' : 'You';
           if (latestKill && (latestKill.killer === myNameForBanner || latestKill.killer === 'You')) {
             if (killBannerTimerRef.current) clearTimeout(killBannerTimerRef.current);
             setKillBanner(latestKill.victim);
@@ -267,8 +267,8 @@ export default function GameUI() {
       {/* CUB COINS + WILD POINTS HUD */}
       {gameState.phase === 'playing' && skinSystem.current && (
         <div className="absolute top-2 right-12 bg-black/50 px-2 py-1 rounded text-[10px] font-mono flex gap-2">
-          <span className="text-yellow-400">{skinSystem.current.purchases.cubCoins} CUB</span>
-          <span className="text-green-400">{skinSystem.current.purchases.wildPoints} WP</span>
+          <span className="text-yellow-400">{skinSystem.current.purchases.blitzCoins} CUB</span>
+          <span className="text-green-400">{skinSystem.current.purchases.blitzPoints} WP</span>
         </div>
       )}
 
@@ -420,7 +420,7 @@ export default function GameUI() {
       {killFeed.length > 0 && (
         <div className="absolute top-12 right-10 flex flex-col gap-0.5">
           {(() => {
-            const myName = typeof localStorage !== 'undefined' ? localStorage.getItem('cubwild_name') || 'You' : 'You';
+            const myName = typeof localStorage !== 'undefined' ? localStorage.getItem('blitzpit_name') || 'You' : 'You';
             return killFeed.map((k, i) => {
               const isMyKill = k.killer === myName || k.killer === 'You';
               const isMyDeath = k.victim === myName || k.victim === 'You';
@@ -584,8 +584,8 @@ export default function GameUI() {
               type="text"
               placeholder="Enter your name"
               maxLength={16}
-              defaultValue={localStorage.getItem('cubwild_name') || ''}
-              onChange={(e) => localStorage.setItem('cubwild_name', e.target.value)}
+              defaultValue={localStorage.getItem('blitzpit_name') || ''}
+              onChange={(e) => localStorage.setItem('blitzpit_name', e.target.value)}
               className="px-4 py-2 bg-black/80 border border-gray-500 rounded text-white text-center font-mono text-lg focus:border-yellow-400 focus:outline-none w-64"
             />
           </div>

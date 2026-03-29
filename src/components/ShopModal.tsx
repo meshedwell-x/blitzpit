@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { SHOP_ITEMS, CUB_COIN_PACKS, RARITY_COLORS_HEX, WELCOME_PACK, DAILY_DEALS, SUPPLY_CRATES } from '../game/shop/monetization';
+import { SHOP_ITEMS, BLITZ_COIN_PACKS, RARITY_COLORS_HEX, WELCOME_PACK, DAILY_DEALS, SUPPLY_CRATES } from '../game/shop/monetization';
 import { SkinSystem } from '../game/shop/SkinSystem';
 
 type ShopTab = 'welcome' | 'crates' | 'skins' | 'weapons' | 'vehicles' | 'effects' | 'utility' | 'coins';
@@ -106,10 +106,10 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
             <h2 className="text-white font-black text-xl tracking-widest">CUB STORE</h2>
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-yellow-400 text-xs font-mono">
-                {skinSystem.purchases.cubCoins.toLocaleString()} CUB
+                {skinSystem.purchases.blitzCoins.toLocaleString()} CUB
               </p>
               <p className="text-green-400 text-xs font-mono">
-                {skinSystem.purchases.wildPoints.toLocaleString()} WP
+                {skinSystem.purchases.blitzPoints.toLocaleString()} WP
               </p>
               {skinSystem.purchases.isVIP && (
                 <span className="text-[9px] font-bold font-mono bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 px-1.5 py-0.5 rounded">VIP</span>
@@ -155,8 +155,8 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
               <p className="text-gray-400 text-xs font-mono">Open crates to earn random cosmetic items. Basic crates cost WP (earned in-game). Premium crates cost CUB.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {SUPPLY_CRATES.map(crate => {
-                  const canOpen = (crate.priceWP ? skinSystem.purchases.wildPoints >= crate.priceWP : false)
-                    || (crate.priceCUB ? skinSystem.purchases.cubCoins >= crate.priceCUB : false);
+                  const canOpen = (crate.priceWP ? skinSystem.purchases.blitzPoints >= crate.priceWP : false)
+                    || (crate.priceCUB ? skinSystem.purchases.blitzCoins >= crate.priceCUB : false);
                   return (
                     <div key={crate.id} className="bg-gray-800 border border-gray-600 rounded-xl p-4 flex flex-col gap-3">
                       <div>
@@ -261,7 +261,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
           {tab === 'coins' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {CUB_COIN_PACKS.map(pack => (
+              {BLITZ_COIN_PACKS.map(pack => (
                 <div
                   key={pack.id}
                   className="bg-gray-800 border border-gray-600 rounded-lg p-4 flex flex-col gap-2"
@@ -326,7 +326,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {visibleItems.map(item => {
                   const rarityColor = RARITY_COLORS_HEX[item.rarity];
-                  const canAfford = skinSystem.purchases.cubCoins >= item.priceCUB;
+                  const canAfford = skinSystem.purchases.blitzCoins >= item.priceCUB;
                   const isRevive = item.id === 'revive_3';
                   const isXP = item.id === 'xp_boost';
                   const xpActive = isXP && skinSystem.hasXPBoost();
@@ -388,7 +388,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
               {visibleItems.map(item => {
                 const owned = skinSystem.owns(item.id);
                 const equipped = isEquipped(item.id, item.category);
-                const canAfford = skinSystem.purchases.cubCoins >= item.priceCUB;
+                const canAfford = skinSystem.purchases.blitzCoins >= item.priceCUB;
                 const rarityColor = RARITY_COLORS_HEX[item.rarity];
 
                 return (

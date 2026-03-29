@@ -1,10 +1,10 @@
-# VOXELGROUND -- 사업부서장 직속 프로젝트
+# BLITZPIT -- 사업부서장 직속 프로젝트
 
 ## 프로젝트 정의
 
-**VOXELGROUND** -- 복셀 무한 생존 배틀로얄 웹게임
+**BLITZPIT** -- 복셀 무한 생존 배틀로얄 웹게임
 브라우저 즉시 플레이, 설치 불필요, 모바일/PC 양대응.
-URL: https://github.com/meshedwell-x/voxelground (public)
+URL: https://github.com/meshedwell-x/blitzpit (public)
 
 ### 핵심 게임 컨셉
 - PUBG 스타일 배틀로얄 + **무한 웨이브 서바이벌**
@@ -97,7 +97,7 @@ LOBBY -> START -> PLANE -> DROP -> WAVE 1 (PLAYING) ->
 
 ```
 SNAKE GAMES 사업부서장 (Opus)
-└── VOXELGROUND 팀장 (Opus) -- 프로젝트 총괄
+└── BLITZPIT 팀장 (Opus) -- 프로젝트 총괄
      │
      ├── [기획 조직]
      │   ├── PM (Opus) -- 게임 기획, 웨이브 밸런스, 로드맵
@@ -146,7 +146,7 @@ SNAKE GAMES 사업부서장 (Opus)
 
 ### 커밋 컨벤션
 ```
-VOXELGROUND: {변경 요약}
+BLITZPIT: {변경 요약}
 ```
 
 ### QA 프로세스

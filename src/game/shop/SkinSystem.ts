@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { SHOP_ITEMS, SUPPLY_CRATES, ShopItem } from './monetization';
 
-const STORAGE_KEY = 'cubwild_purchases';
+const STORAGE_KEY = 'blitzpit_purchases';
 
 export interface PlayerPurchases {
-  cubCoins: number;
-  wildPoints: number;
+  blitzCoins: number;
+  blitzPoints: number;
   ownedItems: string[];
   activeSkin: string | null;
   activeEffect: string | null;
@@ -22,8 +22,8 @@ export interface PlayerPurchases {
 
 function defaultStats(): PlayerPurchases {
   return {
-    cubCoins: 0,
-    wildPoints: 0,
+    blitzCoins: 0,
+    blitzPoints: 0,
     ownedItems: [],
     activeSkin: null,
     activeEffect: null,
@@ -69,13 +69,13 @@ export class SkinSystem {
   }
 
   canAfford(item: ShopItem): boolean {
-    return this.purchases.cubCoins >= item.priceCUB;
+    return this.purchases.blitzCoins >= item.priceCUB;
   }
 
   buyWithCoins(itemId: string): boolean {
     const item = SHOP_ITEMS.find(i => i.id === itemId);
     if (!item || this.owns(itemId) || !this.canAfford(item)) return false;
-    this.purchases.cubCoins -= item.priceCUB;
+    this.purchases.blitzCoins -= item.priceCUB;
     this.purchases.ownedItems.push(itemId);
     this.save();
     return true;
@@ -120,10 +120,10 @@ export class SkinSystem {
     const crate = SUPPLY_CRATES.find(c => c.id === crateId);
     if (!crate) return null;
 
-    if (crate.priceWP && this.purchases.wildPoints >= crate.priceWP) {
-      this.purchases.wildPoints -= crate.priceWP;
-    } else if (crate.priceCUB && this.purchases.cubCoins >= crate.priceCUB) {
-      this.purchases.cubCoins -= crate.priceCUB;
+    if (crate.priceWP && this.purchases.blitzPoints >= crate.priceWP) {
+      this.purchases.blitzPoints -= crate.priceWP;
+    } else if (crate.priceCUB && this.purchases.blitzCoins >= crate.priceCUB) {
+      this.purchases.blitzCoins -= crate.priceCUB;
     } else {
       return null;
     }
@@ -136,7 +136,7 @@ export class SkinSystem {
         if (!this.purchases.ownedItems.includes(item.itemId)) {
           this.purchases.ownedItems.push(item.itemId);
         } else {
-          this.purchases.cubCoins += 50;
+          this.purchases.blitzCoins += 50;
         }
         this.save();
         return item.itemId;
@@ -163,7 +163,7 @@ export class SkinSystem {
     if (this.purchases.welcomePurchased) return false;
     this.purchases.welcomePurchased = true;
     this.purchases.isVIP = true;
-    this.purchases.cubCoins += 500;
+    this.purchases.blitzCoins += 500;
     // Random skin from common/rare pool
     const skins = SHOP_ITEMS.filter(i => i.category === 'skin' && (i.rarity === 'common' || i.rarity === 'rare'));
     const randomSkin = skins[Math.floor(Math.random() * skins.length)];
@@ -177,7 +177,7 @@ export class SkinSystem {
   buyReviveTokens(): boolean {
     const item = SHOP_ITEMS.find(i => i.id === 'revive_3');
     if (!item || !this.canAfford(item)) return false;
-    this.purchases.cubCoins -= item.priceCUB;
+    this.purchases.blitzCoins -= item.priceCUB;
     this.purchases.reviveTokens += 3;
     this.save();
     return true;
@@ -193,7 +193,7 @@ export class SkinSystem {
   activateXPBoost(): boolean {
     const item = SHOP_ITEMS.find(i => i.id === 'xp_boost');
     if (!item || !this.canAfford(item)) return false;
-    this.purchases.cubCoins -= item.priceCUB;
+    this.purchases.blitzCoins -= item.priceCUB;
     this.purchases.xpBoostEndTime = Date.now() + 3 * 60 * 60 * 1000; // 3 hours
     this.save();
     return true;
@@ -204,7 +204,7 @@ export class SkinSystem {
   }
 
   addCoins(amount: number): void {
-    this.purchases.cubCoins += amount;
+    this.purchases.blitzCoins += amount;
     this.save();
   }
 

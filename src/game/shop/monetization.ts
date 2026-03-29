@@ -54,7 +54,7 @@ export const SUPPLY_CRATES: SupplyCrate[] = [
   },
 ];
 
-export interface CubCoinPack {
+export interface BlitzCoinPack {
   id: string;
   name: string;
   coins: number;
@@ -66,14 +66,14 @@ export interface CubCoinPack {
 export const WELCOME_PACK = {
   id: 'welcome',
   name: 'WELCOME PACK',
-  description: '500 CUB + VIP Badge + Random Skin',
+  description: '500 BLITZ + VIP Badge + Random Skin',
   priceINR: 9,
   priceUSD: 0.11,
   coins: 500,
   oneTime: true,
 };
 
-export const CUB_COIN_PACKS: CubCoinPack[] = [
+export const BLITZ_COIN_PACKS: BlitzCoinPack[] = [
   { id: 'pack_29', name: 'Small Crate', coins: 300, bonus: 0, priceINR: 29, priceUSD: 0.35 },
   { id: 'pack_79', name: 'Supply Box', coins: 900, bonus: 100, priceINR: 79, priceUSD: 0.95 },
   { id: 'pack_149', name: 'Airdrop', coins: 2000, bonus: 300, priceINR: 149, priceUSD: 1.79 },

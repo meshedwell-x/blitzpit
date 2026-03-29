@@ -599,7 +599,7 @@ export class BotSystem {
             // Schedule mesh removal via deathTime (cleaned in update())
             bot.deathTime = Date.now();
 
-            const playerName = (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'You';
+            const playerName = (typeof localStorage !== 'undefined' && localStorage.getItem('blitzpit_name')) || 'You';
             const killerName = bullet.ownerId === 'player' ? playerName :
               (this.bots.find(b => b.id === bullet.ownerId)?.name || 'Bot');
             const weaponName = bullet.ownerId === 'player' ?
@@ -659,7 +659,7 @@ export class BotSystem {
       bot.mesh.rotation.x = Math.PI / 2;
       bot.mesh.position.y -= 0.5;
 
-      const playerName = (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'You';
+      const playerName = (typeof localStorage !== 'undefined' && localStorage.getItem('blitzpit_name')) || 'You';
       const killerName = killerId === 'player' ? playerName :
         (this.bots.find(b => b.id === killerId)?.name || 'Bot');
       const weaponName = killerId === 'player' ?

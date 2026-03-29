@@ -19,19 +19,30 @@ export interface LeaderboardEntry {
   date: string;
 }
 
-const STORAGE_KEY_STATS = 'voxelground_stats';
-const STORAGE_KEY_LEADERBOARD = 'voxelground_leaderboard';
+const STORAGE_KEY_STATS = 'blitzpit_stats';
+const STORAGE_KEY_LEADERBOARD = 'blitzpit_leaderboard';
+const STORAGE_KEY_KP = 'blitzpit_kp';
 const MAX_LEADERBOARD_ENTRIES = 20;
 
 export class ScoreboardSystem {
   stats: PlayerStats;
   private leaderboard: LeaderboardEntry[];
   private killStreakTimer = 0;
+  killPoints = 0;
 
   constructor() {
     this.stats = this.defaultStats();
     this.leaderboard = [];
     this.loadFromLocalStorage();
+  }
+
+  addKillPoints(amount: number): void {
+    this.killPoints += amount;
+    this.saveToLocalStorage();
+  }
+
+  getKillPoints(): number {
+    return this.killPoints;
   }
 
   private defaultStats(): PlayerStats {
@@ -89,7 +100,7 @@ export class ScoreboardSystem {
   endGame(): void {
     this.stats.gamesPlayed++;
     const entry: LeaderboardEntry = {
-      name: (typeof localStorage !== 'undefined' && localStorage.getItem('cubwild_name')) || 'Player',
+      name: (typeof localStorage !== 'undefined' && localStorage.getItem('blitzpit_name')) || 'Player',
       wave: this.stats.currentWave,
       kills: this.stats.totalKills,
       time: Math.floor(this.stats.survivalTime),
@@ -136,6 +147,7 @@ export class ScoreboardSystem {
     try {
       localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(this.stats));
       localStorage.setItem(STORAGE_KEY_LEADERBOARD, JSON.stringify(this.leaderboard));
+      localStorage.setItem(STORAGE_KEY_KP, String(this.killPoints));
     } catch {
       // localStorage may not be available in all environments
     }
@@ -156,6 +168,11 @@ export class ScoreboardSystem {
       const lbStr = localStorage.getItem(STORAGE_KEY_LEADERBOARD);
       if (lbStr) {
         this.leaderboard = JSON.parse(lbStr) as LeaderboardEntry[];
+      }
+      const kpStr = localStorage.getItem(STORAGE_KEY_KP);
+      if (kpStr) {
+        const parsed = parseInt(kpStr, 10);
+        if (!isNaN(parsed)) this.killPoints = parsed;
       }
     } catch {
       // localStorage may not be available
