@@ -266,8 +266,14 @@ export default function GameUI() {
       {gameState.phase === 'playing' && (
         <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-[10px] font-mono space-y-0.5">
           <div className="text-gray-300">
-            {engineRef.current?.dayNightSystem.getTimeString() ?? '12:00'}
-            {engineRef.current?.dayNightSystem.isNight ? ' NIGHT' : ' DAY'}
+            {(() => {
+              const period = engineRef.current?.dayNightSystem.getTimePeriod() ?? 'noon';
+              const periodNames: Record<string, string> = {
+                deep_night: 'MIDNIGHT', dawn: 'DAWN', morning: 'MORNING',
+                noon: 'NOON', afternoon: 'AFTERNOON', dusk: 'DUSK', night: 'NIGHT',
+              };
+              return `${engineRef.current?.dayNightSystem.getTimeString() ?? '12:00'} ${periodNames[period] ?? 'DAY'}`;
+            })()}
           </div>
           <div className="text-gray-400">
             {engineRef.current?.biomeSystem.getBiome(

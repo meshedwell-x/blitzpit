@@ -18,7 +18,7 @@ export class WeatherSystem {
     this.scene = scene;
     this.rainPositions = new Float32Array(this.rainCount * 3);
     this.initRain();
-    this.cycleWeather();
+    this.cycleWeather('urban');
   }
 
   private initRain(): void {
@@ -44,7 +44,7 @@ export class WeatherSystem {
     // Weather transition timer
     this.weatherTimer -= delta;
     if (this.weatherTimer <= 0) {
-      this.cycleWeather();
+      this.cycleWeather(biome);
     }
 
     const inTundra = biome === 'tundra';
@@ -98,9 +98,15 @@ export class WeatherSystem {
     }
   }
 
-  private cycleWeather(): void {
-    const weathers: WeatherType[] = ['clear', 'clear', 'clear', 'rain', 'fog', 'storm'];
-    this.currentWeather = weathers[Math.floor(Math.random() * weathers.length)];
+  private cycleWeather(biome: BiomeType): void {
+    const weatherTables: Record<BiomeType, WeatherType[]> = {
+      jungle: ['clear', 'clear', 'rain', 'rain', 'fog', 'storm'],
+      desert: ['clear', 'clear', 'clear', 'clear', 'fog', 'storm'],
+      tundra: ['clear', 'clear', 'fog', 'fog', 'storm', 'storm'],
+      urban:  ['clear', 'clear', 'clear', 'rain', 'fog', 'storm'],
+    };
+    const table = weatherTables[biome] ?? weatherTables.urban;
+    this.currentWeather = table[Math.floor(Math.random() * table.length)];
     this.weatherDuration = 30 + Math.random() * 60; // 30~90 seconds
     this.weatherTimer = this.weatherDuration;
     // Reset lightning timer on weather change
