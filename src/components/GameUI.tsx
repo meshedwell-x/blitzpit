@@ -814,93 +814,91 @@ export default function GameUI() {
         </div>
       )}
 
-      {/* GAME OVER */}
+      {/* GAME OVER -- Military */}
       {gameState.phase === 'dead' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-30"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%)', backdropFilter: 'blur(8px)' }}>
+          style={{ background: 'radial-gradient(ellipse at center, rgba(13,15,11,0.88) 0%, rgba(13,15,11,0.97) 100%)', backdropFilter: 'blur(6px)' }}>
 
           {/* GAME OVER Title */}
-          <h2 className="text-6xl sm:text-7xl font-black mb-0 tracking-wider"
+          <h2 className="text-6xl sm:text-8xl font-bold mb-0 tracking-[0.4em] text-[#c93a3a]"
             style={{
-              background: 'linear-gradient(180deg, #ff4444 0%, #ff8800 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: '0 0 40px rgba(255,68,68,0.5), 0 0 80px rgba(255,136,0,0.3)',
-              filter: 'drop-shadow(0 0 20px rgba(255,68,68,0.4))',
+              fontFamily: "'Teko', sans-serif",
+              filter: 'drop-shadow(0 0 20px rgba(201,58,58,0.4))',
             }}>
             GAME OVER
           </h2>
-          <p className="text-gray-400 text-sm font-mono mb-5 tracking-[0.3em]">WAVE {gameState.currentWave}</p>
+          <p className="text-[#6b7b6a] text-sm font-mono mb-5 tracking-[0.3em] uppercase">WAVE {gameState.currentWave}</p>
 
-          {/* Final stats card -- premium glassmorphism */}
-          <div className="relative w-[420px] max-w-[92vw] mb-4 rounded-2xl p-[1px] overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.03), rgba(0,240,255,0.1))' }}>
-            <div className="rounded-2xl p-5" style={{ background: 'rgba(10,14,26,0.95)', backdropFilter: 'blur(20px)' }}>
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="rounded-xl p-3" style={{ background: 'rgba(255,68,68,0.08)', border: '1px solid rgba(255,68,68,0.15)' }}>
-                  <div className="text-3xl font-black" style={{ color: '#ff4444', textShadow: '0 0 12px rgba(255,68,68,0.4)' }}>{stats?.totalKills ?? gameState.kills}</div>
-                  <div className="text-gray-500 text-[10px] font-mono tracking-wider mt-1">TOTAL KILLS</div>
+          {/* Final stats card -- military dark */}
+          <div className="relative w-[420px] max-w-[92vw] mb-4 overflow-hidden bg-[#12150f] border border-[#c4a35a]/20"
+            style={{ clipPath: 'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))' }}>
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#c93a3a]" />
+            <div className="p-5">
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="p-3 bg-[#1a1f16] border border-[#c93a3a]/20">
+                  <div className="text-3xl font-bold text-[#c93a3a]" style={{ fontFamily: "'Teko', sans-serif" }}>{stats?.totalKills ?? gameState.kills}</div>
+                  <div className="text-[#6b7b6a] text-[10px] font-mono tracking-wider mt-1">TOTAL KILLS</div>
                 </div>
-                <div className="rounded-xl p-3" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.15)' }}>
-                  <div className="text-3xl font-black" style={{ color: '#4ade80', textShadow: '0 0 12px rgba(74,222,128,0.4)' }}>{gameState.currentWave}</div>
-                  <div className="text-gray-500 text-[10px] font-mono tracking-wider mt-1">WAVES SURVIVED</div>
+                <div className="p-3 bg-[#1a1f16] border border-[#4a6741]/20">
+                  <div className="text-3xl font-bold text-[#4a6741]" style={{ fontFamily: "'Teko', sans-serif" }}>{gameState.currentWave}</div>
+                  <div className="text-[#6b7b6a] text-[10px] font-mono tracking-wider mt-1">WAVES SURVIVED</div>
                 </div>
-                <div className="rounded-xl p-3" style={{ background: 'rgba(0,240,255,0.08)', border: '1px solid rgba(0,240,255,0.15)' }}>
-                  <div className="text-2xl font-black" style={{ color: '#00f0ff', textShadow: '0 0 12px rgba(0,240,255,0.4)' }}>{fmt(stats?.survivalTime ?? gameState.gameTime)}</div>
-                  <div className="text-gray-500 text-[10px] font-mono tracking-wider mt-1">SURVIVAL TIME</div>
+                <div className="p-3 bg-[#1a1f16] border border-[#c4a35a]/20">
+                  <div className="text-2xl font-bold text-[#c4a35a]" style={{ fontFamily: "'Teko', sans-serif" }}>{fmt(stats?.survivalTime ?? gameState.gameTime)}</div>
+                  <div className="text-[#6b7b6a] text-[10px] font-mono tracking-wider mt-1">SURVIVAL TIME</div>
                 </div>
-                <div className="rounded-xl p-3" style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.15)' }}>
-                  <div className="text-2xl font-black" style={{ color: '#ffd700', textShadow: '0 0 12px rgba(255,215,0,0.4)' }}>{stats?.bestKillStreak ?? gameState.bestKillStreak}</div>
-                  <div className="text-gray-500 text-[10px] font-mono tracking-wider mt-1">BEST STREAK</div>
+                <div className="p-3 bg-[#1a1f16] border border-[#d4a24e]/20">
+                  <div className="text-2xl font-bold text-[#d4a24e]" style={{ fontFamily: "'Teko', sans-serif" }}>{stats?.bestKillStreak ?? gameState.bestKillStreak}</div>
+                  <div className="text-[#6b7b6a] text-[10px] font-mono tracking-wider mt-1">BEST STREAK</div>
                 </div>
               </div>
               {/* Rank */}
-              <div className="mt-4 text-center pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="text-gray-500 text-[10px] font-mono tracking-wider">RANK</div>
-                <div className="text-2xl font-black mt-1" style={{ color: '#00f0ff', textShadow: '0 0 15px rgba(0,240,255,0.5)' }}>{rank}</div>
+              <div className="mt-4 text-center pt-3 border-t border-[#c4a35a]/10">
+                <div className="text-[#6b7b6a] text-[10px] font-mono tracking-wider uppercase">RANK</div>
+                <div className="text-2xl font-bold mt-1 text-[#d4a24e]" style={{ fontFamily: "'Teko', sans-serif" }}>{rank}</div>
               </div>
             </div>
           </div>
 
-          {/* Leaderboard top 5 -- premium card */}
-          <div className="relative w-[360px] max-w-[90vw] mb-4 rounded-xl p-[1px] overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02))' }}>
-            <div className="rounded-xl p-4" style={{ background: 'rgba(10,14,26,0.95)', backdropFilter: 'blur(20px)' }}>
-              <h3 className="text-white font-black text-xs mb-3 text-center tracking-[0.25em]">ALL-TIME LEADERBOARD</h3>
+          {/* Leaderboard top 5 -- military card */}
+          <div className="w-[360px] max-w-[90vw] mb-4 overflow-hidden bg-[#12150f] border border-[#c4a35a]/15">
+            <div className="p-4">
+              <h3 className="text-[#c4a35a] font-bold text-sm mb-3 text-center tracking-[0.25em] uppercase" style={{ fontFamily: "'Teko', sans-serif" }}>ALL-TIME LEADERBOARD</h3>
               {leaderboard.slice(0, 5).map((entry, i) => {
-                const rankColors = ['#ffd700', '#c0c0c0', '#cd7f32', '#888', '#666'];
-                const rankBg = i < 3 ? `${rankColors[i]}12` : 'transparent';
+                const rankColors = ['#d4a24e', '#c4a35a', '#8a7a4a', '#6b7b6a', '#555'];
                 return (
-                  <div key={i} className="flex items-center justify-between text-xs font-mono py-1.5 px-2 rounded-lg mb-0.5"
-                    style={{ background: rankBg, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <span className="font-black text-sm w-6 text-center" style={{ color: rankColors[i] }}>
-                      {i === 0 ? '\u{1F451}' : i === 1 ? '\u{1F948}' : i === 2 ? '\u{1F949}' : `#${i + 1}`}
+                  <div key={i} className="flex items-center justify-between text-xs font-mono py-1.5 px-2 mb-0.5 border-b border-[#c4a35a]/05">
+                    <span className="font-bold text-sm w-6 text-center" style={{ color: rankColors[i] }}>
+                      #{i + 1}
                     </span>
-                    <span className="text-white flex-1 ml-2 truncate">{entry.name}</span>
-                    <span className="font-bold ml-2" style={{ color: '#4ade80' }}>W{entry.wave}</span>
-                    <span className="font-bold ml-2" style={{ color: '#ff4444' }}>{entry.kills}K</span>
+                    <span className="text-[#c4a35a] flex-1 ml-2 truncate">{entry.name}</span>
+                    <span className="font-bold ml-2 text-[#4a6741]">W{entry.wave}</span>
+                    <span className="font-bold ml-2 text-[#c93a3a]">{entry.kills}K</span>
                   </div>
                 );
               })}
               {leaderboard.length === 0 && (
-                <p className="text-gray-600 text-xs text-center font-mono py-2">No records yet</p>
+                <p className="text-[#6b7b6a] text-xs text-center font-mono py-2">No records yet</p>
               )}
             </div>
           </div>
 
-          {/* Welcome Pack Banner -- golden glow */}
+          {/* Welcome Pack Banner -- military amber */}
           {skinSystem.current && !skinSystem.current.purchases.welcomePurchased && (
-            <div className="relative w-[360px] max-w-[90vw] mb-4 rounded-xl p-[1px] overflow-hidden animate-pulse"
-              style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.5), rgba(255,170,0,0.3), rgba(255,215,0,0.5))', boxShadow: '0 0 30px rgba(255,215,0,0.15), 0 0 60px rgba(255,215,0,0.05)' }}>
-              <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(10,14,26,0.95)' }}>
-                <div className="font-black text-base tracking-wider" style={{ color: '#ffd700', textShadow: '0 0 12px rgba(255,215,0,0.4)' }}>WELCOME PACK -- &#8377;9</div>
-                <div className="text-gray-400 text-xs mt-1">500 BC + VIP Badge + Random Skin</div>
+            <div className="w-[360px] max-w-[90vw] mb-4 overflow-hidden bg-[#12150f] border-2 border-[#d4a24e]/40"
+              style={{
+                clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))',
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(212,162,78,0.04) 20px, rgba(212,162,78,0.04) 21px)',
+              }}>
+              <div className="p-4 text-center">
+                <div className="font-bold text-lg tracking-wider text-[#d4a24e] uppercase" style={{ fontFamily: "'Teko', sans-serif" }}>WELCOME PACK -- &#8377;9</div>
+                <div className="text-[#6b7b6a] text-xs mt-1">500 BC + VIP Badge + Random Skin</div>
                 <button onClick={() => {
                   skinSystem.current!.buyWelcomePack();
                   setShowShop(false);
-                }} className="mt-3 px-6 py-2 text-black font-bold text-sm rounded-lg active:scale-95 transition-all"
-                  style={{ background: 'linear-gradient(90deg, #eab308, #f59e0b)', boxShadow: '0 0 20px rgba(234,179,8,0.3)' }}>
-                  GET FOR &#8377;9
+                }} className="mt-3 px-6 py-2 bg-[#d4a24e] text-black font-bold text-sm active:scale-95 transition-all uppercase tracking-wider hover:bg-[#c4a35a]"
+                  style={{ fontFamily: "'Teko', sans-serif" }}>
+                  REQUISITION &#8377;9
                 </button>
               </div>
             </div>
@@ -909,15 +907,15 @@ export default function GameUI() {
           <div className="flex gap-3 w-[360px] max-w-[90vw]">
             <button
               onClick={() => window.location.reload()}
-              className="flex-1 py-3.5 text-white font-black text-lg rounded-xl active:scale-95 transition-all tracking-wider"
-              style={{ background: 'linear-gradient(90deg, #00b4d8, #2563eb)', boxShadow: '0 0 25px rgba(0,180,216,0.3), inset 0 1px 0 rgba(255,255,255,0.1)' }}
+              className="flex-1 py-3.5 bg-[#d4a24e] text-black font-bold text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#c4a35a]"
+              style={{ fontFamily: "'Teko', sans-serif" }}
             >
               PLAY AGAIN
             </button>
             <button
               onClick={() => setShowShop(true)}
-              className="px-6 py-3.5 text-white font-black text-lg rounded-xl active:scale-95 transition-all tracking-wider"
-              style={{ background: 'linear-gradient(90deg, #8b5cf6, #6366f1)', boxShadow: '0 0 25px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.1)' }}
+              className="px-6 py-3.5 bg-[#4a6741] text-white font-bold text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#5a7751]"
+              style={{ fontFamily: "'Teko', sans-serif" }}
             >
               SHOP
             </button>

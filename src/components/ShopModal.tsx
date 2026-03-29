@@ -1,4 +1,4 @@
-// Font loaded via next/font in layout, applied via CSS variable
+// Font loaded via Google Fonts link in layout (Teko + Rajdhani)
 'use client';
 import { useState } from 'react';
 import { SHOP_ITEMS, BLITZ_COIN_PACKS, RARITY_COLORS_HEX, WELCOME_PACK, DAILY_DEALS, SUPPLY_CRATES } from '../game/shop/monetization';
@@ -29,6 +29,15 @@ async function stripeCheckout(packId: string): Promise<void> {
 }
 
 type ShopTab = 'welcome' | 'crates' | 'skins' | 'weapons' | 'vehicles' | 'effects' | 'utility' | 'coins';
+
+// Military rarity bar colors
+const RARITY_BAR: Record<string, string> = {
+  common: '#6b7b6a',
+  uncommon: '#4a6741',
+  rare: '#c4a35a',
+  epic: '#d4a24e',
+  legendary: '#c93a3a',
+};
 
 export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: SkinSystem; onClose: () => void; onSkinChange?: () => void }) {
   const [tab, setTab] = useState<ShopTab>('welcome');
@@ -128,29 +137,36 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
   return (
     <div
-      className="absolute inset-0 bg-black/90 flex items-start pt-4 justify-center z-50"
+      className="absolute inset-0 bg-[#0d0f0b]/97 backdrop-blur-sm flex items-start pt-4 justify-center z-50"
       onClick={onClose}
     >
       <div
-        className="bg-[#0a0e1a]/95 backdrop-blur-xl border border-cyan-500/20 rounded-2xl shadow-2xl shadow-cyan-500/10 w-full max-w-2xl max-h-[92vh] flex flex-col mx-4"
-        style={{ fontFamily: "'Rajdhani', sans-serif" }}
+        className="bg-[#12150f]/98 border border-[#c4a35a]/25 w-full max-w-2xl max-h-[92vh] flex flex-col mx-4"
+        style={{
+          fontFamily: "'Rajdhani', sans-serif",
+          clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))',
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative px-5 py-3 border-b border-white/5">
+        <div className="relative px-5 py-3 border-b border-[#c4a35a]/15">
+          {/* Diagonal stripe accent */}
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#d4a24e]" />
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-white font-black text-xl tracking-[0.25em]">BLITZ STORE</h2>
-              <div className="flex items-center gap-3 mt-1">
-                <p className="text-sm font-mono font-bold" style={{ color: '#ffd700', textShadow: '0 0 8px rgba(255,215,0,0.4)' }}>
+              <h2 className="text-[#c4a35a] font-bold text-2xl tracking-[0.3em] uppercase"
+                style={{ fontFamily: "'Teko', sans-serif" }}>
+                BLITZ STORE
+              </h2>
+              <div className="flex items-center gap-3 mt-0.5">
+                <p className="text-sm font-mono font-bold text-[#d4a24e]">
                   {skinSystem.purchases.blitzCoins.toLocaleString()} BC
                 </p>
-                <p className="text-sm font-mono font-bold" style={{ color: '#4ade80', textShadow: '0 0 8px rgba(74,222,128,0.3)' }}>
+                <p className="text-sm font-mono font-bold text-[#4a6741]">
                   {skinSystem.purchases.blitzPoints.toLocaleString()} WP
                 </p>
                 {skinSystem.purchases.isVIP && (
-                  <span className="text-[9px] font-black font-mono px-2 py-0.5 rounded-sm"
-                    style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,170,0,0.2))', color: '#ffd700', border: '1px solid rgba(255,215,0,0.4)' }}>
+                  <span className="text-[9px] font-black font-mono px-2 py-0.5 bg-[#d4a24e]/15 text-[#d4a24e] border border-[#d4a24e]/30">
                     VIP
                   </span>
                 )}
@@ -159,31 +175,27 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
             {/* Character Preview */}
             <div className="flex items-center gap-3">
-              <div className="flex flex-col items-center gap-0.5 p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="text-[8px] font-mono text-gray-500 mb-1 tracking-wider">PREVIEW</div>
+              <div className="flex flex-col items-center gap-0.5 p-2 bg-[#1a1f16] border border-[#c4a35a]/10">
+                <div className="text-[8px] font-mono text-[#6b7b6a] mb-1 tracking-wider uppercase">PREVIEW</div>
                 <div className="flex flex-col items-center">
-                  {/* Helmet */}
-                  <div className="rounded-sm" style={{ width: 18, height: 8, background: toHex(previewColors.body), opacity: 0.8 }} />
-                  {/* Head */}
-                  <div className="rounded-sm" style={{ width: 14, height: 14, background: toHex(previewColors.head) }} />
-                  {/* Body + Arms row */}
+                  <div style={{ width: 18, height: 8, background: toHex(previewColors.body), opacity: 0.8 }} />
+                  <div style={{ width: 14, height: 14, background: toHex(previewColors.head) }} />
                   <div className="flex gap-px items-start">
-                    <div className="rounded-sm" style={{ width: 6, height: 20, background: toHex(previewColors.arms) }} />
-                    <div className="rounded-sm" style={{ width: 16, height: 22, background: toHex(previewColors.body) }} />
-                    <div className="rounded-sm" style={{ width: 6, height: 20, background: toHex(previewColors.arms) }} />
+                    <div style={{ width: 6, height: 20, background: toHex(previewColors.arms) }} />
+                    <div style={{ width: 16, height: 22, background: toHex(previewColors.body) }} />
+                    <div style={{ width: 6, height: 20, background: toHex(previewColors.arms) }} />
                   </div>
-                  {/* Legs */}
                   <div className="flex gap-px">
-                    <div className="rounded-sm" style={{ width: 7, height: 18, background: toHex(previewColors.legs) }} />
-                    <div className="rounded-sm" style={{ width: 7, height: 18, background: toHex(previewColors.legs) }} />
+                    <div style={{ width: 7, height: 18, background: toHex(previewColors.legs) }} />
+                    <div style={{ width: 7, height: 18, background: toHex(previewColors.legs) }} />
                   </div>
                 </div>
-                {activeSkin && <div className="text-[7px] font-mono mt-1 truncate max-w-[60px]" style={{ color: '#00f0ff' }}>{activeSkin.name}</div>}
+                {activeSkin && <div className="text-[7px] font-mono mt-1 truncate max-w-[60px] text-[#c4a35a]">{activeSkin.name}</div>}
               </div>
 
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+                className="w-8 h-8 flex items-center justify-center text-[#6b7b6a] hover:text-[#c4a35a] transition-colors"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M1 1l12 12M13 1L1 13" />
@@ -191,26 +203,24 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
               </button>
             </div>
           </div>
-          {/* Cyan accent underline */}
-          <div className="absolute bottom-0 left-5 right-5 h-px" style={{ background: 'linear-gradient(90deg, transparent, #00f0ff40, transparent)' }} />
         </div>
 
         {/* Tabs */}
-        <div className="px-3 py-2 border-b border-white/5">
-          <div className="flex flex-wrap gap-1">
+        <div className="px-3 py-2 border-b border-[#c4a35a]/10 bg-[#0d0f0b]/50">
+          <div className="flex flex-wrap gap-0.5">
             {(Object.keys(TAB_LABELS) as ShopTab[]).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`relative px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-t transition-all ${
+                className={`relative px-3 py-1.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-all ${
                   tab === t
-                    ? 'text-cyan-400'
-                    : 'text-gray-500 hover:text-gray-300'
+                    ? 'text-[#c4a35a] bg-[#c4a35a]/10'
+                    : 'text-[#6b7b6a] hover:text-[#c4a35a]/70'
                 }`}
               >
                 {TAB_LABELS[t]}
                 {tab === t && (
-                  <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full" style={{ background: '#00f0ff', boxShadow: '0 0 8px #00f0ff80' }} />
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#d4a24e]" />
                 )}
               </button>
             ))}
@@ -219,9 +229,8 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
         {/* Crate Result Popup */}
         {crateResult && (
-          <div className="mx-4 mt-2 rounded-lg px-4 py-2 text-center"
-            style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(79,70,229,0.2))', border: '1px solid rgba(139,92,246,0.5)', boxShadow: '0 0 20px rgba(139,92,246,0.2)' }}>
-            <p className="text-purple-200 text-sm font-bold font-mono">{crateResult}</p>
+          <div className="mx-4 mt-2 px-4 py-2 text-center bg-[#1a1f16] border border-[#d4a24e]/40">
+            <p className="text-[#d4a24e] text-sm font-bold font-mono uppercase">{crateResult}</p>
           </div>
         )}
 
@@ -229,27 +238,28 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         <div className="overflow-y-auto flex-1 p-4">
           {tab === 'crates' && (
             <div className="flex flex-col gap-4">
-              <p className="text-gray-500 text-xs font-mono">Open crates to earn random cosmetic items. Basic crates cost WP (earned in-game). Premium crates cost BC.</p>
+              <p className="text-[#6b7b6a] text-xs font-mono uppercase tracking-wider">Open supply crates for random field equipment. Basic crates cost WP. Premium crates cost BC.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {SUPPLY_CRATES.map(crate => {
                   const canOpen = (crate.priceWP ? skinSystem.purchases.blitzPoints >= crate.priceWP : false)
                     || (crate.priceCUB ? skinSystem.purchases.blitzCoins >= crate.priceCUB : false);
                   return (
-                    <div key={crate.id} className="relative rounded-xl p-4 flex flex-col gap-3 overflow-hidden"
-                      style={{ background: 'linear-gradient(135deg, #111827, #0a0e1a)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl"
-                        style={{ boxShadow: 'inset 0 0 30px rgba(0,240,255,0.05)' }} />
+                    <div key={crate.id} className="relative p-4 flex flex-col gap-3 overflow-hidden bg-[#1a1f16] border border-[#c4a35a]/15"
+                      style={{
+                        clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))',
+                        backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(196,163,90,0.03) 10px, rgba(196,163,90,0.03) 11px)',
+                      }}>
                       <div>
-                        <h3 className="text-white font-black text-base tracking-wide">{crate.name}</h3>
+                        <h3 className="text-[#c4a35a] font-bold text-lg tracking-wider uppercase" style={{ fontFamily: "'Teko', sans-serif" }}>{crate.name}</h3>
                         <div className="flex gap-2 mt-1">
                           {crate.priceWP && (
-                            <span className="text-xs font-mono font-bold" style={{ color: '#4ade80' }}>{crate.priceWP} WP</span>
+                            <span className="text-xs font-mono font-bold text-[#4a6741]">{crate.priceWP} WP</span>
                           )}
                           {crate.priceCUB && (
-                            <span className="text-xs font-mono font-bold" style={{ color: '#ffd700' }}>{crate.priceCUB} BC</span>
+                            <span className="text-xs font-mono font-bold text-[#d4a24e]">{crate.priceCUB} BC</span>
                           )}
                           {crate.priceINR && (
-                            <span className="text-white/50 text-xs font-mono">or &#8377;{crate.priceINR}</span>
+                            <span className="text-[#6b7b6a] text-xs font-mono">or &#8377;{crate.priceINR}</span>
                           )}
                         </div>
                       </div>
@@ -259,8 +269,8 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                           if (!shopItem) return null;
                           const rColor = RARITY_COLORS_HEX[shopItem.rarity];
                           return (
-                            <span key={ci.itemId} className="text-[9px] font-mono px-1.5 py-0.5 rounded"
-                              style={{ color: rColor, background: `${rColor}15`, border: `1px solid ${rColor}30`, textShadow: `0 0 6px ${rColor}40` }}>
+                            <span key={ci.itemId} className="text-[9px] font-mono px-1.5 py-0.5"
+                              style={{ color: rColor, background: `${rColor}10`, border: `1px solid ${rColor}20` }}>
                               {shopItem.name}
                             </span>
                           );
@@ -269,14 +279,14 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                       <button
                         onClick={() => handleOpenCrate(crate.id)}
                         disabled={!canOpen}
-                        className={`w-full py-2 text-sm font-bold rounded-lg active:scale-95 transition-all ${
+                        className={`w-full py-2 text-sm font-bold tracking-wider uppercase active:scale-95 transition-all ${
                           canOpen
-                            ? 'text-white'
-                            : 'bg-white/5 text-gray-600 cursor-not-allowed'
+                            ? 'bg-[#d4a24e] text-black hover:bg-[#c4a35a]'
+                            : 'bg-[#2a2d2f] text-[#6b7b6a] cursor-not-allowed'
                         }`}
-                        style={canOpen ? { background: 'linear-gradient(90deg, #8b5cf6, #6366f1)', boxShadow: '0 0 15px rgba(139,92,246,0.3)' } : undefined}
+                        style={{ fontFamily: "'Teko', sans-serif", fontSize: '16px' }}
                       >
-                        OPEN
+                        OPEN CRATE
                       </button>
                     </div>
                   );
@@ -287,58 +297,64 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
           {tab === 'welcome' && (
             <div className="flex flex-col gap-4">
-              {/* Welcome Pack */}
-              <div className="relative rounded-xl p-4 overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, rgba(120,80,0,0.3), rgba(60,40,0,0.2))', border: '1px solid rgba(255,215,0,0.3)', boxShadow: '0 0 30px rgba(255,215,0,0.08), inset 0 0 30px rgba(255,215,0,0.03)' }}>
-                {/* Animated golden glow border effect via pulsing shadow */}
-                <div className="absolute inset-0 rounded-xl pointer-events-none animate-pulse"
-                  style={{ boxShadow: '0 0 40px rgba(255,215,0,0.1), inset 0 0 40px rgba(255,215,0,0.02)' }} />
+              {/* Welcome Pack -- CLASSIFIED military style */}
+              <div className="relative p-4 overflow-hidden bg-[#1a1f16] border-2 border-[#d4a24e]/40"
+                style={{
+                  clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))',
+                  backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(212,162,78,0.04) 20px, rgba(212,162,78,0.04) 21px)',
+                }}>
+                {/* CLASSIFIED stamp */}
+                <div className="absolute top-3 right-4 text-[#c93a3a]/30 font-bold text-xs tracking-[0.4em] uppercase rotate-[-8deg]"
+                  style={{ fontFamily: "'Teko', sans-serif", fontSize: '14px' }}>
+                  CLASSIFIED
+                </div>
                 <div className="relative flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-black text-lg tracking-wider" style={{ color: '#ffd700', textShadow: '0 0 12px rgba(255,215,0,0.4)' }}>{WELCOME_PACK.name}</h3>
-                    <p className="text-gray-400 text-sm mt-0.5">{WELCOME_PACK.description}</p>
+                    <h3 className="font-bold text-xl tracking-wider text-[#d4a24e] uppercase"
+                      style={{ fontFamily: "'Teko', sans-serif" }}>{WELCOME_PACK.name}</h3>
+                    <p className="text-[#6b7b6a] text-sm mt-0.5">{WELCOME_PACK.description}</p>
                   </div>
                   <div className="text-right">
-                    <div className="font-black text-xl" style={{ color: '#ffd700' }}>&#8377;{WELCOME_PACK.priceINR}</div>
-                    <div className="text-gray-500 text-xs">${WELCOME_PACK.priceUSD.toFixed(2)}</div>
+                    <div className="font-bold text-xl text-[#d4a24e]" style={{ fontFamily: "'Teko', sans-serif" }}>&#8377;{WELCOME_PACK.priceINR}</div>
+                    <div className="text-[#6b7b6a] text-xs font-mono">${WELCOME_PACK.priceUSD.toFixed(2)}</div>
                   </div>
                 </div>
                 {skinSystem.purchases.welcomePurchased ? (
-                  <div className="relative w-full py-2 bg-white/5 text-gray-500 font-bold text-sm rounded-lg text-center">
-                    PURCHASED
+                  <div className="w-full py-2 bg-[#2a2d2f] text-[#6b7b6a] font-bold text-sm text-center uppercase tracking-wider"
+                    style={{ fontFamily: "'Teko', sans-serif" }}>
+                    ACQUIRED
                   </div>
                 ) : (
                   <button
                     onClick={() => stripeCheckout('welcome')}
-                    className="relative w-full py-2.5 text-black font-bold text-sm rounded-lg active:scale-95 transition-all"
-                    style={{ background: 'linear-gradient(90deg, #eab308, #f59e0b)', boxShadow: '0 0 20px rgba(234,179,8,0.3)' }}
+                    className="w-full py-2.5 bg-[#d4a24e] text-black font-bold text-sm active:scale-95 transition-all uppercase tracking-wider hover:bg-[#c4a35a]"
+                    style={{ fontFamily: "'Teko', sans-serif", fontSize: '16px' }}
                   >
-                    GET FOR &#8377;{WELCOME_PACK.priceINR}
+                    REQUISITION FOR &#8377;{WELCOME_PACK.priceINR}
                   </button>
                 )}
               </div>
 
               {/* Daily Deals */}
               <div>
-                <h3 className="font-bold text-sm font-mono mb-2 tracking-wider" style={{ color: '#4ade80' }}>DAILY DEALS</h3>
+                <h3 className="font-bold text-sm font-mono mb-2 tracking-[0.2em] text-[#4a6741] uppercase"
+                  style={{ fontFamily: "'Teko', sans-serif", fontSize: '18px' }}>FIELD DEALS</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {DAILY_DEALS.map(deal => (
-                    <div key={deal.id} className="rounded-lg p-3"
-                      style={{ background: 'linear-gradient(135deg, #111827, #0a0e1a)', border: '1px solid rgba(74,222,128,0.15)' }}>
+                    <div key={deal.id} className="p-3 bg-[#1a1f16] border border-[#4a6741]/20">
                       <div className="flex justify-between items-start mb-1.5">
-                        <p className="text-white font-bold text-sm">{deal.name}</p>
+                        <p className="text-[#c4a35a] font-bold text-sm uppercase">{deal.name}</p>
                         <div className="text-right">
-                          <div className="font-bold text-sm" style={{ color: '#4ade80' }}>&#8377;{deal.priceINR}</div>
-                          <div className="text-gray-600 text-[10px]">${deal.priceUSD.toFixed(2)}</div>
+                          <div className="font-bold text-sm text-[#4a6741] font-mono">&#8377;{deal.priceINR}</div>
+                          <div className="text-[#6b7b6a] text-[10px] font-mono">${deal.priceUSD.toFixed(2)}</div>
                         </div>
                       </div>
-                      <p className="text-gray-500 text-xs mb-2">{deal.description}</p>
+                      <p className="text-[#6b7b6a] text-xs mb-2">{deal.description}</p>
                       <button
-                        className="w-full py-1.5 text-white font-bold text-xs rounded-lg active:scale-95 transition-all"
+                        className="w-full py-1.5 bg-[#4a6741] text-white font-bold text-xs active:scale-95 transition-all uppercase tracking-wider hover:bg-[#5a7751]"
                         onClick={() => stripeCheckout(deal.id)}
-                        style={{ background: 'linear-gradient(90deg, #16a34a, #15803d)', boxShadow: '0 0 10px rgba(22,163,74,0.2)' }}
                       >
-                        BUY &#8377;{deal.priceINR}
+                        ACQUIRE &#8377;{deal.priceINR}
                       </button>
                     </div>
                   ))}
@@ -352,32 +368,32 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
               {BLITZ_COIN_PACKS.map(pack => (
                 <div
                   key={pack.id}
-                  className="rounded-xl p-4 flex flex-col gap-2"
-                  style={{ background: 'linear-gradient(135deg, #111827, #0a0e1a)', border: '1px solid rgba(255,215,0,0.1)' }}
+                  className="p-4 flex flex-col gap-2 bg-[#1a1f16] border border-[#d4a24e]/15"
+                  style={{ clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))' }}
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-white font-bold text-sm">{pack.name}</p>
-                      <p className="font-mono text-lg font-bold" style={{ color: '#ffd700', textShadow: '0 0 8px rgba(255,215,0,0.3)' }}>
+                      <p className="text-[#c4a35a] font-bold text-sm uppercase">{pack.name}</p>
+                      <p className="font-mono text-lg font-bold text-[#d4a24e]">
                         {(pack.coins + pack.bonus).toLocaleString()} BC
                         {pack.bonus > 0 && (
-                          <span className="text-xs ml-1 font-normal" style={{ color: '#4ade80' }}>
+                          <span className="text-xs ml-1 font-normal text-[#4a6741]">
                             +{pack.bonus} bonus
                           </span>
                         )}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-white font-mono font-bold text-sm">&#8377;{pack.priceINR}</div>
-                      <div className="text-gray-600 text-[10px]">${pack.priceUSD.toFixed(2)}</div>
+                      <div className="text-[#c4a35a] font-mono font-bold text-sm">&#8377;{pack.priceINR}</div>
+                      <div className="text-[#6b7b6a] text-[10px] font-mono">${pack.priceUSD.toFixed(2)}</div>
                     </div>
                   </div>
                   <button
-                    className="w-full py-2 text-black font-bold text-sm rounded-lg active:scale-95 transition-all"
+                    className="w-full py-2 bg-[#d4a24e] text-black font-bold text-sm active:scale-95 transition-all uppercase tracking-wider hover:bg-[#c4a35a]"
                     onClick={() => stripeCheckout(pack.id)}
-                    style={{ background: 'linear-gradient(90deg, #eab308, #f59e0b)', boxShadow: '0 0 12px rgba(234,179,8,0.25)' }}
+                    style={{ fontFamily: "'Teko', sans-serif", fontSize: '16px' }}
                   >
-                    BUY &#8377;{pack.priceINR}
+                    ACQUIRE &#8377;{pack.priceINR}
                   </button>
                 </div>
               ))}
@@ -388,24 +404,23 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
             <div className="flex flex-col gap-4">
               {/* Daily Deals in utility tab too */}
               <div>
-                <h3 className="font-bold text-xs font-mono mb-2 tracking-wider" style={{ color: '#4ade80' }}>DAILY DEALS</h3>
+                <h3 className="font-bold text-xs tracking-[0.2em] mb-2 text-[#4a6741] uppercase"
+                  style={{ fontFamily: "'Teko', sans-serif", fontSize: '16px' }}>FIELD DEALS</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                   {DAILY_DEALS.map(deal => (
-                    <div key={deal.id} className="rounded-lg p-3"
-                      style={{ background: 'linear-gradient(135deg, #111827, #0a0e1a)', border: '1px solid rgba(74,222,128,0.15)' }}>
+                    <div key={deal.id} className="p-3 bg-[#1a1f16] border border-[#4a6741]/15">
                       <div className="flex justify-between items-start mb-1">
-                        <p className="text-white font-bold text-xs">{deal.name}</p>
+                        <p className="text-[#c4a35a] font-bold text-xs uppercase">{deal.name}</p>
                         <div className="text-right">
-                          <div className="font-bold text-xs" style={{ color: '#4ade80' }}>&#8377;{deal.priceINR}</div>
+                          <div className="font-bold text-xs text-[#4a6741] font-mono">&#8377;{deal.priceINR}</div>
                         </div>
                       </div>
-                      <p className="text-gray-500 text-[10px] mb-2">{deal.description}</p>
+                      <p className="text-[#6b7b6a] text-[10px] mb-2">{deal.description}</p>
                       <button
-                        className="w-full py-1 text-white font-bold text-xs rounded-lg active:scale-95 transition-all"
+                        className="w-full py-1 bg-[#4a6741] text-white font-bold text-xs active:scale-95 transition-all uppercase tracking-wider hover:bg-[#5a7751]"
                         onClick={() => stripeCheckout(deal.id)}
-                        style={{ background: 'linear-gradient(90deg, #16a34a, #15803d)' }}
                       >
-                        BUY &#8377;{deal.priceINR}
+                        ACQUIRE &#8377;{deal.priceINR}
                       </button>
                     </div>
                   ))}
@@ -415,6 +430,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {visibleItems.map(item => {
                   const rarityColor = RARITY_COLORS_HEX[item.rarity];
+                  const barColor = RARITY_BAR[item.rarity] ?? '#6b7b6a';
                   const canAfford = skinSystem.purchases.blitzCoins >= item.priceCUB;
                   const isRevive = item.id === 'revive_3';
                   const isXP = item.id === 'xp_boost';
@@ -423,48 +439,48 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                   return (
                     <div
                       key={item.id}
-                      className="rounded-lg p-3 flex flex-col gap-2 transition-all hover:scale-[1.02]"
-                      style={{ background: 'linear-gradient(135deg, #111827, #0a0e1a)', border: `1px solid ${rarityColor}25`, boxShadow: `0 0 0 0 ${rarityColor}00` }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${rarityColor}50`; (e.currentTarget as HTMLElement).style.boxShadow = `0 0 15px ${rarityColor}15`; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = `${rarityColor}25`; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
+                      className="relative flex flex-col gap-2 transition-all hover:border-[#c4a35a]/30 bg-[#1a1f16] border border-[#2a2d2f] overflow-hidden"
                     >
-                      <div className="flex justify-between items-center">
-                        <span
-                          className="text-[9px] font-bold font-mono uppercase px-1.5 py-0.5 rounded"
-                          style={{ color: rarityColor, background: `${rarityColor}15`, textShadow: `0 0 6px ${rarityColor}40` }}
-                        >
-                          {item.rarity}
-                        </span>
-                        {isRevive && skinSystem.purchases.reviveTokens > 0 && (
-                          <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded" style={{ color: '#4ade80', background: 'rgba(74,222,128,0.1)' }}>
-                            x{skinSystem.purchases.reviveTokens}
+                      {/* Left rarity bar */}
+                      <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: barColor }} />
+                      <div className="pl-4 pr-3 pt-3 pb-3 flex flex-col gap-2 flex-1">
+                        <div className="flex justify-between items-center">
+                          <span
+                            className="text-[9px] font-bold font-mono uppercase"
+                            style={{ color: rarityColor }}
+                          >
+                            {item.rarity}
                           </span>
-                        )}
-                        {xpActive && (
-                          <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded" style={{ color: '#00f0ff', background: 'rgba(0,240,255,0.1)' }}>
-                            ACTIVE
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-white text-xs font-bold leading-tight">{item.name}</p>
-                        <p className="text-gray-500 text-[10px] leading-tight mt-0.5">{item.description}</p>
-                      </div>
-                      <div className="text-[10px] font-mono text-gray-400">
-                        <span className="text-white font-bold">&#8377;{item.priceINR}</span>
-                        <span className="ml-1">or <span style={{ color: '#ffd700' }}>{item.priceCUB} BC</span></span>
-                      </div>
-                      <div className="mt-auto">
-                        <button
-                          onClick={() => handleUtilityAction(item.id)}
-                          disabled={!canAfford}
-                          className={`w-full py-1.5 text-xs font-bold rounded-lg active:scale-95 transition-all ${
-                            !canAfford ? 'bg-white/5 text-gray-600 cursor-not-allowed' : 'text-white'
-                          }`}
-                          style={canAfford ? { background: 'linear-gradient(90deg, #0891b2, #2563eb)', boxShadow: '0 0 10px rgba(8,145,178,0.25)' } : undefined}
-                        >
-                          {item.priceCUB.toLocaleString()} BC
-                        </button>
+                          {isRevive && skinSystem.purchases.reviveTokens > 0 && (
+                            <span className="text-[9px] font-bold font-mono text-[#4a6741]">
+                              x{skinSystem.purchases.reviveTokens}
+                            </span>
+                          )}
+                          {xpActive && (
+                            <span className="text-[9px] font-bold font-mono text-[#d4a24e]">
+                              ACTIVE
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-[#c4a35a] text-xs font-bold leading-tight uppercase">{item.name}</p>
+                          <p className="text-[#6b7b6a] text-[10px] leading-tight mt-0.5">{item.description}</p>
+                        </div>
+                        <div className="text-[10px] font-mono text-[#6b7b6a]">
+                          <span className="text-[#c4a35a] font-bold">&#8377;{item.priceINR}</span>
+                          <span className="ml-1">or <span className="text-[#d4a24e]">{item.priceCUB} BC</span></span>
+                        </div>
+                        <div className="mt-auto">
+                          <button
+                            onClick={() => handleUtilityAction(item.id)}
+                            disabled={!canAfford}
+                            className={`w-full py-1.5 text-xs font-bold active:scale-95 transition-all uppercase tracking-wider ${
+                              !canAfford ? 'bg-[#2a2d2f] text-[#6b7b6a] cursor-not-allowed' : 'bg-[#d4a24e] text-black hover:bg-[#c4a35a]'
+                            }`}
+                          >
+                            {item.priceCUB.toLocaleString()} BC
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -480,81 +496,81 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                 const equipped = isEquipped(item.id, item.category);
                 const canAfford = skinSystem.purchases.blitzCoins >= item.priceCUB;
                 const rarityColor = RARITY_COLORS_HEX[item.rarity];
+                const barColor = RARITY_BAR[item.rarity] ?? '#6b7b6a';
 
                 return (
                   <div
                     key={item.id}
-                    className="rounded-lg p-3 flex flex-col gap-2 transition-all hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg, #111827, #0a0e1a)', border: `1px solid ${rarityColor}25` }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${rarityColor}50`; (e.currentTarget as HTMLElement).style.boxShadow = `0 0 15px ${rarityColor}15`; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = `${rarityColor}25`; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
+                    className="relative flex flex-col gap-2 transition-all hover:border-[#c4a35a]/30 bg-[#1a1f16] border border-[#2a2d2f] overflow-hidden"
                   >
-                    {/* Rarity badge */}
-                    <div className="flex justify-between items-center">
-                      <span
-                        className="text-[9px] font-bold font-mono uppercase px-1.5 py-0.5 rounded"
-                        style={{ color: rarityColor, background: `${rarityColor}15`, textShadow: `0 0 6px ${rarityColor}40` }}
-                      >
-                        {item.rarity}
-                      </span>
-                      {equipped && (
-                        <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded" style={{ color: '#4ade80', background: 'rgba(74,222,128,0.1)', textShadow: '0 0 6px rgba(74,222,128,0.4)' }}>
-                          ON
+                    {/* Left rarity bar */}
+                    <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: barColor }} />
+                    <div className="pl-4 pr-3 pt-3 pb-3 flex flex-col gap-2 flex-1">
+                      {/* Rarity + equipped indicator */}
+                      <div className="flex justify-between items-center">
+                        <span
+                          className="text-[9px] font-bold font-mono uppercase"
+                          style={{ color: rarityColor }}
+                        >
+                          {item.rarity}
                         </span>
-                      )}
-                    </div>
-
-                    {/* Color preview for skins */}
-                    {item.category === 'skin' && item.colors && (
-                      <div className="flex gap-1 h-5">
-                        {Object.values(item.colors).map((hex, i) => (
-                          <div
-                            key={i}
-                            className="flex-1 rounded-sm"
-                            style={{ backgroundColor: `#${hex.toString(16).padStart(6, '0')}` }}
-                          />
-                        ))}
+                        {equipped && (
+                          <span className="text-[9px] font-bold font-mono text-[#4a6741] uppercase">
+                            DEPLOYED
+                          </span>
+                        )}
                       </div>
-                    )}
 
-                    <div>
-                      <p className="text-white text-xs font-bold leading-tight">{item.name}</p>
-                      <p className="text-gray-500 text-[10px] leading-tight mt-0.5">{item.description}</p>
-                    </div>
-
-                    {/* Price display */}
-                    {!owned && (
-                      <div className="text-[10px] font-mono text-gray-400">
-                        <span className="text-white font-bold">&#8377;{item.priceINR}</span>
-                        <span className="ml-1">or <span style={{ color: '#ffd700' }}>{item.priceCUB} BC</span></span>
-                      </div>
-                    )}
-
-                    <div className="mt-auto">
-                      {owned ? (
-                        <button
-                          onClick={() => handleEquip(item.id, item.category)}
-                          className={`w-full py-1.5 text-xs font-bold rounded-lg active:scale-95 transition-all ${
-                            equipped
-                              ? 'text-white'
-                              : 'bg-white/10 hover:bg-white/15 text-white'
-                          }`}
-                          style={equipped ? { background: 'linear-gradient(90deg, #16a34a, #15803d)', boxShadow: '0 0 10px rgba(22,163,74,0.25)' } : undefined}
-                        >
-                          {equipped ? 'UNEQUIP' : 'EQUIP'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleBuy(item.id)}
-                          disabled={!canAfford}
-                          className={`w-full py-1.5 text-xs font-bold rounded-lg active:scale-95 transition-all ${
-                            !canAfford ? 'bg-white/5 text-gray-600 cursor-not-allowed' : 'text-white'
-                          }`}
-                          style={canAfford ? { background: 'linear-gradient(90deg, #0891b2, #2563eb)', boxShadow: '0 0 10px rgba(8,145,178,0.25)' } : undefined}
-                        >
-                          {item.priceCUB.toLocaleString()} BC
-                        </button>
+                      {/* Color preview for skins */}
+                      {item.category === 'skin' && item.colors && (
+                        <div className="flex gap-1 h-5">
+                          {Object.values(item.colors).map((hex, i) => (
+                            <div
+                              key={i}
+                              className="flex-1"
+                              style={{ backgroundColor: `#${hex.toString(16).padStart(6, '0')}` }}
+                            />
+                          ))}
+                        </div>
                       )}
+
+                      <div>
+                        <p className="text-[#c4a35a] text-xs font-bold leading-tight uppercase">{item.name}</p>
+                        <p className="text-[#6b7b6a] text-[10px] leading-tight mt-0.5">{item.description}</p>
+                      </div>
+
+                      {/* Price display */}
+                      {!owned && (
+                        <div className="text-[10px] font-mono text-[#6b7b6a]">
+                          <span className="text-[#c4a35a] font-bold">&#8377;{item.priceINR}</span>
+                          <span className="ml-1">or <span className="text-[#d4a24e]">{item.priceCUB} BC</span></span>
+                        </div>
+                      )}
+
+                      <div className="mt-auto">
+                        {owned ? (
+                          <button
+                            onClick={() => handleEquip(item.id, item.category)}
+                            className={`w-full py-1.5 text-xs font-bold active:scale-95 transition-all uppercase tracking-wider ${
+                              equipped
+                                ? 'bg-[#4a6741] text-white hover:bg-[#5a7751]'
+                                : 'bg-[#2a2d2f] text-[#c4a35a] hover:bg-[#3a3d3f]'
+                            }`}
+                          >
+                            {equipped ? 'UNEQUIP' : 'EQUIP'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBuy(item.id)}
+                            disabled={!canAfford}
+                            className={`w-full py-1.5 text-xs font-bold active:scale-95 transition-all uppercase tracking-wider ${
+                              !canAfford ? 'bg-[#2a2d2f] text-[#6b7b6a] cursor-not-allowed' : 'bg-[#d4a24e] text-black hover:bg-[#c4a35a]'
+                            }`}
+                          >
+                            {item.priceCUB.toLocaleString()} BC
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -564,8 +580,8 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-2 border-t border-white/5 text-center">
-          <p className="text-gray-600 text-[10px] font-mono">
+        <div className="px-5 py-2 border-t border-[#c4a35a]/10 text-center">
+          <p className="text-[#6b7b6a] text-[10px] font-mono uppercase tracking-wider">
             Earn WP by playing (10 per kill, 50 per wave). Earn BC via the BLITZ COINS tab.
           </p>
         </div>
