@@ -139,12 +139,12 @@ export class WorldGenerator {
 
   private generateBuildings(): void {
     const rand = this.seededRandom(12345);
-    const cityCount = 24;
+    const cityCount = 40;
 
     for (let c = 0; c < cityCount; c++) {
-      const cx = (rand() - 0.5) * WORLD_SIZE * 0.55;
-      const cz = (rand() - 0.5) * WORLD_SIZE * 0.55;
-      const buildingCount = 12 + Math.floor(rand() * 14);
+      const cx = (rand() - 0.5) * WORLD_SIZE * 0.7;
+      const cz = (rand() - 0.5) * WORLD_SIZE * 0.7;
+      const buildingCount = 15 + Math.floor(rand() * 18);
 
       for (let b = 0; b < buildingCount; b++) {
         const bx = cx + (rand() - 0.5) * 50;
@@ -408,11 +408,11 @@ export class WorldGenerator {
     const rand = this.seededRandom(55555);
     const rockPositions: THREE.Matrix4[] = [];
     const matrix = new THREE.Matrix4();
-    const count = 400;
+    const count = 1200;
 
     for (let i = 0; i < count; i++) {
-      const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.75);
-      const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.75);
+      const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.8);
+      const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.8);
       const height = this.getHeightAt(x, z);
 
       if (height <= WATER_LEVEL + 1) continue;
@@ -452,9 +452,9 @@ export class WorldGenerator {
     const leafPositions: THREE.Matrix4[] = [];
     const matrix = new THREE.Matrix4();
 
-    for (let i = 0; i < 2000; i++) {
-      const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.7);
-      const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.7);
+    for (let i = 0; i < 6000; i++) {
+      const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.8);
+      const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.8);
       const height = this.getHeightAt(x, z);
 
       if (height <= WATER_LEVEL + 1) continue;

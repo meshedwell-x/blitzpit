@@ -11,7 +11,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const size = 150;
+    const size = 200;
     canvas.width = size;
     canvas.height = size;
 
@@ -19,15 +19,15 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
 
     const draw = () => {
       ctx.clearRect(0, 0, size, size);
-      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillStyle = 'rgba(26,31,22,0.92)';
       ctx.fillRect(0, 0, size, size);
 
       const scale = size / WORLD_SIZE;
       const ox = size / 2;
       const oz = size / 2;
 
-      // Buildings (gray rects)
-      ctx.fillStyle = 'rgba(120,120,120,0.5)';
+      // Buildings (khaki rects)
+      ctx.fillStyle = 'rgba(196,163,90,0.5)';
       for (const b of engine.world.getBuildings()) {
         const bx = b.x * scale + ox;
         const bz = b.z * scale + oz;
@@ -71,8 +71,8 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
       ctx.fill();
       ctx.restore();
 
-      ctx.strokeStyle = '#0066ff';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#d4a24e';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(cx, cy, zr, 0, Math.PI * 2);
       ctx.stroke();
@@ -91,7 +91,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
       for (const bot of engine.botSystem.bots) {
         if (bot.isDead) continue;
         const dist = Math.sqrt((bot.position.x - pp.x) ** 2 + (bot.position.z - pp.z) ** 2);
-        if (dist < 60) {
+        if (dist < 150) {
           const bx = bot.position.x * scale + ox;
           const bz = bot.position.z * scale + oz;
           ctx.fillStyle = '#ff4444';
@@ -106,7 +106,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
         for (const animal of engine.animalSystem.animals) {
           if (animal.state === 'dead') continue;
           const dist = Math.sqrt((animal.position.x - pp.x) ** 2 + (animal.position.z - pp.z) ** 2);
-          if (dist < 80) {
+          if (dist < 200) {
             const ax = animal.position.x * scale + ox;
             const az = animal.position.z * scale + oz;
             ctx.fillStyle = animal.aggressive ? '#ff6600' : '#00cc44';
@@ -133,8 +133,8 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
       ctx.lineTo(px + dir.x * 8, pz + dir.z * 8);
       ctx.stroke();
 
-      ctx.strokeStyle = '#555';
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = '#4a4535';
+      ctx.lineWidth = 1;
       ctx.strokeRect(0, 0, size, size);
 
       rafId = requestAnimationFrame(draw);
@@ -146,7 +146,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
 
   return (
     <div className="absolute top-10 left-2">
-      <canvas ref={canvasRef} className="rounded-lg border border-gray-600/50 shadow-lg" style={{ width: 130, height: 130 }} />
+      <canvas ref={canvasRef} className="border shadow-lg" style={{ width: 170, height: 170, borderColor: '#4a4535' }} />
     </div>
   );
 }
