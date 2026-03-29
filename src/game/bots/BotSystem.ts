@@ -196,6 +196,38 @@ export class BotSystem {
         bot.position.y = surfaceY; // Always snap to ground -- no floating
       }
 
+      // Building collision for bots -- only check when bot is moving
+      const isMovingBot = bot.velocity.x !== 0 || bot.velocity.z !== 0;
+      if (isMovingBot && bot.state !== 'landing') {
+        for (const b of buildings) {
+          if (
+            bot.position.x > b.x + 0.3 && bot.position.x < b.x + b.width - 0.3 &&
+            bot.position.z > b.z + 0.3 && bot.position.z < b.z + b.depth - 0.3
+          ) {
+            const baseH = this.world.getHeightAt(b.x, b.z);
+            if (bot.position.y < baseH + b.height) {
+              // Door exception
+              const doorX = b.x + Math.floor(b.width / 2);
+              const isDoor =
+                Math.abs(bot.position.x - doorX) < 1.5 &&
+                Math.abs(bot.position.z - b.z) < 1.5;
+              if (!isDoor) {
+                // Push bot out -- find shortest exit axis
+                const cx = b.x + b.width / 2;
+                const cz = b.z + b.depth / 2;
+                const dx = bot.position.x - cx;
+                const dz = bot.position.z - cz;
+                if (Math.abs(dx) > Math.abs(dz)) {
+                  bot.position.x = dx > 0 ? b.x + b.width + 0.5 : b.x - 0.5;
+                } else {
+                  bot.position.z = dz > 0 ? b.z + b.depth + 0.5 : b.z - 0.5;
+                }
+              }
+            }
+          }
+        }
+      }
+
       // Map bounds
       bot.position.x = Math.max(-400, Math.min(400, bot.position.x));
       bot.position.z = Math.max(-400, Math.min(400, bot.position.z));

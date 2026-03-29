@@ -373,6 +373,11 @@ export class GameEngine {
 
     // Footstep callback
     this.player.onFootstep = () => {
+      const groundH = this.world.getHeightAt(this.player.state.position.x, this.player.state.position.z);
+      if (groundH <= 4) {
+        this.soundManager.playFootstep('water');
+        return;
+      }
       const biome = this.biomeSystem.getBiome(this.player.state.position.x, this.player.state.position.z);
       const terrain = biome === 'tundra' ? 'snow' : biome === 'desert' ? 'sand' : biome === 'urban' ? 'concrete' : 'grass';
       this.soundManager.playFootstep(terrain);

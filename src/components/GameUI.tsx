@@ -80,8 +80,52 @@ export default function GameUI() {
   const [killBanner, setKillBanner] = useState<string | null>(null);
   const killBannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Payment success notification
+  const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+
   useEffect(() => {
     setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }, []);
+
+  // Handle Stripe payment success redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    const packId = params.get('pack_id');
+    if (!sessionId || !packId) return;
+
+    // Clean URL immediately
+    window.history.replaceState({}, '', window.location.pathname);
+
+    const verify = async () => {
+      try {
+        const res = await fetch(
+          `https://blitzpit-api.meshedwell.workers.dev/api/verify?session_id=${encodeURIComponent(sessionId)}`
+        );
+        const data = await res.json() as { success: boolean; coins?: number; packId?: string };
+        if (data.success) {
+          // Wait for engine + skinSystem to init before granting coins
+          const grantCoins = () => {
+            if (!skinSystem.current) {
+              setTimeout(grantCoins, 200);
+              return;
+            }
+            if ((data.coins ?? 0) > 0) {
+              skinSystem.current.addCoins(data.coins!);
+            }
+            if (packId === 'welcome') {
+              skinSystem.current.buyWelcomePack();
+            }
+            setPaymentSuccess(`Payment successful! ${(data.coins ?? 0) > 0 ? `+${data.coins} CUB` : 'Welcome Pack activated!'}`);
+            setTimeout(() => setPaymentSuccess(null), 5000);
+          };
+          grantCoins();
+        }
+      } catch (err) {
+        console.error('Payment verify failed:', err);
+      }
+    };
+    verify();
   }, []);
 
   useEffect(() => {
@@ -252,6 +296,15 @@ export default function GameUI() {
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black select-none touch-none">
       <div ref={containerRef} className="w-full h-full" />
+
+      {/* PAYMENT SUCCESS NOTIFICATION */}
+      {paymentSuccess && (
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div className="bg-green-900/90 border border-green-400/60 px-5 py-2.5 rounded-lg text-center shadow-lg">
+            <p className="text-green-300 text-sm font-bold font-mono">{paymentSuccess}</p>
+          </div>
+        </div>
+      )}
 
       {/* SOUND TOGGLE */}
       <button
@@ -498,6 +551,18 @@ export default function GameUI() {
         </div>
       )}
 
+      {/* WATER OVERLAY */}
+      {engineRef.current?.player.state.isSwimming && gameState.phase === 'playing' && (
+        <div className="absolute inset-0 pointer-events-none bg-blue-500/15" />
+      )}
+
+      {/* SWIMMING INDICATOR */}
+      {engineRef.current?.player.state.isSwimming && gameState.phase === 'playing' && (
+        <div className="absolute bottom-40 left-1/2 -translate-x-1/2 bg-blue-900/70 px-3 py-1 rounded text-blue-200 text-xs font-mono">
+          SWIMMING -- Speed reduced | SPACE to surface
+        </div>
+      )}
+
       {/* NEARBY PROMPTS */}
       {nearbyItem && gameState.phase === 'playing' && (
         <div className="absolute bottom-36 left-1/2 -translate-x-1/2 bg-black/70 px-3 py-1.5 rounded border border-yellow-500/50">
@@ -574,9 +639,9 @@ export default function GameUI() {
       {gameState.phase === 'lobby' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
           <h1 className="text-5xl md:text-7xl font-black text-white mb-0 tracking-tighter">
-            CUB<span className="text-yellow-400">WILD</span>
+            BLITZ<span className="text-yellow-400">PIT</span>
           </h1>
-          <p className="text-gray-400 text-sm md:text-lg mb-1 font-mono">Infinite Survival Battle Royale</p>
+          <p className="text-gray-400 text-sm md:text-lg mb-1 font-mono">Endless Voxel Battle Royale</p>
 
           {/* Nickname input -- io game style, no login */}
           <div className="mb-3 mt-2">

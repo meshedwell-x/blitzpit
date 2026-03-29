@@ -40,7 +40,7 @@ export class WeaponSystem {
   private bullets: Bullet[] = [];
   private isFiring = false;
   items: ItemDrop[] = [];
-  private bulletGeometry: THREE.SphereGeometry;
+  private bulletGeometry: THREE.BoxGeometry;
   private bulletMaterial: THREE.MeshBasicMaterial;
   private weaponModel: THREE.Group;
   weatherSpreadMultiplier = 1.0;
@@ -61,8 +61,8 @@ export class WeaponSystem {
     this.scene = scene;
     this.player = player;
     if (world) this.world = world;
-    this.bulletGeometry = new THREE.SphereGeometry(0.05, 4, 4);
-    this.bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    this.bulletGeometry = new THREE.BoxGeometry(0.03, 0.03, 0.3);
+    this.bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff44 });
     this.weaponModel = this.createWeaponModel();
     scene.add(this.weaponModel);
   }
@@ -370,6 +370,15 @@ export class WeaponSystem {
       bullet.mesh.position.copy(bullet.position);
       bullet.traveled += movement.length();
 
+      // Tracer rotation -- align mesh to travel direction
+      if (bullet.velocity.length() > 0) {
+        bullet.mesh.lookAt(
+          bullet.position.x + bullet.velocity.x,
+          bullet.position.y + bullet.velocity.y,
+          bullet.position.z + bullet.velocity.z
+        );
+      }
+
       // Terrain collision -- remove bullet if below ground
       if (this.world) {
         const bulletGroundH = this.world.getHeightAt(bullet.position.x, bullet.position.z);
@@ -379,21 +388,32 @@ export class WeaponSystem {
           continue;
         }
 
-        // Building collision
+        // Building collision -- bullets stopped by walls, door opening allowed
         const buildings = this.world.getBuildings();
-        let hitBuilding = false;
+        let hitWall = false;
         for (const b of buildings) {
-          const baseH = this.world.getHeightAt(b.x, b.z);
+          // Quick AABB reject before computing baseH
           if (
-            bullet.position.x > b.x && bullet.position.x < b.x + b.width &&
-            bullet.position.z > b.z && bullet.position.z < b.z + b.depth &&
-            bullet.position.y > baseH && bullet.position.y < baseH + b.height + 1
-          ) {
-            hitBuilding = true;
+            bullet.position.x <= b.x || bullet.position.x >= b.x + b.width ||
+            bullet.position.z <= b.z || bullet.position.z >= b.z + b.depth
+          ) continue;
+
+          const baseH = this.world.getHeightAt(b.x, b.z);
+          if (bullet.position.y < baseH + 0.5 || bullet.position.y > baseH + b.height + 0.5) continue;
+
+          // Door: front face (z === b.z side), centered x, height 2 blocks
+          const doorX = b.x + Math.floor(b.width / 2);
+          const isDoor =
+            Math.abs(bullet.position.x - doorX) < 1.0 &&
+            Math.abs(bullet.position.z - b.z) < 0.5 &&
+            bullet.position.y < baseH + 2.5;
+
+          if (!isDoor) {
+            hitWall = true;
             break;
           }
         }
-        if (hitBuilding) {
+        if (hitWall) {
           this.scene.remove(bullet.mesh);
           this.bullets.splice(i, 1);
           continue;

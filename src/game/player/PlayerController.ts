@@ -17,6 +17,7 @@ export interface PlayerState {
   isGrounded: boolean;
   isDead: boolean;
   kills: number;
+  isSwimming: boolean;
 }
 
 export class PlayerController {
@@ -76,6 +77,7 @@ export class PlayerController {
       isGrounded: false,
       isDead: false,
       kills: 0,
+      isSwimming: false,
     };
 
     this.mesh = this.createPlayerMesh();
@@ -390,15 +392,33 @@ export class PlayerController {
       }
     }
 
-    // Ground collision
+    // Ground collision + swimming
     const groundHeight = this.world.getEffectiveHeightAt(newPos.x, newPos.z);
-
-    // Block top surface is at groundHeight + 0.5 (blocks are 1 unit tall, centered)
     const surfaceY = groundHeight + 0.6;
-    if (newPos.y < surfaceY) {
-      newPos.y = surfaceY;
+
+    // Swimming: terrain height at or below WATER_LEVEL (4)
+    const WATER_SURFACE = 4.5; // WATER_LEVEL + 0.5
+    const rawGroundHeight = this.world.getHeightAt(newPos.x, newPos.z);
+    if (rawGroundHeight <= 4 && newPos.y < WATER_SURFACE + 0.5) {
+      // Swimming mode
+      this.state.isSwimming = true;
+      newPos.y = WATER_SURFACE;
       this.state.velocity.y = 0;
-      this.state.isGrounded = true;
+      this.state.isGrounded = false;
+      // Reduced speed in water
+      this.state.velocity.x *= 0.4;
+      this.state.velocity.z *= 0.4;
+      // SPACE: surface leap
+      if (this.keys.has('Space')) {
+        this.state.velocity.y = 3;
+      }
+    } else {
+      this.state.isSwimming = false;
+      if (newPos.y < surfaceY) {
+        newPos.y = surfaceY;
+        this.state.velocity.y = 0;
+        this.state.isGrounded = true;
+      }
     }
 
     // World bounds
@@ -470,7 +490,7 @@ export class PlayerController {
     this.camera.updateProjectionMatrix();
 
     const camDist = this.isADS ? 2.5 : CAMERA_DISTANCE;
-    const camHeight = this.isADS ? 2.0 : CAMERA_HEIGHT;
+    const camHeight = this.isADS ? 2.0 : (this.state.isSwimming ? CAMERA_HEIGHT * 0.6 : CAMERA_HEIGHT);
 
     // Camera orbits behind player
     const camX = this.state.position.x + Math.sin(this.yaw) * camDist * Math.cos(this.pitch);
