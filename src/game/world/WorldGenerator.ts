@@ -144,9 +144,8 @@ export class WorldGenerator {
   }
 
   private buildTerrainMesh(): void {
-    // Use merged geometry for terrain - much faster than 200x200 individual blocks
-    // Sample every 2 blocks for performance, use larger blocks
-    const step = 2;
+    // Sample every 4 blocks for large map performance
+    const step = 4;
     const blockGeo = new THREE.BoxGeometry(step, 1, step);
 
     const grassPositions: THREE.Matrix4[] = [];
@@ -296,7 +295,7 @@ export class WorldGenerator {
     const rand = this.seededRandom(55555);
     const rockPositions: THREE.Matrix4[] = [];
     const matrix = new THREE.Matrix4();
-    const count = 250;
+    const count = 150;
 
     for (let i = 0; i < count; i++) {
       const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.75);
@@ -340,7 +339,7 @@ export class WorldGenerator {
     const leafPositions: THREE.Matrix4[] = [];
     const matrix = new THREE.Matrix4();
 
-    for (let i = 0; i < 1200; i++) {
+    for (let i = 0; i < 800; i++) {
       const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.7);
       const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.7);
       const height = this.getHeightAt(x, z);

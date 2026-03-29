@@ -113,8 +113,8 @@ export class BotSystem {
       rightLeg.position.set(0.15, -0.4, 0);
       group.add(rightLeg);
 
-      // Start high for landing animation
-      const spawnY = h + 0.6 + PLAYER_HEIGHT + 80 + Math.random() * 40;
+      // Start slightly high for landing animation
+      const spawnY = h + 0.6 + PLAYER_HEIGHT + 15 + Math.random() * 10;
       group.position.set(x, spawnY, z);
       this.scene.add(group);
 
@@ -182,8 +182,8 @@ export class BotSystem {
       // Ground collision
       const groundH = this.world.getHeightAt(bot.position.x, bot.position.z);
       const surfaceY = groundH + 0.6;
-      if (bot.position.y < surfaceY + PLAYER_HEIGHT) {
-        bot.position.y = surfaceY + PLAYER_HEIGHT;
+      if (bot.position.y < surfaceY) {
+        bot.position.y = surfaceY;
       }
 
       // Update mesh
@@ -203,8 +203,8 @@ export class BotSystem {
 
   private updateLanding(bot: Bot, delta: number): void {
     const groundH = this.world.getHeightAt(bot.position.x, bot.position.z);
-    const surfaceY = groundH + 0.6 + PLAYER_HEIGHT;
-    bot.position.y -= 12 * delta;
+    const surfaceY = groundH + 0.6;
+    bot.position.y -= 40 * delta;
     if (bot.position.y <= surfaceY) {
       bot.position.y = surfaceY;
       // All bots start by looting after landing
@@ -671,7 +671,7 @@ export class BotSystem {
       rightLeg.position.set(0.15, -0.4, 0);
       group.add(rightLeg);
 
-      const spawnY = h + 0.6 + PLAYER_HEIGHT + 80 + Math.random() * 40;
+      const spawnY = h + 0.6 + 15 + Math.random() * 10;
       group.position.set(x, spawnY, z);
       this.scene.add(group);
 

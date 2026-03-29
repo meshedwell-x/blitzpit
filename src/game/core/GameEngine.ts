@@ -89,7 +89,7 @@ export class GameEngine {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x87ceeb);
-    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.003);
+    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0015);
 
     this.camera = new THREE.PerspectiveCamera(
       70, container.clientWidth / container.clientHeight, 0.1, 1000
@@ -120,8 +120,8 @@ export class GameEngine {
     const sun = new THREE.DirectionalLight(0xfff5e0, 1.4);
     sun.position.set(100, 150, 80);
     sun.castShadow = true;
-    sun.shadow.mapSize.width = 2048;
-    sun.shadow.mapSize.height = 2048;
+    sun.shadow.mapSize.width = 1024;
+    sun.shadow.mapSize.height = 1024;
     sun.shadow.camera.near = 1;
     sun.shadow.camera.far = 400;
     sun.shadow.camera.left = -150;
@@ -257,11 +257,7 @@ export class GameEngine {
     if (this.planeMesh) {
       this.planeMesh.visible = true;
       this.planeMesh.position.copy(this.planePosition);
-      this._tmpBehind.copy(this.planePosition);
-      this._tmpBehind.x += this.planeDirection.x * 10;
-      this._tmpBehind.y += this.planeDirection.y * 10;
-      this._tmpBehind.z += this.planeDirection.z * 10;
-      this.planeMesh.lookAt(this._tmpBehind);
+      this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z);
     }
     this.notifyStateChange();
   }
@@ -313,7 +309,11 @@ export class GameEngine {
     this.planePosition.y += this.planeDirection.y * speed;
     this.planePosition.z += this.planeDirection.z * speed;
     this.player.state.position.copy(this.planePosition);
-    if (this.planeMesh) this.planeMesh.position.copy(this.planePosition);
+    if (this.planeMesh) {
+      this.planeMesh.position.copy(this.planePosition);
+      // Plane model faces -Z, so we rotate Y to match flight direction
+      this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z);
+    }
 
     this._tmpSide.set(-this.planeDirection.z * 25, 15, this.planeDirection.x * 25);
     this.camera.position.copy(this.planePosition).add(this._tmpSide);
