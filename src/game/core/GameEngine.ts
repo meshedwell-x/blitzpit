@@ -112,6 +112,10 @@ export class GameEngine {
 
   isPaused = false;
 
+  skinSystem: SkinSystem = new SkinSystem();
+  reviveOffered = false;
+  reviveTimer = 0;
+
   onStateChange: ((state: GameState) => void) | null = null;
   private _onResize: () => void = () => {};
 
@@ -404,8 +408,7 @@ export class GameEngine {
     this.notifyStateChange();
 
     // Apply purchased skin to player mesh
-    const skinSystem = new SkinSystem();
-    skinSystem.applySkinToMesh(this.player.mesh);
+    this.skinSystem.applySkinToMesh(this.player.mesh);
   }
 
   startGame(): void {
@@ -894,9 +897,24 @@ export class GameEngine {
         this.gameState.totalKills = this.player.state.kills;
 
         if (this.player.state.isDead) {
-          this.scoreboardSystem.endGame();
-          this.gameState.phase = 'dead';
-          this.notifyStateChange();
+          // Check for revive token
+          if (this.skinSystem.purchases.reviveTokens > 0 && !this.reviveOffered) {
+            this.reviveOffered = true;
+            this.reviveTimer = 3.0; // 3 second countdown
+          } else if (this.reviveOffered && this.reviveTimer > 0) {
+            this.reviveTimer -= delta;
+            if (this.reviveTimer <= 0) {
+              // Time expired, die
+              this.reviveOffered = false;
+              this.scoreboardSystem.endGame();
+              this.gameState.phase = 'dead';
+              this.notifyStateChange();
+            }
+          } else if (!this.reviveOffered) {
+            this.scoreboardSystem.endGame();
+            this.gameState.phase = 'dead';
+            this.notifyStateChange();
+          }
         } else if (this.botSystem.alive <= 0) {
           // All bots dead - start wave transition
           this.gameState.phase = 'wave_transition';
@@ -944,6 +962,15 @@ export class GameEngine {
 
   private notifyStateChange(): void {
     if (this.onStateChange) this.onStateChange({ ...this.gameState });
+  }
+
+  revivePlayer(): void {
+    if (!this.skinSystem.useReviveToken()) return;
+    this.player.state.isDead = false;
+    this.player.state.health = 50;
+    this.player.mesh.rotation.x = 0;
+    this.reviveOffered = false;
+    this.reviveTimer = 0;
   }
 
   destroy(): void {

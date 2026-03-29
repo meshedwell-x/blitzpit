@@ -697,6 +697,21 @@ export default function GameUI() {
         </div>
       )}
 
+      {/* REVIVE PROMPT */}
+      {engineRef.current?.reviveOffered && (engineRef.current?.reviveTimer ?? 0) > 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-950/50 z-40">
+          <h2 className="text-3xl font-black text-red-500 mb-2">DOWN!</h2>
+          <p className="text-white font-mono text-lg mb-4">
+            Revive in {Math.ceil(engineRef.current.reviveTimer)}s
+          </p>
+          <button onClick={() => engineRef.current?.revivePlayer()}
+            className="px-8 py-3 bg-green-500 text-white font-bold text-lg rounded active:scale-95 mb-2">
+            REVIVE ({skinSystem.current.purchases.reviveTokens} tokens)
+          </button>
+          <p className="text-gray-400 text-xs font-mono">HP 50% | 2s invincible</p>
+        </div>
+      )}
+
       {/* GAME OVER */}
       {gameState.phase === 'dead' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
@@ -746,6 +761,20 @@ export default function GameUI() {
               <p className="text-gray-600 text-xs text-center font-mono">No records yet</p>
             )}
           </div>
+
+          {/* Welcome Pack Banner */}
+          {!skinSystem.current.purchases.welcomePurchased && (
+            <div className="bg-yellow-900/60 border border-yellow-500 rounded-lg p-3 mb-3 text-center w-80 max-w-[90vw]">
+              <div className="text-yellow-400 font-bold text-sm">WELCOME PACK -- &#8377;9</div>
+              <div className="text-gray-300 text-xs">500 CUB + VIP Badge + Random Skin</div>
+              <button onClick={() => {
+                skinSystem.current.buyWelcomePack();
+                setShowShop(false);
+              }} className="mt-2 px-4 py-1.5 bg-yellow-500 text-black font-bold text-sm rounded active:scale-95">
+                GET FOR &#8377;9
+              </button>
+            </div>
+          )}
 
           <div className="flex gap-2">
             <button

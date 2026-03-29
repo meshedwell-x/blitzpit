@@ -10,6 +10,25 @@ export interface PlayerPurchases {
   activeEffect: string | null;
   activeTrail: string | null;
   activeNameColor: string | null;
+  isVIP: boolean;
+  reviveTokens: number;
+  xpBoostEndTime: number; // timestamp
+  welcomePurchased: boolean;
+}
+
+function defaultStats(): PlayerPurchases {
+  return {
+    cubCoins: 0,
+    ownedItems: [],
+    activeSkin: null,
+    activeEffect: null,
+    activeTrail: null,
+    activeNameColor: null,
+    isVIP: false,
+    reviveTokens: 0,
+    xpBoostEndTime: 0,
+    welcomePurchased: false,
+  };
 }
 
 export class SkinSystem {
@@ -22,9 +41,13 @@ export class SkinSystem {
   private load(): PlayerPurchases {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        // Merge with defaults to ensure new fields are present
+        return { ...defaultStats(), ...parsed };
+      }
     } catch {}
-    return { cubCoins: 0, ownedItems: [], activeSkin: null, activeEffect: null, activeTrail: null, activeNameColor: null };
+    return defaultStats();
   }
 
   save(): void {
@@ -84,6 +107,55 @@ export class SkinSystem {
     return null;
   }
 
+  buyWelcomePack(): boolean {
+    if (this.purchases.welcomePurchased) return false;
+    this.purchases.welcomePurchased = true;
+    this.purchases.isVIP = true;
+    this.purchases.cubCoins += 500;
+    // Random skin from common/rare pool
+    const skins = SHOP_ITEMS.filter(i => i.category === 'skin' && (i.rarity === 'common' || i.rarity === 'rare'));
+    const randomSkin = skins[Math.floor(Math.random() * skins.length)];
+    if (randomSkin && !this.purchases.ownedItems.includes(randomSkin.id)) {
+      this.purchases.ownedItems.push(randomSkin.id);
+    }
+    this.save();
+    return true;
+  }
+
+  buyReviveTokens(): boolean {
+    const item = SHOP_ITEMS.find(i => i.id === 'revive_3');
+    if (!item || !this.canAfford(item)) return false;
+    this.purchases.cubCoins -= item.priceCUB;
+    this.purchases.reviveTokens += 3;
+    this.save();
+    return true;
+  }
+
+  useReviveToken(): boolean {
+    if (this.purchases.reviveTokens <= 0) return false;
+    this.purchases.reviveTokens--;
+    this.save();
+    return true;
+  }
+
+  activateXPBoost(): boolean {
+    const item = SHOP_ITEMS.find(i => i.id === 'xp_boost');
+    if (!item || !this.canAfford(item)) return false;
+    this.purchases.cubCoins -= item.priceCUB;
+    this.purchases.xpBoostEndTime = Date.now() + 3 * 60 * 60 * 1000; // 3 hours
+    this.save();
+    return true;
+  }
+
+  hasXPBoost(): boolean {
+    return Date.now() < this.purchases.xpBoostEndTime;
+  }
+
+  addCoins(amount: number): void {
+    this.purchases.cubCoins += amount;
+    this.save();
+  }
+
   // Apply skin colors to player mesh using named parts
   applySkinToMesh(mesh: THREE.Group): void {
     const skin = this.getActiveSkin();
@@ -110,10 +182,5 @@ export class SkinSystem {
         }
       }
     });
-  }
-
-  addCoins(amount: number): void {
-    this.purchases.cubCoins += amount;
-    this.save();
   }
 }
