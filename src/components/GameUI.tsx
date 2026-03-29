@@ -263,6 +263,13 @@ export default function GameUI() {
         {muted ? 'OFF' : 'SND'}
       </button>
 
+      {/* CUB COINS HUD */}
+      {gameState.phase === 'playing' && (
+        <div className="absolute top-2 right-12 bg-black/50 px-2 py-1 rounded text-[10px] font-mono text-yellow-400">
+          {skinSystem.current.purchases.cubCoins} CUB
+        </div>
+      )}
+
       {/* TIME / BIOME / WEATHER HUD */}
       {gameState.phase === 'playing' && (
         <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-[10px] font-mono space-y-0.5">
@@ -602,6 +609,15 @@ export default function GameUI() {
             SHOP
           </button>
 
+          {skinSystem.current.getActiveSkin() && (
+            <div className="mt-2 text-center">
+              <span className="text-gray-400 text-xs font-mono">Skin: </span>
+              <span className="text-purple-400 text-xs font-bold">
+                {skinSystem.current.getActiveSkin()?.name}
+              </span>
+            </div>
+          )}
+
           <div className="mt-5 text-gray-500 text-[10px] font-mono space-y-0.5 text-center">
             <p>WASD Move | SHIFT Sprint | C Crouch/Slide | V Melee</p>
             <p>Click Shoot | RMB Aim | R Reload | F Pickup | SPACE Jump</p>
@@ -750,7 +766,15 @@ export default function GameUI() {
 
       {/* SHOP MODAL */}
       {showShop && (
-        <ShopModal skinSystem={skinSystem.current} onClose={() => setShowShop(false)} />
+        <ShopModal
+          skinSystem={skinSystem.current}
+          onClose={() => setShowShop(false)}
+          onSkinChange={() => {
+            if (engineRef.current) {
+              skinSystem.current.applySkinToMesh(engineRef.current.player.mesh);
+            }
+          }}
+        />
       )}
 
       {/* DAMAGE DIRECTION INDICATOR */}

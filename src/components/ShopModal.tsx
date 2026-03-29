@@ -5,7 +5,7 @@ import { SkinSystem } from '../game/shop/SkinSystem';
 
 type ShopTab = 'skins' | 'effects' | 'coins';
 
-export function ShopModal({ skinSystem, onClose }: { skinSystem: SkinSystem; onClose: () => void }) {
+export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: SkinSystem; onClose: () => void; onSkinChange?: () => void }) {
   const [tab, setTab] = useState<ShopTab>('skins');
   const [tick, setTick] = useState(0);
 
@@ -32,6 +32,7 @@ export function ShopModal({ skinSystem, onClose }: { skinSystem: SkinSystem; onC
     else if (category === 'effect' || category === 'trail') skinSystem.equipEffect(skinSystem.purchases.activeEffect === itemId ? null : itemId);
     else if (category === 'name_color') skinSystem.equipNameColor(skinSystem.purchases.activeNameColor === itemId ? null : itemId);
     refresh();
+    if (onSkinChange) onSkinChange();
   };
 
   const isEquipped = (itemId: string, category: string): boolean => {
