@@ -373,6 +373,23 @@ export default function GameUI() {
         </div>
       ))}
 
+      {/* POI INDICATOR */}
+      {gameState.phase === 'playing' && (() => {
+        const poi = engineRef.current?.world.poiLocations?.find(p => {
+          const dx = (engineRef.current?.player.state.position.x ?? 0) - p.x;
+          const dz = (engineRef.current?.player.state.position.z ?? 0) - p.z;
+          return Math.sqrt(dx * dx + dz * dz) < p.radius;
+        });
+        if (!poi) return null;
+        const names: Record<string, string> = { military: 'MILITARY BASE', temple: 'ANCIENT TEMPLE', gas_station: 'GAS STATION' };
+        const colors: Record<string, string> = { military: 'text-red-400', temple: 'text-yellow-400', gas_station: 'text-blue-400' };
+        return (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2">
+            <span className={`${colors[poi.type]} text-xs font-mono font-bold`}>{names[poi.type]}</span>
+          </div>
+        );
+      })()}
+
       {/* KILL FEED */}
       {killFeed.length > 0 && (
         <div className="absolute top-12 right-10 flex flex-col gap-0.5">

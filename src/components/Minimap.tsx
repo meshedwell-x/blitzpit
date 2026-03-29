@@ -32,6 +32,29 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
         ctx.fillRect(bx, bz, b.width * scale, b.depth * scale);
       }
 
+      // POI markers
+      if (engine.world.poiLocations) {
+        for (const poi of engine.world.poiLocations) {
+          const px = poi.x * scale + ox;
+          const pz = poi.z * scale + oz;
+          if (poi.type === 'military') {
+            ctx.fillStyle = '#ff4444';
+            ctx.fillRect(px - 3, pz - 3, 6, 6);
+          } else if (poi.type === 'temple') {
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.moveTo(px, pz - 4);
+            ctx.lineTo(px + 3, pz + 2);
+            ctx.lineTo(px - 3, pz + 2);
+            ctx.closePath();
+            ctx.fill();
+          } else if (poi.type === 'gas_station') {
+            ctx.fillStyle = '#00aaff';
+            ctx.fillRect(px - 2, pz - 2, 4, 4);
+          }
+        }
+      }
+
       // Zone
       const zr = engine.zoneSystem.currentRadius * scale;
       const cx = engine.zoneSystem.center.x * scale + ox;
