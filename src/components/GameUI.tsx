@@ -58,7 +58,7 @@ export default function GameUI() {
   const [showInventory, setShowInventory] = useState(false);
   const [showShop, setShowShop] = useState(false);
   const [muted, setMuted] = useState(false);
-  const skinSystem = useRef(new SkinSystem());
+  const skinSystem = useRef<SkinSystem | null>(null);
 
   // Kill streak notification
   const [streakLabel, setStreakLabel] = useState<string | null>(null);
@@ -122,6 +122,7 @@ export default function GameUI() {
     document.addEventListener('keydown', handleKey);
 
     engine.init().then(() => {
+      skinSystem.current = engine.skinSystem;
       const loop = () => {
         engine.update();
 
@@ -264,7 +265,7 @@ export default function GameUI() {
       </button>
 
       {/* CUB COINS + WILD POINTS HUD */}
-      {gameState.phase === 'playing' && (
+      {gameState.phase === 'playing' && skinSystem.current && (
         <div className="absolute top-2 right-12 bg-black/50 px-2 py-1 rounded text-[10px] font-mono flex gap-2">
           <span className="text-yellow-400">{skinSystem.current.purchases.cubCoins} CUB</span>
           <span className="text-green-400">{skinSystem.current.purchases.wildPoints} WP</span>
@@ -610,11 +611,11 @@ export default function GameUI() {
             SHOP
           </button>
 
-          {skinSystem.current.getActiveSkin() && (
+          {skinSystem.current?.getActiveSkin() && (
             <div className="mt-2 text-center">
               <span className="text-gray-400 text-xs font-mono">Skin: </span>
               <span className="text-purple-400 text-xs font-bold">
-                {skinSystem.current.getActiveSkin()?.name}
+                {skinSystem.current?.getActiveSkin()?.name}
               </span>
             </div>
           )}
@@ -705,9 +706,16 @@ export default function GameUI() {
           <p className="text-white font-mono text-lg mb-4">
             Revive in {Math.ceil(engineRef.current.reviveTimer)}s
           </p>
-          <button onClick={() => engineRef.current?.revivePlayer()}
-            className="px-8 py-3 bg-green-500 text-white font-bold text-lg rounded active:scale-95 mb-2">
-            REVIVE ({skinSystem.current.purchases.reviveTokens} tokens)
+          <button
+            onClick={() => engineRef.current?.revivePlayer()}
+            disabled={!skinSystem.current || skinSystem.current.purchases.reviveTokens <= 0}
+            className={`px-8 py-3 font-bold text-lg rounded active:scale-95 mb-2 ${
+              skinSystem.current && skinSystem.current.purchases.reviveTokens > 0
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            REVIVE ({skinSystem.current?.purchases.reviveTokens ?? 0} tokens)
           </button>
           <p className="text-gray-400 text-xs font-mono">HP 50% | 2s invincible</p>
         </div>
@@ -764,12 +772,12 @@ export default function GameUI() {
           </div>
 
           {/* Welcome Pack Banner */}
-          {!skinSystem.current.purchases.welcomePurchased && (
+          {skinSystem.current && !skinSystem.current.purchases.welcomePurchased && (
             <div className="bg-yellow-900/60 border border-yellow-500 rounded-lg p-3 mb-3 text-center w-80 max-w-[90vw]">
               <div className="text-yellow-400 font-bold text-sm">WELCOME PACK -- &#8377;9</div>
               <div className="text-gray-300 text-xs">500 CUB + VIP Badge + Random Skin</div>
               <button onClick={() => {
-                skinSystem.current.buyWelcomePack();
+                skinSystem.current!.buyWelcomePack();
                 setShowShop(false);
               }} className="mt-2 px-4 py-1.5 bg-yellow-500 text-black font-bold text-sm rounded active:scale-95">
                 GET FOR &#8377;9
@@ -795,12 +803,12 @@ export default function GameUI() {
       )}
 
       {/* SHOP MODAL */}
-      {showShop && (
+      {showShop && skinSystem.current && (
         <ShopModal
           skinSystem={skinSystem.current}
           onClose={() => setShowShop(false)}
           onSkinChange={() => {
-            if (engineRef.current) {
+            if (engineRef.current && skinSystem.current) {
               skinSystem.current.applySkinToMesh(engineRef.current.player.mesh);
             }
           }}

@@ -10,18 +10,21 @@ export class SoundManager {
   private rainGain: GainNode | null = null;
 
   constructor() {
-    try {
-      this.ctx = new AudioContext();
-      this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.4;
-      this.masterGain.connect(this.ctx.destination);
-    } catch {
-      this.ctx = null;
-    }
+    // AudioContext is deferred until first user interaction to avoid autoplay policy errors
   }
 
   private getCtx(): AudioContext | null {
-    if (!this.ctx || this.muted) return null;
+    if (this.muted) return null;
+    if (!this.ctx || this.ctx.state === 'closed') {
+      try {
+        this.ctx = new AudioContext();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.4;
+        this.masterGain.connect(this.ctx.destination);
+      } catch {
+        return null;
+      }
+    }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
     }

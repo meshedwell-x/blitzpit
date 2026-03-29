@@ -112,6 +112,8 @@ export class GameEngine {
 
   isPaused = false;
 
+  private _onPointerLockChange: (() => void) | null = null;
+
   skinSystem: SkinSystem = new SkinSystem();
   reviveOffered = false;
   reviveTimer = 0;
@@ -387,11 +389,12 @@ export class GameEngine {
     };
 
     // ESC pause via pointerlock
-    document.addEventListener('pointerlockchange', () => {
+    this._onPointerLockChange = () => {
       if (!document.pointerLockElement && this.gameState.phase === 'playing') {
         this.isPaused = true;
       }
-    });
+    };
+    document.addEventListener('pointerlockchange', this._onPointerLockChange);
 
     this.botSystem.setWaveManager(this.waveManager);
 
@@ -630,8 +633,9 @@ export class GameEngine {
     // Heal player
     this.player.heal(PLAYER_HEAL_BETWEEN_WAVES);
 
-    // Award Wild Points for wave clear
-    this.skinSystem.purchases.wildPoints += 50;
+    // Award Wild Points for wave clear (doubled if XP boost active)
+    const waveWpGain = this.skinSystem.hasXPBoost() ? 100 : 50;
+    this.skinSystem.purchases.wildPoints += waveWpGain;
     this.skinSystem.save();
 
     // Achievement titles on wave milestones
@@ -874,17 +878,21 @@ export class GameEngine {
           for (let k = 0; k < killsDelta; k++) {
             this.scoreboardSystem.recordKill(false);
             this.soundManager.playKillConfirm();
-            // Award Wild Points per kill
-            this.skinSystem.purchases.wildPoints += 10;
+            // Award Wild Points per kill (doubled if XP boost active)
+            let wpGain = 10;
+            if (this.skinSystem.hasXPBoost()) wpGain *= 2;
+            this.skinSystem.purchases.wildPoints += wpGain;
           }
 
-          // Boss kill reward + WP bonus
-          const killedBoss = this.bossSystem.bosses.find(b => b.isDead && b.id.startsWith('boss_'));
+          // Boss kill reward + WP bonus (rewardClaimed prevents duplicate)
+          const killedBoss = this.bossSystem.bosses.find(b => b.isDead && !b.rewardClaimed);
           if (killedBoss) {
+            killedBoss.rewardClaimed = true;
             this.soundManager.playWaveComplete();
             this.player.heal(50);
             this.player.addArmor(50);
-            this.skinSystem.purchases.wildPoints += 100;
+            const bossWpGain = this.skinSystem.hasXPBoost() ? 200 : 100;
+            this.skinSystem.purchases.wildPoints += bossWpGain;
           }
 
           this.skinSystem.save();
@@ -999,6 +1007,10 @@ export class GameEngine {
   }
 
   destroy(): void {
+    if (this._onPointerLockChange) {
+      document.removeEventListener('pointerlockchange', this._onPointerLockChange);
+      this._onPointerLockChange = null;
+    }
     window.removeEventListener('resize', this._onResize);
     this.player.destroy();
     this.weaponSystem.destroy();

@@ -7,6 +7,7 @@ export interface BossBot extends Bot {
   phase: 1 | 2 | 3;
   specialCooldown: number;
   maxHealth: number;
+  rewardClaimed: boolean;
 }
 
 export class BossSystem {
@@ -76,6 +77,7 @@ export class BossSystem {
       phase: 1,
       specialCooldown: 5,
       maxHealth: cfg.hp,
+      rewardClaimed: false,
     };
 
     this.bosses.push(boss);

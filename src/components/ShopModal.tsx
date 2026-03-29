@@ -48,7 +48,8 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
   const handleEquip = (itemId: string, category: string) => {
     if (category === 'skin') skinSystem.equipSkin(skinSystem.purchases.activeSkin === itemId ? null : itemId);
-    else if (category === 'effect' || category === 'trail') skinSystem.equipEffect(skinSystem.purchases.activeEffect === itemId ? null : itemId);
+    else if (category === 'effect') skinSystem.equipEffect(skinSystem.purchases.activeEffect === itemId ? null : itemId);
+    else if (category === 'trail') skinSystem.equipTrail(skinSystem.purchases.activeTrail === itemId ? null : itemId);
     else if (category === 'name_color') skinSystem.equipNameColor(skinSystem.purchases.activeNameColor === itemId ? null : itemId);
     else if (category === 'weapon_skin') skinSystem.equipWeaponSkin(skinSystem.purchases.activeWeaponSkin === itemId ? null : itemId);
     else if (category === 'vehicle_skin') skinSystem.equipVehicleSkin(skinSystem.purchases.activeVehicleSkin === itemId ? null : itemId);
@@ -59,7 +60,8 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
   const isEquipped = (itemId: string, category: string): boolean => {
     if (category === 'skin') return skinSystem.purchases.activeSkin === itemId;
-    if (category === 'effect' || category === 'trail') return skinSystem.purchases.activeEffect === itemId;
+    if (category === 'effect') return skinSystem.purchases.activeEffect === itemId;
+    if (category === 'trail') return skinSystem.purchases.activeTrail === itemId;
     if (category === 'name_color') return skinSystem.purchases.activeNameColor === itemId;
     if (category === 'weapon_skin') return skinSystem.purchases.activeWeaponSkin === itemId;
     if (category === 'vehicle_skin') return skinSystem.purchases.activeVehicleSkin === itemId;

@@ -214,11 +214,17 @@ export class SkinSystem {
     if (!skin || !skin.colors) return;
 
     const partMap: Record<string, string> = {
+      'head': 'body',
       'torso': 'body',
+      'belt': 'body',
       'leftArm': 'arms',
       'rightArm': 'arms',
       'leftLeg': 'legs',
       'rightLeg': 'legs',
+      'leftBoot': 'legs',
+      'rightBoot': 'legs',
+      'backpack': 'body',
+      'helmet': 'body',
     };
 
     mesh.traverse((child) => {
