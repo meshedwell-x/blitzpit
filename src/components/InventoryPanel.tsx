@@ -1,3 +1,4 @@
+'use client';
 import { GameEngine, GameState } from '../game/core/GameEngine';
 import { WeaponInstance } from '../game/weapons/WeaponSystem';
 import { GRENADES } from '../game/weapons/GrenadeSystem';

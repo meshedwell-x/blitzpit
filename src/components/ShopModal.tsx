@@ -1,3 +1,4 @@
+'use client';
 import { useState } from 'react';
 import { SHOP_ITEMS, CUB_COIN_PACKS, RARITY_COLORS_HEX } from '../game/shop/monetization';
 import { SkinSystem } from '../game/shop/SkinSystem';
