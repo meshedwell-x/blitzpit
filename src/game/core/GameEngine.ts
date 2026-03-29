@@ -82,7 +82,7 @@ export class GameEngine {
   private planeDirection = new THREE.Vector3();
   private planeTimer = 0;
   dropSpeed = 55;
-  private parachuteOpen = false;
+  parachuteOpen = false;
   private planeMesh: THREE.Group | null = null;
   private playerDropMesh: THREE.Group | null = null;
 
@@ -561,6 +561,15 @@ export class GameEngine {
     }
 
     this.player.mesh.position.copy(this.player.state.position);
+    // Dive body tilt: W = head-down (~70deg), S = spread-eagle flat, default = slight tilt
+    if (!this.parachuteOpen) {
+      const targetTilt = keys.has('KeyW') ? -1.2 : keys.has('KeyS') ? -0.1 : -0.4;
+      this.player.mesh.rotation.x += (targetTilt - this.player.mesh.rotation.x) * 0.08;
+      this.player.mesh.rotation.y = -this.player.getYaw();
+    } else {
+      // Parachute: upright
+      this.player.mesh.rotation.x += (0 - this.player.mesh.rotation.x) * 0.1;
+    }
     if (this.playerDropMesh && this.parachuteOpen) {
       this.playerDropMesh.position.copy(this.player.state.position);
     }

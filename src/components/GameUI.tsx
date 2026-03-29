@@ -714,14 +714,14 @@ export default function GameUI() {
 
       {/* PLANE */}
       {gameState.phase === 'plane' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <div className="px-5 py-2 md:px-8 md:py-3 max-w-[90vw]" style={{ background: '#1a1f16/90', border: '1px solid #4a4535' }}>
+        <div className="absolute bottom-20 md:bottom-28 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
+          <div className="px-5 py-2 md:px-8 md:py-3 max-w-[90vw]" style={{ background: 'rgba(26,31,22,0.9)', border: '1px solid #4a4535' }}>
             <p className="text-base md:text-xl font-bold text-center uppercase tracking-widest" style={{ fontFamily: "'Teko', sans-serif", color: '#e8e0d0' }}>IN FLIGHT</p>
             <p className="text-xs md:text-sm font-mono text-center mt-1 uppercase" style={{ color: '#8a7e6b' }}>Press SPACE or tap to jump</p>
           </div>
           <button
             onClick={() => engineRef.current?.drop()}
-            className="mt-3 px-8 md:px-10 py-3 min-h-[48px] font-bold text-base md:text-lg uppercase tracking-wider active:scale-95 pointer-events-auto transition-all"
+            className="mt-2 px-10 md:px-12 py-3 min-h-[48px] font-bold text-base md:text-lg uppercase tracking-wider active:scale-95 pointer-events-auto transition-all"
             style={{ background: '#c93a3a', color: '#e8e0d0', fontFamily: "'Teko', sans-serif", letterSpacing: '0.15em' }}
           >
             JUMP!
@@ -729,9 +729,10 @@ export default function GameUI() {
         </div>
       )}
 
-      {/* DROPPING */}
+      {/* DROPPING -- hide PARACHUTE button once parachute is open */}
       {gameState.phase === 'dropping' && (
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 pointer-events-none w-44 md:w-56">
+          {/* ALT/SPEED always visible */}
           <div className="px-3 py-2 md:px-4 md:py-3 font-mono text-[10px] md:text-xs space-y-1 border" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a4535' }}>
             <div className="flex justify-between">
               <span style={{ color: '#8a7e6b' }}>ALT</span>
@@ -748,21 +749,20 @@ export default function GameUI() {
             <div className="flex justify-between">
               <span style={{ color: '#8a7e6b' }}>SPEED</span>
               <span className="font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", fontSize: '14px' }}>
-                {engineRef.current?.dropSpeed ?? 55} m/s
+                {engineRef.current?.dropSpeed ?? 15} m/s
               </span>
             </div>
-            <div className="pt-1 text-center text-[9px] md:text-xs" style={{ borderTop: '1px solid #4a4535', color: '#8a7e6b' }}>
-              SPACE - Parachute
-            </div>
-            <div className="text-center text-[9px] md:text-xs" style={{ color: '#8a7e6b' }}>WASD - Steer</div>
           </div>
-          <button
-            onClick={() => engineRef.current?.openParachute()}
-            className="mt-2 w-full px-4 md:px-6 py-2 min-h-[48px] font-bold pointer-events-auto active:scale-95 uppercase tracking-wider"
-            style={{ background: '#d4a24e', color: '#1a1f16', fontFamily: "'Teko', sans-serif" }}
-          >
-            PARACHUTE
-          </button>
+          {/* PARACHUTE button only when chute NOT open */}
+          {!engineRef.current?.parachuteOpen && (
+            <button
+              onClick={() => engineRef.current?.openParachute()}
+              className="mt-2 w-full px-4 md:px-6 py-2 min-h-[48px] font-bold pointer-events-auto active:scale-95 uppercase tracking-wider"
+              style={{ background: '#d4a24e', color: '#1a1f16', fontFamily: "'Teko', sans-serif" }}
+            >
+              PARACHUTE
+            </button>
+          )}
         </div>
       )}
 
