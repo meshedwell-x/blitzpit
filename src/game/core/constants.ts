@@ -26,7 +26,7 @@ export const ZONE_PHASES = [
   { delay: 50, shrinkTime: 40, damage: 3, radiusPercent: 0.35 },
   { delay: 40, shrinkTime: 30, damage: 5, radiusPercent: 0.15 },
   { delay: 25, shrinkTime: 20, damage: 8, radiusPercent: 0.05 },
-  { delay: 15, shrinkTime: 10, damage: 10, radiusPercent: 0.0 },
+  { delay: 15, shrinkTime: 10, damage: 10, radiusPercent: 0.02 },
 ];
 
 export const BLOCK_TYPES = {

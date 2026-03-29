@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BOT_COUNT, PLAYER_HEIGHT, PLAYER_SPEED, WEAPONS, BOT_SPAWN_RADIUS_MIN, BOT_SPAWN_RADIUS_MAX, BOT_LANDING_HEIGHT_MIN, BOT_LANDING_HEIGHT_MAX, REINFORCEMENT_WEAPON_CHANCE } from '../core/constants';
+import { BOT_COUNT, PLAYER_HEIGHT, PLAYER_SPEED, WEAPONS, BOT_SPAWN_RADIUS_MIN, BOT_SPAWN_RADIUS_MAX, BOT_LANDING_HEIGHT_MIN, BOT_LANDING_HEIGHT_MAX, REINFORCEMENT_WEAPON_CHANCE, WORLD_SIZE } from '../core/constants';
 import { WorldGenerator } from '../world/WorldGenerator';
 import { WeaponSystem } from '../weapons/WeaponSystem';
 import { PlayerController } from '../player/PlayerController';
@@ -83,6 +83,8 @@ export class BotSystem {
   private _tmpFireDir = new THREE.Vector3();
   private _tmpStrafeDir = new THREE.Vector3();
   private _tmpFirePos = new THREE.Vector3();
+  private _tmpVec1 = new THREE.Vector3();
+  private _tmpVec2 = new THREE.Vector3();
 
   weatherDetectionMultiplier = 1.0;
 
@@ -228,9 +230,10 @@ export class BotSystem {
         }
       }
 
-      // Map bounds
-      bot.position.x = Math.max(-400, Math.min(400, bot.position.x));
-      bot.position.z = Math.max(-400, Math.min(400, bot.position.z));
+      // Map bounds -- use full world radius so bots roam the entire map
+      const botBound = WORLD_SIZE * 0.45;
+      bot.position.x = Math.max(-botBound, Math.min(botBound, bot.position.x));
+      bot.position.z = Math.max(-botBound, Math.min(botBound, bot.position.z));
 
       // Update mesh
       bot.mesh.position.copy(bot.position);
@@ -316,7 +319,8 @@ export class BotSystem {
 
       const angle = Math.random() * Math.PI * 2;
       const dist = 20 + Math.random() * 40;
-      bot.targetPos = new THREE.Vector3(
+      if (!bot.targetPos) bot.targetPos = new THREE.Vector3();
+      bot.targetPos.set(
         bot.position.x + Math.cos(angle) * dist,
         0,
         bot.position.z + Math.sin(angle) * dist
@@ -326,7 +330,7 @@ export class BotSystem {
 
     // Move toward target
     if (bot.targetPos) {
-      const dir = new THREE.Vector3()
+      const dir = this._tmpVec1
         .subVectors(bot.targetPos, bot.position)
         .setY(0)
         .normalize();
@@ -378,7 +382,7 @@ export class BotSystem {
     }
 
     if (nearestItem && nearestDist < 100) {
-      const dir = new THREE.Vector3()
+      const dir = this._tmpVec1
         .subVectors(nearestItem.position, bot.position)
         .setY(0)
         .normalize();
@@ -554,7 +558,7 @@ export class BotSystem {
   }
 
   private updateFleeing(bot: Bot, delta: number, playerPos: THREE.Vector3): void {
-    const dir = new THREE.Vector3()
+    const dir = this._tmpVec1
       .subVectors(bot.position, playerPos)
       .setY(0)
       .normalize();

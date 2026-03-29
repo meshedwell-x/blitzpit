@@ -36,6 +36,8 @@ export class WorldGenerator {
   private gridCellSize = 30;
   itemSpawns: ItemSpawn[] = [];
   treePositions: THREE.Vector3[] = [];
+  private treeGrid: Map<string, THREE.Vector3[]> = new Map();
+  private treeGridCellSize = 30;
   poiLocations: POILocation[] = [];
   private scene: THREE.Scene;
 
@@ -478,6 +480,33 @@ export class WorldGenerator {
       leafMesh.instanceMatrix.needsUpdate = true;
       this.scene.add(leafMesh);
     }
+
+    // Build spatial grid for tree collision lookups
+    this.treeGrid.clear();
+    for (const tp of this.treePositions) {
+      const cx = Math.floor(tp.x / this.treeGridCellSize);
+      const cz = Math.floor(tp.z / this.treeGridCellSize);
+      const key = `${cx},${cz}`;
+      if (!this.treeGrid.has(key)) this.treeGrid.set(key, []);
+      this.treeGrid.get(key)!.push(tp);
+    }
+  }
+
+  getNearbyTrees(x: number, z: number, radius: number): THREE.Vector3[] {
+    const cellRadius = Math.ceil(radius / this.treeGridCellSize);
+    const cx = Math.floor(x / this.treeGridCellSize);
+    const cz = Math.floor(z / this.treeGridCellSize);
+    const result: THREE.Vector3[] = [];
+    for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+      for (let dz = -cellRadius; dz <= cellRadius; dz++) {
+        const key = `${cx + dx},${cz + dz}`;
+        const cell = this.treeGrid.get(key);
+        if (cell) {
+          for (const tp of cell) result.push(tp);
+        }
+      }
+    }
+    return result;
   }
 
   private generateItemSpawns(): void {

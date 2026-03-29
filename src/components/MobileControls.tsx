@@ -60,129 +60,221 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
     aimTouchId.current = null;
   }, []);
 
+  /* ── shared button style helpers ── */
+  const teko = "'Teko', sans-serif";
+  const btnBase = 'flex items-center justify-center active:scale-95 transition-transform';
+
   return (
     <>
-      {/* LEFT - Movement Joystick */}
+      {/* ═══ LEFT — Movement Joystick ═══
+          Position: bottom-6 left-4, 120x120.
+          Clear of minimap (top-10 left-2, ~100px tall on mobile).
+          Clear of grenade row (bottom-[168px]).
+      */}
       <div
         ref={joyRef}
-        className="absolute bottom-8 left-8 w-32 h-32 rounded-full bg-white/10 border-2 border-white/30"
+        className={`absolute bottom-6 left-4 w-[120px] h-[120px] rounded-sm ${btnBase}`}
+        style={{
+          background: 'rgba(74,103,65,0.18)',
+          border: '2px solid rgba(212,162,78,0.35)',
+          boxShadow: 'inset 0 0 12px rgba(0,0,0,0.3)',
+        }}
         onTouchStart={handleJoyStart}
         onTouchMove={handleJoyMove}
         onTouchEnd={handleJoyEnd}
       >
+        {/* Joystick thumb */}
         <div
-          className="absolute w-12 h-12 rounded-full bg-white/40 border border-white/60 -translate-x-1/2 -translate-y-1/2"
+          className="absolute w-12 h-12 rounded-sm -translate-x-1/2 -translate-y-1/2"
           style={{
             left: `${50 + joyDelta.x * 35}%`,
             top: `${50 + joyDelta.y * 35}%`,
+            background: 'rgba(212,162,78,0.45)',
+            border: '1.5px solid rgba(212,162,78,0.7)',
+            boxShadow: '0 0 6px rgba(212,162,78,0.3)',
           }}
         />
+        {/* Center crosshair lines */}
+        <div className="absolute w-px h-full left-1/2 -translate-x-1/2" style={{ background: 'rgba(212,162,78,0.12)' }} />
+        <div className="absolute h-px w-full top-1/2 -translate-y-1/2" style={{ background: 'rgba(212,162,78,0.12)' }} />
       </div>
 
-      {/* RIGHT - Aim zone (drag to look) */}
-      <div
-        ref={aimRef}
-        className="absolute bottom-0 right-0 w-1/2 h-2/3 opacity-0"
-        onTouchStart={handleAimStart}
-        onTouchMove={handleAimMove}
-        onTouchEnd={handleAimEnd}
-      />
-
-      {/* FIRE button */}
+      {/* SPRINT (hold) — above joystick */}
       <button
-        className="absolute right-6 bottom-28 w-20 h-20 rounded-full bg-red-500/80 border-2 border-red-300 flex items-center justify-center active:bg-red-400"
-        onTouchStart={() => engine?.fireWeapon()}
-        onTouchEnd={() => engine?.stopFire()}
-      >
-        <span className="text-white font-bold text-sm">FIRE</span>
-      </button>
-
-      {/* AIM/SCOPE button */}
-      <button
-        className="absolute right-28 bottom-28 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
-        onTouchStart={() => {}}
-      >
-        <span className="text-white text-xs font-mono">AIM</span>
-      </button>
-
-      {/* JUMP */}
-      <button
-        className="absolute right-6 bottom-52 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
-        onTouchStart={() => engine?.player.triggerJump()}
-      >
-        <span className="text-white text-[10px] font-mono">JUMP</span>
-      </button>
-
-      {/* CROUCH */}
-      <button
-        className="absolute right-24 bottom-52 w-14 h-14 rounded-full bg-white/20 border border-white/40 flex items-center justify-center active:bg-white/30"
-        onTouchStart={() => engine?.player.toggleCrouch()}
-      >
-        <span className="text-white text-[10px] font-mono">CRCH</span>
-      </button>
-
-      {/* RELOAD */}
-      <button
-        className="absolute right-6 bottom-[280px] w-12 h-12 rounded-full bg-white/15 border border-white/30 flex items-center justify-center active:bg-white/25"
-        onTouchStart={() => {
-          const ev = new KeyboardEvent('keydown', { code: 'KeyR' });
-          document.dispatchEvent(ev);
+        className={`absolute bottom-[140px] left-4 w-[56px] h-[44px] rounded-sm ${btnBase}`}
+        style={{
+          background: 'rgba(74,103,65,0.35)',
+          border: '1px solid rgba(196,163,90,0.4)',
+          fontFamily: teko,
         }}
+        onTouchStart={() => engine?.player.setSprint(true)}
+        onTouchEnd={() => engine?.player.setSprint(false)}
       >
-        <span className="text-white text-[9px] font-mono">RLD</span>
+        <span className="text-[11px] font-bold tracking-wider" style={{ color: '#c4a35a' }}>RUN</span>
       </button>
 
-      {/* PICKUP (F) - only shown when nearby item exists */}
-      {nearbyItem && (
-        <button
-          className="absolute left-1/2 -translate-x-1/2 bottom-44 px-4 py-2 bg-yellow-500/80 rounded active:bg-yellow-400"
-          onTouchStart={() => {
-            const ev = new KeyboardEvent('keydown', { code: 'KeyF' });
-            document.dispatchEvent(ev);
-          }}
-        >
-          <span className="text-black text-xs font-bold">PICK UP</span>
-        </button>
-      )}
-
-      {/* GRENADE */}
+      {/* ═══ LEFT MID — Grenade row ═══
+          bottom-[168px], staggered horizontally from left-[68px].
+          Clear of joystick (ends at ~140px from bottom) and sprint button.
+      */}
       <button
-        className="absolute left-8 bottom-44 w-12 h-12 rounded-full bg-green-700/60 border border-green-400/50 flex items-center justify-center active:bg-green-600"
+        className={`absolute bottom-[194px] left-4 w-[48px] h-[48px] rounded-sm ${btnBase}`}
+        style={{
+          background: 'rgba(74,103,65,0.4)',
+          border: '1px solid rgba(74,103,65,0.6)',
+          fontFamily: teko,
+        }}
         onTouchStart={() => engine?.throwGrenadeAction()}
       >
-        <span className="text-white text-[9px] font-mono">GRN</span>
+        <span className="text-[10px] font-bold tracking-wide" style={{ color: '#8fbc5a' }}>GRN</span>
       </button>
 
-      {/* GRENADE TYPE SWITCH (T) */}
       <button
-        className="absolute left-24 bottom-44 w-12 h-12 rounded-full bg-orange-700/60 border border-orange-400/50 flex items-center justify-center active:bg-orange-600"
+        className={`absolute bottom-[194px] left-[60px] w-[48px] h-[48px] rounded-sm ${btnBase}`}
+        style={{
+          background: 'rgba(196,163,90,0.25)',
+          border: '1px solid rgba(196,163,90,0.45)',
+          fontFamily: teko,
+        }}
         onTouchStart={() => {
           const ev = new KeyboardEvent('keydown', { code: 'KeyT' });
           document.dispatchEvent(ev);
         }}
       >
-        <span className="text-white text-[9px] font-mono">SWT</span>
+        <span className="text-[10px] font-bold tracking-wide" style={{ color: '#c4a35a' }}>SWT</span>
       </button>
 
-      {/* VEHICLE */}
       <button
-        className="absolute left-40 bottom-44 w-12 h-12 rounded-full bg-blue-700/60 border border-blue-400/50 flex items-center justify-center active:bg-blue-600"
+        className={`absolute bottom-[194px] left-[116px] w-[48px] h-[48px] rounded-sm ${btnBase}`}
+        style={{
+          background: 'rgba(138,126,107,0.25)',
+          border: '1px solid rgba(138,126,107,0.45)',
+          fontFamily: teko,
+        }}
         onTouchStart={() => {
           const ev = new KeyboardEvent('keydown', { code: 'KeyE' });
           document.dispatchEvent(ev);
         }}
       >
-        <span className="text-white text-[9px] font-mono">VHC</span>
+        <span className="text-[10px] font-bold tracking-wide" style={{ color: '#8a7e6b' }}>VHC</span>
       </button>
 
-      {/* SPRINT (hold) */}
+      {/* ═══ RIGHT — Aim zone (invisible drag area) ═══
+          Covers right half, bottom 60%. Does NOT block buttons (buttons have higher z). */}
+      <div
+        ref={aimRef}
+        className="absolute bottom-0 right-0 w-1/2 h-[60%] opacity-0 z-0"
+        onTouchStart={handleAimStart}
+        onTouchMove={handleAimMove}
+        onTouchEnd={handleAimEnd}
+      />
+
+      {/* ═══ RIGHT — FIRE button ═══
+          Primary action. 72x72 (>44px touch target). bottom-8 right-4.
+      */}
       <button
-        className="absolute left-8 bottom-[175px] w-10 h-10 rounded bg-white/15 border border-white/30 flex items-center justify-center"
-        onTouchStart={() => engine?.player.setSprint(true)}
-        onTouchEnd={() => engine?.player.setSprint(false)}
+        className={`absolute right-4 bottom-8 w-[72px] h-[72px] rounded-sm z-10 ${btnBase}`}
+        style={{
+          background: 'rgba(201,58,58,0.7)',
+          border: '2px solid rgba(201,58,58,0.9)',
+          boxShadow: '0 0 10px rgba(201,58,58,0.3), inset 0 0 8px rgba(0,0,0,0.3)',
+          fontFamily: teko,
+        }}
+        onTouchStart={() => engine?.fireWeapon()}
+        onTouchEnd={() => engine?.stopFire()}
       >
-        <span className="text-white text-[8px] font-mono">RUN</span>
+        <span className="text-[15px] font-bold tracking-widest" style={{ color: '#e8e0d0' }}>FIRE</span>
       </button>
+
+      {/* AIM/SCOPE — left of FIRE */}
+      <button
+        className={`absolute right-[88px] bottom-8 w-[56px] h-[56px] rounded-sm z-10 ${btnBase}`}
+        style={{
+          background: 'rgba(74,103,65,0.35)',
+          border: '1.5px solid rgba(196,163,90,0.5)',
+          fontFamily: teko,
+        }}
+        onTouchStart={() => {}}
+      >
+        <span className="text-[12px] font-bold tracking-wider" style={{ color: '#c4a35a' }}>AIM</span>
+      </button>
+
+      {/* ═══ RIGHT UPPER — JUMP, CROUCH, RELOAD ═══
+          Stacked vertically: bottom-[92px], bottom-[144px], bottom-[196px].
+          Right-4 aligned with FIRE.
+      */}
+      <button
+        className={`absolute right-4 bottom-[92px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
+        style={{
+          background: 'rgba(74,103,65,0.3)',
+          border: '1px solid rgba(196,163,90,0.4)',
+          fontFamily: teko,
+        }}
+        onTouchStart={() => engine?.player.triggerJump()}
+      >
+        <span className="text-[11px] font-bold tracking-wider" style={{ color: '#d4a24e' }}>JUMP</span>
+      </button>
+
+      <button
+        className={`absolute right-[68px] bottom-[92px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
+        style={{
+          background: 'rgba(74,103,65,0.3)',
+          border: '1px solid rgba(196,163,90,0.4)',
+          fontFamily: teko,
+        }}
+        onTouchStart={() => engine?.player.toggleCrouch()}
+      >
+        <span className="text-[11px] font-bold tracking-wider" style={{ color: '#d4a24e' }}>CRCH</span>
+      </button>
+
+      <button
+        className={`absolute right-4 bottom-[148px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
+        style={{
+          background: 'rgba(212,162,78,0.2)',
+          border: '1px solid rgba(212,162,78,0.45)',
+          fontFamily: teko,
+        }}
+        onTouchStart={() => {
+          const ev = new KeyboardEvent('keydown', { code: 'KeyR' });
+          document.dispatchEvent(ev);
+        }}
+      >
+        <span className="text-[11px] font-bold tracking-wider" style={{ color: '#d4a24e' }}>RLD</span>
+      </button>
+
+      {/* Weapon slot switch — left of RELOAD */}
+      <button
+        className={`absolute right-[68px] bottom-[148px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
+        style={{
+          background: 'rgba(138,126,107,0.2)',
+          border: '1px solid rgba(138,126,107,0.4)',
+          fontFamily: teko,
+        }}
+        onTouchStart={() => {
+          if (!engine) return;
+          engine.weaponSystem.activeSlot = engine.weaponSystem.activeSlot === 0 ? 1 : 0;
+        }}
+      >
+        <span className="text-[10px] font-bold tracking-wider" style={{ color: '#8a7e6b' }}>SWAP</span>
+      </button>
+
+      {/* ═══ PICKUP — center bottom, above controls ═══ */}
+      {nearbyItem && (
+        <button
+          className={`absolute left-1/2 -translate-x-1/2 bottom-[200px] px-4 py-2 rounded-sm z-20 ${btnBase}`}
+          style={{
+            background: 'rgba(212,162,78,0.75)',
+            border: '1.5px solid #d4a24e',
+            fontFamily: teko,
+          }}
+          onTouchStart={() => {
+            const ev = new KeyboardEvent('keydown', { code: 'KeyF' });
+            document.dispatchEvent(ev);
+          }}
+        >
+          <span className="text-[12px] font-bold tracking-wider" style={{ color: '#1a1f16' }}>PICK UP</span>
+        </button>
+      )}
     </>
   );
 }

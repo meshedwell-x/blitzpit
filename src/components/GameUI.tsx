@@ -315,7 +315,7 @@ export default function GameUI() {
 
       {/* TIME / BIOME / WEATHER HUD -- placed below minimap (top-10 + 120px height ~= top-40) */}
       {gameState.phase === 'playing' && (
-        <div className="absolute top-[120px] md:top-40 left-2 px-1.5 py-0.5 md:px-2 md:py-1 text-[8px] md:text-[10px] font-mono space-y-0.5 border" style={{ background: '#1a1f16/80', borderColor: '#4a4535' }}>
+        <div className="absolute top-[132px] md:top-40 left-2 px-1.5 py-0.5 md:px-2 md:py-1 text-[8px] md:text-[10px] font-mono space-y-0.5 border rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', borderColor: '#4a4535' }}>
           <div style={{ color: '#c4a35a' }}>
             {(() => {
               const period = engineRef.current?.dayNightSystem.getTimePeriod() ?? 'noon';
@@ -457,9 +457,9 @@ export default function GameUI() {
         );
       })()}
 
-      {/* KILL FEED -- positioned below the SND/CUB row to avoid overlap */}
+      {/* KILL FEED -- positioned below the SND/coins row to avoid overlap */}
       {killFeed.length > 0 && (
-        <div className="absolute top-12 right-2 flex flex-col gap-0.5">
+        <div className="absolute top-14 right-2 flex flex-col gap-0.5 z-5">
           {(() => {
             const myName = typeof localStorage !== 'undefined' ? localStorage.getItem('blitzpit_name') || 'You' : 'You';
             return killFeed.map((k, i) => {
@@ -477,12 +477,12 @@ export default function GameUI() {
         </div>
       )}
 
-      {/* BOTTOM LEFT - HP + ARMOR */}
+      {/* BOTTOM LEFT - HP + ARMOR — on mobile pushed up above joystick area (bottom-[250px]) */}
       {['playing', 'dead'].includes(gameState.phase) && (
-        <div className="absolute bottom-20 left-3 md:bottom-4 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-mono w-5" style={{ color: '#c4a35a' }}>HP</span>
-            <div className="w-36 md:w-48 h-3.5 overflow-hidden" style={{ background: '#1a1f16', border: '1px solid #4a4535' }}>
+        <div className="absolute bottom-[254px] left-2 md:bottom-4 md:left-3 flex flex-col gap-1 z-10">
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] md:text-[10px] font-bold w-4 md:w-5" style={{ color: '#c4a35a', fontFamily: "'Teko', sans-serif" }}>HP</span>
+            <div className="w-28 md:w-48 h-3 md:h-3.5 overflow-hidden rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', border: '1px solid #4a4535' }}>
               <div className="h-full transition-all duration-200" style={{
                 width: `${health}%`,
                 backgroundColor: health > 60 ? '#4a6741' : health > 30 ? '#d4a24e' : '#c93a3a',
@@ -490,9 +490,9 @@ export default function GameUI() {
             </div>
             <span className="text-[10px] font-bold w-6" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", fontSize: '13px' }}>{Math.ceil(health)}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-mono w-5" style={{ color: '#8a7e6b' }}>AR</span>
-            <div className="w-36 md:w-48 h-3 overflow-hidden" style={{ background: '#1a1f16', border: '1px solid #4a4535' }}>
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] md:text-[10px] font-bold w-4 md:w-5" style={{ color: '#8a7e6b', fontFamily: "'Teko', sans-serif" }}>AR</span>
+            <div className="w-28 md:w-48 h-2.5 md:h-3 overflow-hidden rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', border: '1px solid #4a4535' }}>
               <div className="h-full transition-all duration-200" style={{ width: `${armor}%`, backgroundColor: '#c4a35a' }} />
             </div>
             <span className="text-[10px] font-bold w-6" style={{ color: '#c4a35a', fontFamily: "'Teko', sans-serif", fontSize: '13px' }}>{Math.ceil(armor)}</span>
@@ -500,9 +500,9 @@ export default function GameUI() {
         </div>
       )}
 
-      {/* BOTTOM RIGHT - WEAPONS */}
+      {/* BOTTOM RIGHT - WEAPONS — on mobile pushed up above fire button area (bottom-[210px]) */}
       {gameState.phase === 'playing' && (
-        <div className="absolute bottom-20 right-3 md:bottom-4 flex flex-col items-end gap-1">
+        <div className="absolute bottom-[210px] right-2 md:bottom-4 md:right-3 flex flex-col items-end gap-1 z-10">
           <div className="flex gap-1">
             {weapons.map((w, i) => {
               return (
@@ -546,7 +546,7 @@ export default function GameUI() {
 
       {/* SWIMMING INDICATOR */}
       {engineRef.current?.player.state.isSwimming && gameState.phase === 'playing' && (
-        <div className="absolute bottom-40 left-1/2 -translate-x-1/2 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-xs font-mono border" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a6741', color: '#c4a35a' }}>
+        <div className="absolute bottom-[280px] md:bottom-40 left-1/2 -translate-x-1/2 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-xs font-mono border rounded-sm z-20" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a6741', color: '#c4a35a' }}>
           <span className="md:hidden">SWIMMING | SPACE up</span>
           <span className="hidden md:inline">SWIMMING -- Speed reduced | SPACE to surface</span>
         </div>
@@ -560,18 +560,18 @@ export default function GameUI() {
       )}
 
       {/* NEARBY PROMPTS */}
-      {nearbyItem && gameState.phase === 'playing' && (
-        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 px-3 py-1.5 border" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#d4a24e' }}>
+      {nearbyItem && gameState.phase === 'playing' && !isMobile && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 px-3 py-1.5 border rounded-sm" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#d4a24e' }}>
           <span className="text-xs font-mono uppercase" style={{ color: '#d4a24e' }}>[F] {nearbyItem}</span>
         </div>
       )}
-      {nearbyVehicle && !inVehicle && gameState.phase === 'playing' && (
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 px-3 py-1.5 border" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a6741' }}>
+      {nearbyVehicle && !inVehicle && gameState.phase === 'playing' && !isMobile && (
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 px-3 py-1.5 border rounded-sm" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a6741' }}>
           <span className="text-xs font-mono uppercase" style={{ color: '#c4a35a' }}>[E] Enter Vehicle</span>
         </div>
       )}
       {inVehicle && (
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 px-3 py-1.5 md:px-5 md:py-2.5 border flex gap-3 md:gap-5 items-center" style={{ background: 'rgba(26,31,22,0.90)', borderColor: '#4a4535' }}>
+        <div className="absolute bottom-[280px] md:bottom-28 left-1/2 -translate-x-1/2 px-3 py-1.5 md:px-5 md:py-2.5 border rounded-sm flex gap-3 md:gap-5 items-center z-20" style={{ background: 'rgba(26,31,22,0.90)', borderColor: '#4a4535' }}>
           <span className="text-[10px] md:text-xs font-mono font-bold" style={{ color: '#c4a35a' }}>[E] Exit</span>
           <div className="text-center">
             <div className="text-sm md:text-lg font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>

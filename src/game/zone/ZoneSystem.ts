@@ -106,7 +106,7 @@ export class ZoneSystem {
       this.currentRadius = startRadius + (this.targetRadius - startRadius) * progress;
 
       // Lerp center
-      this.center.lerp(this.nextCenter, progress * 0.01);
+      this.center.lerp(this.nextCenter, progress * 0.1);
 
       if (this.shrinkTimer <= 0) {
         this.isShrinking = false;

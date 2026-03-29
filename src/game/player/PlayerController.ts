@@ -395,11 +395,11 @@ export class PlayerController {
     newPos.y += this.state.velocity.y * delta;
     newPos.z += this.state.velocity.z * delta;
 
-    // Tree collision -- prevent walking through trees
+    // Tree collision -- prevent walking through trees (spatial grid lookup)
     const TREE_RADIUS = 1.0;
     const PLAYER_RADIUS = 0.4;
     const treeCollisionDist = TREE_RADIUS + PLAYER_RADIUS;
-    for (const treePos of this.world.treePositions) {
+    for (const treePos of this.world.getNearbyTrees(newPos.x, newPos.z, 5)) {
       const dx = newPos.x - treePos.x;
       const dz = newPos.z - treePos.z;
       const distSq = dx * dx + dz * dz;

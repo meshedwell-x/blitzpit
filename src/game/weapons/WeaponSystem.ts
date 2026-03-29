@@ -389,10 +389,10 @@ export class WeaponSystem {
           continue;
         }
 
-        // Tree collision -- bullets stopped by tree trunks
+        // Tree collision -- bullets stopped by tree trunks (spatial grid lookup)
         let hitTree = false;
         const TREE_HIT_RADIUS = 0.8;
-        for (const treePos of this.world.treePositions) {
+        for (const treePos of this.world.getNearbyTrees(bullet.position.x, bullet.position.z, 3)) {
           const dx = bullet.position.x - treePos.x;
           const dz = bullet.position.z - treePos.z;
           const distSq = dx * dx + dz * dz;
