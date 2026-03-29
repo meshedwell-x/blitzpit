@@ -23,6 +23,8 @@ export class VehicleSystem {
   vehicles: Vehicle[] = [];
   playerVehicle: Vehicle | null = null;
   private keys: Set<string> = new Set();
+  private _onKeyDown: (e: KeyboardEvent) => void = () => {};
+  private _onKeyUp: (e: KeyboardEvent) => void = () => {};
 
   constructor(scene: THREE.Scene, world: WorldGenerator, player: PlayerController) {
     this.scene = scene;
@@ -31,11 +33,18 @@ export class VehicleSystem {
   }
 
   init(): void {
-    document.addEventListener('keydown', (e) => {
+    this._onKeyDown = (e: KeyboardEvent) => {
       this.keys.add(e.code);
       if (e.code === 'KeyE') this.toggleVehicle();
-    });
-    document.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    };
+    this._onKeyUp = (e: KeyboardEvent) => this.keys.delete(e.code);
+    document.addEventListener('keydown', this._onKeyDown);
+    document.addEventListener('keyup', this._onKeyUp);
+  }
+
+  destroy(): void {
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('keyup', this._onKeyUp);
   }
 
   spawnVehicles(count: number = 12): void {

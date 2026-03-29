@@ -36,14 +36,17 @@ export class WeaponSystem {
   weapons: (WeaponInstance | null)[] = [null, null];
   activeSlot = 0;
   private bullets: Bullet[] = [];
-  private lastFireTime = 0;
   private isFiring = false;
   items: ItemDrop[] = [];
   private bulletGeometry: THREE.SphereGeometry;
   private bulletMaterial: THREE.MeshBasicMaterial;
   private weaponModel: THREE.Group;
   private raycaster = new THREE.Raycaster();
-  onHitCallback: ((position: THREE.Vector3, damage: number, ownerId: string) => void) | null = null;
+
+  private _onMouseDown: (e: MouseEvent) => void = () => {};
+  private _onMouseUp: (e: MouseEvent) => void = () => {};
+  private _onKeyDown: (e: KeyboardEvent) => void = () => {};
+  private _onWheel: (e: WheelEvent) => void = () => {};
 
   constructor(scene: THREE.Scene, player: PlayerController) {
     this.scene = scene;
@@ -83,29 +86,35 @@ export class WeaponSystem {
   }
 
   init(): void {
-    document.addEventListener('mousedown', (e) => {
+    this._onMouseDown = (e: MouseEvent) => {
       if (e.button === 0) this.isFiring = true;
-    });
-
-    document.addEventListener('mouseup', (e) => {
+    };
+    this._onMouseUp = (e: MouseEvent) => {
       if (e.button === 0) this.isFiring = false;
-    });
-
-    document.addEventListener('keydown', (e) => {
+    };
+    this._onKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Digit1') this.activeSlot = 0;
       if (e.code === 'Digit2') this.activeSlot = 1;
       if (e.code === 'KeyR') this.reload();
       if (e.code === 'KeyF') this.tryPickup();
-      if (e.code === 'KeyG') this.dropWeapon();
-    });
+      if (e.code === 'KeyQ') this.dropWeapon();
+    };
+    this._onWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0) this.activeSlot = (this.activeSlot + 1) % 2;
+      else this.activeSlot = (this.activeSlot - 1 + 2) % 2;
+    };
 
-    document.addEventListener('wheel', (e) => {
-      if (e.deltaY > 0) {
-        this.activeSlot = (this.activeSlot + 1) % 2;
-      } else {
-        this.activeSlot = (this.activeSlot + 1) % 2;
-      }
-    });
+    document.addEventListener('mousedown', this._onMouseDown);
+    document.addEventListener('mouseup', this._onMouseUp);
+    document.addEventListener('keydown', this._onKeyDown);
+    document.addEventListener('wheel', this._onWheel);
+  }
+
+  destroy(): void {
+    document.removeEventListener('mousedown', this._onMouseDown);
+    document.removeEventListener('mouseup', this._onMouseUp);
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('wheel', this._onWheel);
   }
 
   spawnItems(spawns: { position: THREE.Vector3; type: string; weaponId?: string }[]): void {
@@ -317,17 +326,13 @@ export class WeaponSystem {
       bullet.mesh.position.copy(bullet.position);
       bullet.traveled += movement.length();
 
-      // Check if out of range or hit something
+      // Check if out of range
       if (bullet.traveled > bullet.range) {
         this.scene.remove(bullet.mesh);
         this.bullets.splice(i, 1);
         continue;
       }
-
-      // Hit detection via callback
-      if (this.onHitCallback) {
-        this.onHitCallback(bullet.position, bullet.damage, bullet.ownerId);
-      }
+      // Hit detection is handled by BotSystem.checkBulletHits
     }
 
     // Rotate item drops

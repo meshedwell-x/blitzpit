@@ -154,3 +154,27 @@ export const ITEM_TYPES = {
   HEALTH: 'health',
   ARMOR: 'armor',
 } as const;
+
+export const WAVE_TRANSITION_DURATION = 8;
+export const PLAYER_HEAL_BETWEEN_WAVES = 25;
+export const MAX_BOTS_PER_WAVE = 80;
+export const KILL_STREAK_TIMEOUT = 5;
+
+export const KILL_STREAK_LABELS: Record<number, string> = {
+  2: 'DOUBLE KILL',
+  3: 'TRIPLE KILL',
+  5: 'RAMPAGE',
+  8: 'UNSTOPPABLE',
+  10: 'GODLIKE',
+  15: 'LEGENDARY',
+};
+
+export const RANK_THRESHOLDS: [number, string][] = [
+  [1, 'Rookie'],
+  [3, 'Survivor'],
+  [5, 'Veteran'],
+  [8, 'Elite'],
+  [10, 'Legend'],
+  [15, 'Immortal'],
+  [20, 'God of War'],
+];

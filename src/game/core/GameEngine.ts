@@ -6,15 +6,23 @@ import { GrenadeSystem } from '../weapons/GrenadeSystem';
 import { BotSystem } from '../bots/BotSystem';
 import { ZoneSystem } from '../zone/ZoneSystem';
 import { VehicleSystem } from '../vehicles/VehicleSystem';
-import { WORLD_SIZE } from './constants';
+import { WaveManager } from './WaveManager';
+import { ScoreboardSystem } from '../score/ScoreboardSystem';
+import { SoundManager } from '../audio/SoundManager';
+import { ParticleSystem } from '../effects/ParticleSystem';
+import { WORLD_SIZE, PLAYER_HEAL_BETWEEN_WAVES, WEAPONS } from './constants';
 
-export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'dead' | 'victory';
+export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'wave_transition' | 'dead';
 
 export interface GameState {
   phase: GamePhase;
   playersAlive: number;
   kills: number;
   gameTime: number;
+  currentWave: number;
+  totalKills: number;
+  killStreak: number;
+  bestKillStreak: number;
 }
 
 export class GameEngine {
@@ -31,12 +39,20 @@ export class GameEngine {
   botSystem: BotSystem;
   zoneSystem: ZoneSystem;
   vehicleSystem: VehicleSystem;
+  waveManager: WaveManager;
+  scoreboardSystem: ScoreboardSystem;
+  soundManager: SoundManager;
+  particleSystem: ParticleSystem;
 
   gameState: GameState = {
     phase: 'lobby',
     playersAlive: 40,
     kills: 0,
     gameTime: 0,
+    currentWave: 1,
+    totalKills: 0,
+    killStreak: 0,
+    bestKillStreak: 0,
   };
 
   private planePosition = new THREE.Vector3();
@@ -49,6 +65,10 @@ export class GameEngine {
 
   // Flash effect
   flashTimer = 0;
+
+  // Kill streak tracking
+  private killStreakTimer = 0;
+  private lastKillCount = 0;
 
   onStateChange: ((state: GameState) => void) | null = null;
 
@@ -76,10 +96,14 @@ export class GameEngine {
     this.world = new WorldGenerator(this.scene, 42);
     this.player = new PlayerController(this.camera, this.world, this.scene);
     this.weaponSystem = new WeaponSystem(this.scene, this.player);
-    this.grenadeSystem = new GrenadeSystem(this.scene, this.player);
+    this.grenadeSystem = new GrenadeSystem(this.scene, this.player, this.world);
     this.botSystem = new BotSystem(this.scene, this.world, this.weaponSystem, this.player);
     this.zoneSystem = new ZoneSystem(this.scene, this.player);
     this.vehicleSystem = new VehicleSystem(this.scene, this.world, this.player);
+    this.waveManager = new WaveManager();
+    this.scoreboardSystem = new ScoreboardSystem();
+    this.soundManager = new SoundManager();
+    this.particleSystem = new ParticleSystem(this.scene);
 
     window.addEventListener('resize', () => this.onResize());
   }
@@ -179,8 +203,20 @@ export class GameEngine {
     this.scene.add(this.playerDropMesh);
 
     // Grenade explosion callback
-    this.grenadeSystem.onExplosion = (_pos, _damage, _radius, type) => {
+    this.grenadeSystem.onExplosion = (pos, _damage, radius, type) => {
       if (type === 'flash') this.flashTimer = 2.0;
+      if (type === 'frag') {
+        this.particleSystem.emitExplosion(pos, radius);
+        this.soundManager.playExplosion();
+      }
+    };
+
+    // Grenade bot kill callback -> decrement alive
+    this.grenadeSystem.onBotKill = (_botId: string) => {
+      this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
+      this.scoreboardSystem.recordKill(false);
+      this.player.state.kills++;
+      this.soundManager.playKillConfirm();
     };
 
     this.player.mesh.visible = false;
@@ -191,6 +227,8 @@ export class GameEngine {
     this.camera.lookAt(0, 10, 0);
 
     this.gameState.phase = 'lobby';
+    this.gameState.currentWave = 1;
+    this.waveManager.currentWave = 1;
     this.notifyStateChange();
   }
 
@@ -297,8 +335,48 @@ export class GameEngine {
       this.player.mesh.visible = true;
       if (this.planeMesh) this.planeMesh.visible = false;
       if (this.playerDropMesh) this.playerDropMesh.visible = false;
+      this.soundManager.playWaveStart();
       this.notifyStateChange();
     }
+  }
+
+  private startNextWave(): void {
+    const wave = this.waveManager.nextWave();
+    const config = this.waveManager.getWaveConfig(wave);
+
+    // Zone reset with new speed multiplier
+    this.zoneSystem.reset();
+    this.zoneSystem.speedMultiplier = config.zoneShrinkSpeedMultiplier;
+
+    // Clean up old items from previous wave (mark them all collected)
+    for (const item of this.weaponSystem.items) {
+      if (!item.collected) {
+        item.collected = true;
+        this.scene.remove(item.mesh);
+      }
+    }
+    this.weaponSystem.items = [];
+
+    // Respawn bots
+    this.botSystem.respawnForWave(config);
+
+    // Spawn new weapons
+    this.weaponSystem.spawnItems(this.world.itemSpawns);
+
+    // Heal player
+    this.player.heal(PLAYER_HEAL_BETWEEN_WAVES);
+
+    // Update scoreboard wave
+    this.scoreboardSystem.updateWave(wave);
+
+    this.gameState.phase = 'playing';
+    this.gameState.currentWave = wave;
+    this.gameState.playersAlive = this.botSystem.getAliveCount();
+
+    this.particleSystem.emitWaveStart();
+    this.soundManager.playWaveStart();
+
+    this.notifyStateChange();
   }
 
   update(): void {
@@ -319,10 +397,9 @@ export class GameEngine {
       case 'dropping':
         this.updateDropping(delta);
         break;
-      case 'playing':
+      case 'playing': {
         if (this.vehicleSystem.isPlayerInVehicle()) {
           this.vehicleSystem.update(delta);
-          // Camera follows vehicle
           const v = this.vehicleSystem.playerVehicle!;
           const behind = new THREE.Vector3(
             Math.sin(v.rotation) * 10,
@@ -331,30 +408,80 @@ export class GameEngine {
           );
           this.camera.position.copy(v.position).add(behind);
           this.camera.lookAt(v.position);
+          this.soundManager.playVehicleEngine(v.speed);
         } else {
           this.player.update(delta);
+          this.soundManager.stopVehicleEngine();
         }
+
         this.weaponSystem.update(delta);
         this.grenadeSystem.update(delta, this.botSystem.bots);
         this.botSystem.update(delta);
         this.zoneSystem.update(delta, this.botSystem.bots);
-        this.botSystem.checkBulletHits(this.weaponSystem.getBullets());
+        this.particleSystem.update(delta);
+
+        // Check bullet hits and track particle/sound effects
+        const bullets = this.weaponSystem.getBullets();
+        const prevKills = this.player.state.kills;
+        this.botSystem.checkBulletHits(bullets);
+        const newKills = this.player.state.kills;
+
+        if (newKills > prevKills) {
+          const killsDelta = newKills - prevKills;
+          for (let k = 0; k < killsDelta; k++) {
+            this.scoreboardSystem.recordKill(false);
+            this.soundManager.playKillConfirm();
+          }
+          // Kill streak
+          this.killStreakTimer = 5;
+          this.gameState.killStreak = this.scoreboardSystem.stats.currentKillStreak;
+          this.gameState.bestKillStreak = this.scoreboardSystem.stats.bestKillStreak;
+
+          const streakLabel = this.scoreboardSystem.getKillStreakLabel(this.gameState.killStreak);
+          if (streakLabel) {
+            this.soundManager.playKillStreak(this.gameState.killStreak);
+          }
+        }
+
+        // Streak timeout
+        if (this.killStreakTimer > 0) {
+          this.killStreakTimer -= delta;
+          if (this.killStreakTimer <= 0) {
+            this.scoreboardSystem.resetStreak();
+            this.gameState.killStreak = 0;
+          }
+        }
+
+        this.scoreboardSystem.updateSurvivalTime(delta);
 
         this.gameState.playersAlive = this.botSystem.getAliveCount();
         this.gameState.kills = this.player.state.kills;
+        this.gameState.totalKills = this.player.state.kills;
 
         if (this.player.state.isDead) {
+          this.scoreboardSystem.endGame();
           this.gameState.phase = 'dead';
           this.notifyStateChange();
-        }
-        if (this.botSystem.alive <= 0 && !this.player.state.isDead) {
-          this.gameState.phase = 'victory';
+        } else if (this.botSystem.alive <= 0) {
+          // All bots dead - start wave transition
+          this.gameState.phase = 'wave_transition';
+          this.waveManager.startTransition();
+          this.soundManager.playWaveComplete();
           this.notifyStateChange();
         }
         break;
+      }
+      case 'wave_transition': {
+        this.particleSystem.update(delta);
+        const done = this.waveManager.updateTransition(delta);
+        if (done) {
+          this.startNextWave();
+        }
+        break;
+      }
       case 'dead':
-      case 'victory':
         this.weaponSystem.update(delta);
+        this.particleSystem.update(delta);
         break;
     }
 
@@ -374,6 +501,12 @@ export class GameEngine {
   }
 
   destroy(): void {
+    this.player.destroy();
+    this.weaponSystem.destroy();
+    this.grenadeSystem.destroy();
+    this.vehicleSystem.destroy();
+    this.soundManager.destroy();
+    this.particleSystem.destroy();
     this.renderer.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);

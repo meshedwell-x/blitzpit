@@ -33,6 +33,12 @@ export class PlayerController {
   private animTime = 0;
   private mobileInput = { x: 0, z: 0 };
 
+  private _onKeyDown: (e: KeyboardEvent) => void = () => {};
+  private _onKeyUp: (e: KeyboardEvent) => void = () => {};
+  private _onMouseMove: (e: MouseEvent) => void = () => {};
+  private _onPointerLockChange: () => void = () => {};
+  private _container: HTMLElement | null = null;
+
   constructor(camera: THREE.PerspectiveCamera, world: WorldGenerator, scene: THREE.Scene) {
     this.camera = camera;
     this.world = world;
@@ -167,34 +173,45 @@ export class PlayerController {
   }
 
   init(container: HTMLElement): void {
-    document.addEventListener('keydown', (e) => {
+    this._container = container;
+
+    this._onKeyDown = (e: KeyboardEvent) => {
       this.keys.add(e.code);
       if (e.code === 'ShiftLeft') this.state.isSprinting = true;
       if (e.code === 'KeyC') this.state.isCrouching = !this.state.isCrouching;
-    });
-
-    document.addEventListener('keyup', (e) => {
+    };
+    this._onKeyUp = (e: KeyboardEvent) => {
       this.keys.delete(e.code);
       if (e.code === 'ShiftLeft') this.state.isSprinting = false;
-    });
-
-    document.addEventListener('mousemove', (e) => {
+    };
+    this._onMouseMove = (e: MouseEvent) => {
       if (this.isLocked) {
         this.yaw -= e.movementX * this.sensitivity;
         this.pitch -= e.movementY * this.sensitivity;
         this.pitch = Math.max(-1.2, Math.min(0.6, this.pitch));
       }
-    });
+    };
+    this._onPointerLockChange = () => {
+      this.isLocked = document.pointerLockElement === container;
+    };
+
+    document.addEventListener('keydown', this._onKeyDown);
+    document.addEventListener('keyup', this._onKeyUp);
+    document.addEventListener('mousemove', this._onMouseMove);
+    document.addEventListener('pointerlockchange', this._onPointerLockChange);
 
     container.addEventListener('click', () => {
       if (!this.isLocked) {
         container.requestPointerLock();
       }
     });
+  }
 
-    document.addEventListener('pointerlockchange', () => {
-      this.isLocked = document.pointerLockElement === container;
-    });
+  destroy(): void {
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('keyup', this._onKeyUp);
+    document.removeEventListener('mousemove', this._onMouseMove);
+    document.removeEventListener('pointerlockchange', this._onPointerLockChange);
   }
 
   update(delta: number): void {

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PlayerController } from '../player/PlayerController';
 import { Bot } from '../bots/BotSystem';
+import { WorldGenerator } from '../world/WorldGenerator';
 
 export interface GrenadeDef {
   name: string;
@@ -36,26 +37,36 @@ interface SmokeCloud {
 export class GrenadeSystem {
   private scene: THREE.Scene;
   private player: PlayerController;
+  private world: WorldGenerator;
   private grenades: ActiveGrenade[] = [];
   private smokeClouds: SmokeCloud[] = [];
   inventory: Record<string, number> = { frag: 2, smoke: 1, flash: 1 };
   selectedGrenade: string = 'frag';
   onExplosion: ((position: THREE.Vector3, damage: number, radius: number, type: string) => void) | null = null;
+  onBotKill: ((botId: string) => void) | null = null;
 
-  constructor(scene: THREE.Scene, player: PlayerController) {
+  private _onKeyDown: (e: KeyboardEvent) => void = () => {};
+
+  constructor(scene: THREE.Scene, player: PlayerController, world: WorldGenerator) {
     this.scene = scene;
     this.player = player;
+    this.world = world;
   }
 
   init(): void {
-    document.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyG') {
+    this._onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyT') {
         // Cycle grenade type
         const types = Object.keys(GRENADES);
         const idx = types.indexOf(this.selectedGrenade);
         this.selectedGrenade = types[(idx + 1) % types.length];
       }
-    });
+    };
+    document.addEventListener('keydown', this._onKeyDown);
+  }
+
+  destroy(): void {
+    document.removeEventListener('keydown', this._onKeyDown);
   }
 
   throwGrenade(direction?: THREE.Vector3): void {
@@ -102,9 +113,10 @@ export class GrenadeSystem {
       g.velocity.y += gravity * delta;
       g.position.add(g.velocity.clone().multiplyScalar(delta));
 
-      // Bounce off ground
-      if (g.position.y < 1) {
-        g.position.y = 1;
+      // Bounce off ground using heightmap
+      const groundY = this.world.getHeightAt(g.position.x, g.position.z) + 0.5;
+      if (g.position.y < groundY) {
+        g.position.y = groundY;
         g.velocity.y *= -0.3;
         g.velocity.x *= 0.7;
         g.velocity.z *= 0.7;
@@ -181,6 +193,7 @@ export class GrenadeSystem {
             bot.isDead = true;
             bot.mesh.rotation.x = Math.PI / 2;
             bot.mesh.position.y -= 0.5;
+            if (this.onBotKill) this.onBotKill(bot.id);
           }
         }
       }

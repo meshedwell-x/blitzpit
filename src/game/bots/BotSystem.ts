@@ -3,6 +3,7 @@ import { BOT_COUNT, PLAYER_HEIGHT, PLAYER_SPEED, WEAPONS } from '../core/constan
 import { WorldGenerator } from '../world/WorldGenerator';
 import { WeaponSystem } from '../weapons/WeaponSystem';
 import { PlayerController } from '../player/PlayerController';
+import { WaveConfig } from '../core/WaveManager';
 
 export interface Bot {
   id: string;
@@ -142,6 +143,9 @@ export class BotSystem {
 
       // State machine
       switch (bot.state) {
+        case 'landing':
+          this.updateLanding(bot, delta);
+          break;
         case 'roaming':
           this.updateRoaming(bot, delta, playerPos);
           break;
@@ -175,6 +179,17 @@ export class BotSystem {
         if (legs[2]) legs[2].rotation.x = -walkCycle * 0.5;
         if (legs[3]) legs[3].rotation.x = walkCycle * 0.5;
       }
+    }
+  }
+
+  private updateLanding(bot: Bot, delta: number): void {
+    const groundH = this.world.getHeightAt(bot.position.x, bot.position.z);
+    const surfaceY = groundH + 0.6 + PLAYER_HEIGHT;
+    bot.position.y -= 12 * delta; // fall speed
+    if (bot.position.y <= surfaceY) {
+      bot.position.y = surfaceY;
+      bot.state = 'roaming';
+      bot.stateTimer = 2 + Math.random() * 5;
     }
   }
 
@@ -477,6 +492,141 @@ export class BotSystem {
           break;
         }
       }
+    }
+  }
+
+  damageBot(botId: string, damage: number, killerId: string): void {
+    const bot = this.bots.find(b => b.id === botId);
+    if (!bot || bot.isDead) return;
+
+    if (bot.armor > 0) {
+      const armorAbsorb = Math.min(bot.armor, damage * 0.5);
+      bot.armor -= armorAbsorb;
+      bot.health -= (damage - armorAbsorb);
+    } else {
+      bot.health -= damage;
+    }
+
+    if (!bot.isDead && bot.state !== 'fighting') {
+      bot.state = 'fighting';
+      bot.stateTimer = 5;
+    }
+
+    if (bot.health <= 0) {
+      bot.isDead = true;
+      bot.health = 0;
+      this.alive--;
+      bot.mesh.rotation.x = Math.PI / 2;
+      bot.mesh.position.y -= 0.5;
+
+      const killerName = killerId === 'player' ? 'You' :
+        (this.bots.find(b => b.id === killerId)?.name || 'Bot');
+      const weaponName = killerId === 'player' ?
+        (this.weaponSystem.getActiveWeapon()?.def.name || 'Unknown') :
+        (this.bots.find(b => b.id === killerId)?.weaponId || 'unknown');
+
+      this.killFeed.push({
+        killer: killerName,
+        victim: bot.name,
+        weapon: weaponName,
+        time: Date.now(),
+      });
+
+      if (killerId === 'player') {
+        this.player.state.kills++;
+      }
+
+      if (bot.weaponId) {
+        this.weaponSystem.spawnItems([{
+          position: bot.position.clone(),
+          type: 'weapon',
+          weaponId: bot.weaponId,
+        }]);
+      }
+      this.weaponSystem.spawnItems([{
+        position: bot.position.clone().add(new THREE.Vector3(0.5, 0, 0)),
+        type: 'health',
+      }]);
+    }
+  }
+
+  respawnForWave(config: WaveConfig): void {
+    // Remove existing bot meshes
+    for (const bot of this.bots) {
+      this.scene.remove(bot.mesh);
+    }
+    this.bots = [];
+    this.alive = config.botCount;
+
+    for (let i = 0; i < config.botCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 30 + Math.random() * 120;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const h = this.world.getHeightAt(x, z);
+
+      const group = new THREE.Group();
+
+      const skill = config.botSkillMin + Math.random() * (config.botSkillMax - config.botSkillMin);
+      const bodyColor = new THREE.Color().setHSL(0.0 + skill * 0.3, 0.7, 0.5);
+      const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor });
+
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.0, 0.4), bodyMat);
+      body.position.y = 0.5;
+      group.add(body);
+
+      const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 0.4, 0.4),
+        new THREE.MeshLambertMaterial({ color: 0xffdbac })
+      );
+      head.position.y = 1.2;
+      group.add(head);
+
+      const armGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
+      const armMat = new THREE.MeshLambertMaterial({ color: bodyColor });
+      const leftArm = new THREE.Mesh(armGeo, armMat);
+      leftArm.position.set(-0.5, 0.4, 0);
+      group.add(leftArm);
+      const rightArm = new THREE.Mesh(armGeo, armMat);
+      rightArm.position.set(0.5, 0.4, 0);
+      group.add(rightArm);
+
+      const legGeo = new THREE.BoxGeometry(0.25, 0.8, 0.25);
+      const legMat = new THREE.MeshLambertMaterial({ color: 0x333366 });
+      const leftLeg = new THREE.Mesh(legGeo, legMat);
+      leftLeg.position.set(-0.15, -0.4, 0);
+      group.add(leftLeg);
+      const rightLeg = new THREE.Mesh(legGeo, legMat);
+      rightLeg.position.set(0.15, -0.4, 0);
+      group.add(rightLeg);
+
+      // Start high for landing animation
+      const spawnY = h + 0.6 + PLAYER_HEIGHT + 60 + Math.random() * 20;
+      group.position.set(x, spawnY, z);
+      this.scene.add(group);
+
+      const weapons = ['pistol', 'smg', 'assault', 'shotgun', 'sniper'];
+      const hasWeapon = Math.random() < config.botWeaponChance;
+      const weaponId = hasWeapon ? weapons[Math.floor(Math.random() * weapons.length)] : null;
+
+      this.bots.push({
+        id: `bot_w${i}_${Date.now()}`,
+        position: new THREE.Vector3(x, spawnY, z),
+        velocity: new THREE.Vector3(0, 0, 0),
+        health: 100,
+        armor: Math.random() < config.botArmorChance ? 50 : 0,
+        isDead: false,
+        weaponId,
+        mesh: group,
+        targetPos: null,
+        state: 'landing',
+        stateTimer: 2 + Math.random() * 5,
+        fireTimer: 0,
+        detectionRange: 30 + skill * 40,
+        accuracy: 0.3 + skill * 0.5,
+        skill,
+        name: BOT_NAMES[i % BOT_NAMES.length] + (i >= BOT_NAMES.length ? `_${Math.floor(i / BOT_NAMES.length)}` : ''),
+      });
     }
   }
 

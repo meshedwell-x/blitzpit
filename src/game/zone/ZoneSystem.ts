@@ -14,6 +14,7 @@ export class ZoneSystem {
   private phaseTimer: number;
   private isShrinking = false;
   private shrinkTimer = 0;
+  speedMultiplier = 1.0;
   private zoneMesh: THREE.Mesh;
   private zoneEdgeMesh: THREE.Mesh;
   private safeZoneMesh: THREE.Mesh;
@@ -90,7 +91,7 @@ export class ZoneSystem {
       }
     } else {
       // Shrinking phase
-      this.shrinkTimer -= delta;
+      this.shrinkTimer -= delta * this.speedMultiplier;
       const progress = 1 - Math.max(0, this.shrinkTimer / phase.shrinkTime);
 
       // Lerp radius
@@ -177,6 +178,19 @@ export class ZoneSystem {
     } else {
       this.safeZoneMesh.visible = false;
     }
+  }
+
+  reset(): void {
+    this.currentPhase = 0;
+    this.currentRadius = WORLD_SIZE / 2;
+    this.targetRadius = WORLD_SIZE / 2;
+    this.center.set(0, 0);
+    this.nextCenter.set(0, 0);
+    this.phaseTimer = ZONE_PHASES[0].delay;
+    this.isShrinking = false;
+    this.shrinkTimer = 0;
+    this.speedMultiplier = 1.0;
+    this.updateZoneMesh();
   }
 
   getPhaseInfo(): {
