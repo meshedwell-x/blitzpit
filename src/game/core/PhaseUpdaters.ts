@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { GameEngine } from './GameEngine';
 import {
   PLANE_SPEED,
@@ -21,17 +22,23 @@ export function updatePlane(engine: GameEngine, delta: number): void {
     engine.planeMesh.rotation.y = Math.atan2(engine.planeDirection.x, engine.planeDirection.z) + Math.PI;
   }
 
-  // 3rd person camera using player yaw/pitch for free-look
-  const planeYaw = engine.player.getYaw();
-  const planePitch = engine.player.pitch;
-  const camDist = 40;
-  const camHeight = 12;
+  // Camera: fixed overhead-angled view so the ground passes below, giving
+  // clear visual sense of movement. Camera sits behind + above the plane
+  // and looks at a point 200 units ahead on the ground so terrain scrolls.
+  const camDist = 80;
+  const camHeight = 60;
+  const lookAheadDist = 200;
   engine.camera.position.set(
-    engine.planePosition.x + Math.sin(planeYaw) * camDist,
-    engine.planePosition.y + camHeight - Math.sin(planePitch) * camDist * 0.5,
-    engine.planePosition.z + Math.cos(planeYaw) * camDist
+    engine.planePosition.x + engine.planeDirection.x * -camDist,
+    engine.planePosition.y + camHeight,
+    engine.planePosition.z + engine.planeDirection.z * -camDist
   );
-  engine.camera.lookAt(engine.planePosition);
+  const lookTarget = new THREE.Vector3(
+    engine.planePosition.x + engine.planeDirection.x * lookAheadDist,
+    0,
+    engine.planePosition.z + engine.planeDirection.z * lookAheadDist
+  );
+  engine.camera.lookAt(lookTarget);
 
   if (engine.planeTimer > PLANE_AUTO_DROP_TIME ||
       Math.abs(engine.planePosition.x) > WORLD_SIZE * 0.6 ||

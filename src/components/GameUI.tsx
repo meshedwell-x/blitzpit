@@ -76,8 +76,33 @@ export default function GameUI() {
   // Payment success notification
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
 
+  const [isPortrait, setIsPortrait] = useState(false);
+
   useEffect(() => {
-    setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    const mobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    setIsMobile(mobile);
+
+    if (mobile) {
+      // Attempt native landscape lock
+      try {
+        const orientation = screen.orientation as ScreenOrientation & {
+          lock?: (orientation: string) => Promise<void>;
+        };
+        if (orientation?.lock) {
+          orientation.lock('landscape').catch(() => {});
+        }
+      } catch {
+        // lock not supported, fall back to CSS/overlay
+      }
+    }
+
+    const checkOrientation = () => {
+      const isMob = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsPortrait(isMob && window.innerHeight > window.innerWidth);
+    };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    return () => window.removeEventListener('resize', checkOrientation);
   }, []);
 
   // Handle Stripe payment success redirect (shop + tournament)
@@ -322,6 +347,17 @@ export default function GameUI() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black select-none touch-none">
+      {/* PORTRAIT MODE BLOCKER -- mobile only, shows rotate prompt */}
+      {isPortrait && (
+        <div className="fixed inset-0 bg-black z-[200] flex flex-col items-center justify-center">
+          <div className="text-white font-bold mb-4" style={{ fontSize: '3rem', fontFamily: "'Teko', sans-serif", letterSpacing: '0.1em', transform: 'rotate(90deg)' }}>
+            ROTATE
+          </div>
+          <p className="text-gray-400 text-sm font-mono uppercase tracking-widest mt-2">
+            Landscape mode required
+          </p>
+        </div>
+      )}
       <div ref={containerRef} className="w-full h-full" />
 
       {/* PAYMENT SUCCESS NOTIFICATION */}

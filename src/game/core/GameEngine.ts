@@ -206,6 +206,14 @@ export class GameEngine {
     document.addEventListener('pointerlockchange', this._onPointerLockChange);
 
     this.botSystem.setWaveManager(this.waveManager);
+
+    // Mobile: zone shrinks 2x faster so the effective play area collapses
+    // quicker, compensating for the wide map on small screens.
+    const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isMobileDevice) {
+      this.zoneSystem.speedMultiplier = 2.0;
+    }
+
     this.player.mesh.visible = false;
     const spawnH = this.world.getHeightAt(0, 0);
     this.player.state.position.set(0, spawnH + 50, 0);

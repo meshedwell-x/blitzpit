@@ -64,17 +64,25 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
   const teko = "'Teko', sans-serif";
   const btnBase = 'flex items-center justify-center active:scale-95 transition-transform';
 
+  // Safe-area-aware left/right offsets for landscape notch
+  const safeLeft = 'max(1rem, calc(1rem + env(safe-area-inset-left)))';
+  const safeRight = 'max(1rem, calc(1rem + env(safe-area-inset-right)))';
+  const safeRightAim = 'max(5.5rem, calc(5.5rem + env(safe-area-inset-right)))';
+  const safeRightSecond = 'max(4.25rem, calc(4.25rem + env(safe-area-inset-right)))';
+
   return (
     <>
       {/* ═══ LEFT — Movement Joystick ═══
-          Position: bottom-6 left-4, 120x120.
+          Position: bottom-6, safe-left. 120x120.
+          Safe area insets applied for notch/home bar in landscape mode.
           Clear of minimap (top-10 left-2, ~100px tall on mobile).
           Clear of grenade row (bottom-[168px]).
       */}
       <div
         ref={joyRef}
-        className={`absolute bottom-6 left-4 w-[120px] h-[120px] rounded-sm ${btnBase}`}
+        className={`absolute bottom-6 w-[120px] h-[120px] rounded-sm ${btnBase}`}
         style={{
+          left: safeLeft,
           background: 'rgba(74,103,65,0.18)',
           border: '2px solid rgba(212,162,78,0.35)',
           boxShadow: 'inset 0 0 12px rgba(0,0,0,0.3)',
@@ -101,8 +109,9 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
 
       {/* SPRINT (hold) — above joystick */}
       <button
-        className={`absolute bottom-[140px] left-4 w-[56px] h-[44px] rounded-sm ${btnBase}`}
+        className={`absolute bottom-[140px] w-[56px] h-[44px] rounded-sm ${btnBase}`}
         style={{
+          left: safeLeft,
           background: 'rgba(74,103,65,0.35)',
           border: '1px solid rgba(196,163,90,0.4)',
           fontFamily: teko,
@@ -170,11 +179,13 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
       />
 
       {/* ═══ RIGHT — FIRE button ═══
-          Primary action. 72x72 (>44px touch target). bottom-8 right-4.
+          Primary action. 72x72 (>44px touch target). bottom-8, safe-right.
+          Safe area inset for notch/home bar in landscape.
       */}
       <button
-        className={`absolute right-4 bottom-8 w-[72px] h-[72px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-8 w-[72px] h-[72px] rounded-sm z-10 ${btnBase}`}
         style={{
+          right: safeRight,
           background: 'rgba(201,58,58,0.7)',
           border: '2px solid rgba(201,58,58,0.9)',
           boxShadow: '0 0 10px rgba(201,58,58,0.3), inset 0 0 8px rgba(0,0,0,0.3)',
@@ -188,8 +199,9 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
 
       {/* AIM/SCOPE — left of FIRE */}
       <button
-        className={`absolute right-[88px] bottom-8 w-[56px] h-[56px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-8 w-[56px] h-[56px] rounded-sm z-10 ${btnBase}`}
         style={{
+          right: safeRightAim,
           background: 'rgba(74,103,65,0.35)',
           border: '1.5px solid rgba(196,163,90,0.5)',
           fontFamily: teko,
@@ -200,12 +212,13 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
       </button>
 
       {/* ═══ RIGHT UPPER — JUMP, CROUCH, RELOAD ═══
-          Stacked vertically: bottom-[92px], bottom-[144px], bottom-[196px].
-          Right-4 aligned with FIRE.
+          Stacked vertically: bottom-[92px], bottom-[148px].
+          Right aligned with FIRE, respects safe-area-inset-right.
       */}
       <button
-        className={`absolute right-4 bottom-[92px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-[92px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
         style={{
+          right: safeRight,
           background: 'rgba(74,103,65,0.3)',
           border: '1px solid rgba(196,163,90,0.4)',
           fontFamily: teko,
@@ -216,8 +229,9 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
       </button>
 
       <button
-        className={`absolute right-[68px] bottom-[92px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-[92px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
         style={{
+          right: safeRightSecond,
           background: 'rgba(74,103,65,0.3)',
           border: '1px solid rgba(196,163,90,0.4)',
           fontFamily: teko,
@@ -228,8 +242,9 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
       </button>
 
       <button
-        className={`absolute right-4 bottom-[148px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-[148px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
         style={{
+          right: safeRight,
           background: 'rgba(212,162,78,0.2)',
           border: '1px solid rgba(212,162,78,0.45)',
           fontFamily: teko,
@@ -244,8 +259,9 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
 
       {/* Weapon slot switch — left of RELOAD */}
       <button
-        className={`absolute right-[68px] bottom-[148px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-[148px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
         style={{
+          right: safeRightSecond,
           background: 'rgba(138,126,107,0.2)',
           border: '1px solid rgba(138,126,107,0.4)',
           fontFamily: teko,
