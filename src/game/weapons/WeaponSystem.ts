@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { WEAPONS, WeaponDef } from '../core/constants';
 import { PlayerController } from '../player/PlayerController';
+import { WorldGenerator } from '../world/WorldGenerator';
 
 export interface WeaponInstance {
   def: WeaponDef;
@@ -33,6 +34,7 @@ interface ItemDrop {
 export class WeaponSystem {
   private scene: THREE.Scene;
   private player: PlayerController;
+  private world: WorldGenerator | null = null;
   weapons: (WeaponInstance | null)[] = [null, null];
   activeSlot = 0;
   private bullets: Bullet[] = [];
@@ -51,9 +53,10 @@ export class WeaponSystem {
   private _onKeyDown: (e: KeyboardEvent) => void = () => {};
   private _onWheel: (e: WheelEvent) => void = () => {};
 
-  constructor(scene: THREE.Scene, player: PlayerController) {
+  constructor(scene: THREE.Scene, player: PlayerController, world?: WorldGenerator) {
     this.scene = scene;
     this.player = player;
+    if (world) this.world = world;
     this.bulletGeometry = new THREE.SphereGeometry(0.05, 4, 4);
     this.bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
     this.weaponModel = this.createWeaponModel();
@@ -349,6 +352,36 @@ export class WeaponSystem {
       bullet.position.add(movement);
       bullet.mesh.position.copy(bullet.position);
       bullet.traveled += movement.length();
+
+      // Terrain collision -- remove bullet if below ground
+      if (this.world) {
+        const bulletGroundH = this.world.getHeightAt(bullet.position.x, bullet.position.z);
+        if (bullet.position.y < bulletGroundH + 0.3) {
+          this.scene.remove(bullet.mesh);
+          this.bullets.splice(i, 1);
+          continue;
+        }
+
+        // Building collision
+        const buildings = this.world.getBuildings();
+        let hitBuilding = false;
+        for (const b of buildings) {
+          const baseH = this.world.getHeightAt(b.x, b.z);
+          if (
+            bullet.position.x > b.x && bullet.position.x < b.x + b.width &&
+            bullet.position.z > b.z && bullet.position.z < b.z + b.depth &&
+            bullet.position.y > baseH && bullet.position.y < baseH + b.height + 1
+          ) {
+            hitBuilding = true;
+            break;
+          }
+        }
+        if (hitBuilding) {
+          this.scene.remove(bullet.mesh);
+          this.bullets.splice(i, 1);
+          continue;
+        }
+      }
 
       // Check if out of range
       if (bullet.traveled > bullet.range) {

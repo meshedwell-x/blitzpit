@@ -4,6 +4,8 @@ export class SoundManager {
   private muted = false;
   private vehicleOscillator: OscillatorNode | null = null;
   private vehicleGain: GainNode | null = null;
+  private rainOsc: OscillatorNode | null = null;
+  private rainGain: GainNode | null = null;
 
   constructor() {
     try {
@@ -197,6 +199,40 @@ export class SoundManager {
     }
   }
 
+  playRainAmbient(): void {
+    const ctx = this.getCtx();
+    if (!ctx || !this.masterGain || this.rainOsc) return;
+    try {
+      const bufferSize = 2 * ctx.sampleRate;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      this.rainGain = ctx.createGain();
+      this.rainGain.gain.value = 0.03;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 800;
+      src.connect(filter);
+      filter.connect(this.rainGain);
+      this.rainGain.connect(this.masterGain);
+      src.start();
+      this.rainOsc = src as unknown as OscillatorNode;
+    } catch {
+      // ignore
+    }
+  }
+
+  stopRainAmbient(): void {
+    if (this.rainOsc) {
+      try { (this.rainOsc as unknown as AudioBufferSourceNode).stop(); } catch {}
+      this.rainOsc = null;
+      this.rainGain = null;
+    }
+  }
+
   stopVehicleEngine(): void {
     if (this.vehicleOscillator) {
       try {
@@ -228,6 +264,7 @@ export class SoundManager {
 
   destroy(): void {
     this.stopVehicleEngine();
+    this.stopRainAmbient();
     if (this.ctx) {
       this.ctx.close().catch(() => {});
       this.ctx = null;

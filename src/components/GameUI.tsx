@@ -243,6 +243,20 @@ export default function GameUI() {
         {muted ? 'OFF' : 'SND'}
       </button>
 
+      {/* WEATHER HUD */}
+      {['playing'].includes(gameState.phase) && (
+        <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-[10px] font-mono text-gray-300">
+          {engineRef.current?.weatherSystem.currentWeather === 'rain' ? 'RAIN' :
+           engineRef.current?.weatherSystem.currentWeather === 'storm' ? 'STORM' :
+           engineRef.current?.weatherSystem.currentWeather === 'fog' ? 'FOG' : 'CLEAR'}
+        </div>
+      )}
+
+      {/* LIGHTNING FLASH */}
+      {engineRef.current?.weatherSystem.lightningFlash && (
+        <div className="absolute inset-0 pointer-events-none bg-white/30" />
+      )}
+
       {/* CROSSHAIR */}
       {gameState.phase === 'playing' && !d.inVehicle && (() => {
         const spread = weapon?.def.spread ?? 0.04;
@@ -407,6 +421,14 @@ export default function GameUI() {
           <span className="text-blue-300 text-xs font-mono">[E] Exit</span>
           <span className="text-yellow-300 text-xs font-mono">
             FUEL {Math.round(engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0)}%
+          </span>
+          <span className="text-white text-xs font-mono">
+            {Math.round(Math.abs(engineRef.current?.vehicleSystem.playerVehicle?.speed ?? 0))} km/h
+          </span>
+          <span className="text-green-400 text-xs font-mono">
+            G{engineRef.current?.vehicleSystem.playerVehicle
+              ? engineRef.current.vehicleSystem.getGear(engineRef.current.vehicleSystem.playerVehicle)
+              : 0}
           </span>
           <span className="text-gray-400 text-xs font-mono">WASD Drive</span>
         </div>

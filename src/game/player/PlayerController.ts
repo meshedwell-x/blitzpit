@@ -222,6 +222,11 @@ export class PlayerController {
   update(delta: number): void {
     if (this.state.isDead) return;
 
+    // Slow health regen when not at full health
+    if (this.state.health < 100 && this.state.health > 0) {
+      this.state.health = Math.min(100, this.state.health + 0.5 * delta);
+    }
+
     // Movement direction based on yaw
     const moveDir = new THREE.Vector3();
     const forward = new THREE.Vector3(

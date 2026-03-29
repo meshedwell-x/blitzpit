@@ -10,6 +10,7 @@ import { WaveManager } from './WaveManager';
 import { ScoreboardSystem } from '../score/ScoreboardSystem';
 import { SoundManager } from '../audio/SoundManager';
 import { ParticleSystem } from '../effects/ParticleSystem';
+import { WeatherSystem } from '../world/WeatherSystem';
 import { WORLD_SIZE, PLAYER_HEAL_BETWEEN_WAVES } from './constants';
 
 export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'wave_transition' | 'dead';
@@ -43,6 +44,7 @@ export class GameEngine {
   scoreboardSystem: ScoreboardSystem;
   soundManager: SoundManager;
   particleSystem: ParticleSystem;
+  weatherSystem: WeatherSystem;
 
   gameState: GameState = {
     phase: 'lobby',
@@ -102,7 +104,7 @@ export class GameEngine {
 
     this.world = new WorldGenerator(this.scene, 42);
     this.player = new PlayerController(this.camera, this.world, this.scene);
-    this.weaponSystem = new WeaponSystem(this.scene, this.player);
+    this.weaponSystem = new WeaponSystem(this.scene, this.player, this.world);
     this.grenadeSystem = new GrenadeSystem(this.scene, this.player, this.world);
     this.botSystem = new BotSystem(this.scene, this.world, this.weaponSystem, this.player);
     this.zoneSystem = new ZoneSystem(this.scene, this.player);
@@ -111,6 +113,7 @@ export class GameEngine {
     this.scoreboardSystem = new ScoreboardSystem();
     this.soundManager = new SoundManager();
     this.particleSystem = new ParticleSystem(this.scene);
+    this.weatherSystem = new WeatherSystem(this.scene);
 
     this._onResize = () => this.onResize();
     window.addEventListener('resize', this._onResize);
@@ -313,7 +316,7 @@ export class GameEngine {
     if (this.planeMesh) {
       this.planeMesh.visible = true;
       this.planeMesh.position.copy(this.planePosition);
-      this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z);
+      this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z) + Math.PI;
     }
     this.notifyStateChange();
   }
@@ -371,7 +374,7 @@ export class GameEngine {
     if (this.planeMesh) {
       this.planeMesh.position.copy(this.planePosition);
       // Plane model faces -Z, so we rotate Y to match flight direction
-      this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z);
+      this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z) + Math.PI;
     }
 
     this.camera.position.set(
@@ -542,15 +545,81 @@ export class GameEngine {
       case 'playing': {
         if (this.vehicleSystem.isPlayerInVehicle()) {
           this.vehicleSystem.update(delta);
-          const v = this.vehicleSystem.playerVehicle!;
-          this._tmpBehind.set(
-            Math.sin(v.rotation) * 10,
-            6,
-            Math.cos(v.rotation) * 10
-          );
-          this.camera.position.copy(v.position).add(this._tmpBehind);
-          this.camera.lookAt(v.position);
-          this.soundManager.playVehicleEngine(v.speed);
+          const v = this.vehicleSystem.playerVehicle;
+          if (v) {
+            // Roadkill -- vehicle hits bots
+            if (Math.abs(v.speed) > 3) {
+              for (const bot of this.botSystem.bots) {
+                if (bot.isDead) continue;
+                const dx = v.position.x - bot.position.x;
+                const dz = v.position.z - bot.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                if (dist < 2.5) {
+                  const damage = Math.abs(v.speed) * 4;
+                  bot.health -= damage;
+                  v.speed *= 0.7;
+                  this.particleSystem.emitHitSpark(bot.position.clone());
+                  this.soundManager.playExplosion();
+                  if (bot.health <= 0 && !bot.isDead) {
+                    bot.isDead = true;
+                    bot.health = 0;
+                    bot.mesh.rotation.x = Math.PI / 2;
+                    this.botSystem.alive = Math.max(0, this.botSystem.alive - 1);
+                    this.player.state.kills++;
+                    this.scoreboardSystem.recordKill(false);
+                    this.particleSystem.emitDeath(bot.position.clone());
+                    this.soundManager.playKillConfirm();
+                    this.botSystem.killFeed.push({
+                      killer: 'You', victim: bot.name, weapon: 'Vehicle', time: Date.now()
+                    });
+                  }
+                }
+              }
+            }
+
+            // Tree collision (speed > 5)
+            if (Math.abs(v.speed) > 5) {
+              for (let i = this.world.treePositions.length - 1; i >= 0; i--) {
+                const tree = this.world.treePositions[i];
+                const dx = v.position.x - tree.x;
+                const dz = v.position.z - tree.z;
+                if (Math.sqrt(dx * dx + dz * dz) < 2) {
+                  this.particleSystem.emitDeath(tree.clone());
+                  this.world.treePositions.splice(i, 1);
+                  v.speed *= 0.85;
+                  v.health -= 10;
+                  break;
+                }
+              }
+            }
+
+            // Building collision
+            const buildings = this.world.getBuildings();
+            for (const b of buildings) {
+              const baseH = this.world.getHeightAt(b.x, b.z);
+              if (
+                v.position.x > b.x - 1 && v.position.x < b.x + b.width + 1 &&
+                v.position.z > b.z - 1 && v.position.z < b.z + b.depth + 1 &&
+                v.position.y < baseH + b.height + 2
+              ) {
+                const speedBefore = Math.abs(v.speed);
+                v.speed = 0;
+                v.health -= speedBefore * 2 + 5;
+                v.position.x -= Math.sin(v.rotation) * 1;
+                v.position.z -= Math.cos(v.rotation) * 1;
+                break;
+              }
+            }
+
+            this._tmpBehind.set(
+              Math.sin(v.rotation) * 10,
+              6,
+              Math.cos(v.rotation) * 10
+            );
+            this.camera.position.copy(v.position).add(this._tmpBehind);
+            this.camera.lookAt(v.position);
+            this.soundManager.playVehicleEngine(v.speed);
+          }
         } else {
           this.player.update(delta);
           this.soundManager.stopVehicleEngine();
@@ -561,6 +630,14 @@ export class GameEngine {
         this.botSystem.update(delta);
         this.zoneSystem.update(delta, this.botSystem.bots);
         this.particleSystem.update(delta);
+        this.weatherSystem.update(delta, this.player.state.position);
+
+        // Rain ambient sound
+        if (this.weatherSystem.currentWeather === 'rain' || this.weatherSystem.currentWeather === 'storm') {
+          this.soundManager.playRainAmbient();
+        } else {
+          this.soundManager.stopRainAmbient();
+        }
 
         // Check bullet hits and track particle/sound effects
         const bullets = this.weaponSystem.getBullets();
@@ -650,6 +727,7 @@ export class GameEngine {
     this.vehicleSystem.destroy();
     this.soundManager.destroy();
     this.particleSystem.destroy();
+    this.weatherSystem.destroy();
     this.renderer.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);

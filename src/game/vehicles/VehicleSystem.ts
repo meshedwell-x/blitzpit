@@ -274,6 +274,26 @@ export class VehicleSystem {
     // Player follows vehicle
     this.player.state.position.copy(v.position);
     this.player.state.position.y += 1.5;
+
+    // Vehicle destruction check
+    if (v.health <= 0) {
+      v.isOccupied = false;
+      v.occupantId = null;
+      this.player.state.position.copy(v.position);
+      this.player.state.position.y += 2;
+      this.player.mesh.visible = true;
+      this.player.takeDamage(30);
+      this.playerVehicle = null;
+    }
+  }
+
+  getGear(vehicle: Vehicle): number {
+    const s = Math.abs(vehicle.speed);
+    if (s < 0.5) return 0;
+    if (s < 8) return 1;
+    if (s < 16) return 2;
+    if (s < 24) return 3;
+    return 4;
   }
 
   isPlayerInVehicle(): boolean {

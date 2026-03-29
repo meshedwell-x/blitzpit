@@ -25,6 +25,7 @@ export class WorldGenerator {
   private heightMap: Float32Array;
   private buildings: Building[] = [];
   itemSpawns: ItemSpawn[] = [];
+  treePositions: THREE.Vector3[] = [];
   private scene: THREE.Scene;
 
   constructor(scene: THREE.Scene, seed: number = 42) {
@@ -353,6 +354,8 @@ export class WorldGenerator {
       if (inBuilding) continue;
 
       const trunkHeight = 3 + Math.floor(rand() * 3);
+
+      this.treePositions.push(new THREE.Vector3(x, height, z));
 
       for (let y = 1; y <= trunkHeight; y++) {
         matrix.makeTranslation(x, height + y, z);
