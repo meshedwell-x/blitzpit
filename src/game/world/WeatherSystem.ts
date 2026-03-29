@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BiomeType } from './BiomeSystem';
 
 export type WeatherType = 'clear' | 'rain' | 'fog' | 'storm';
 
@@ -39,21 +40,31 @@ export class WeatherSystem {
     this.scene.add(this.rainMesh);
   }
 
-  update(delta: number, playerPos: THREE.Vector3): void {
+  update(delta: number, playerPos: THREE.Vector3, biome: BiomeType = 'urban'): void {
     // Weather transition timer
     this.weatherTimer -= delta;
     if (this.weatherTimer <= 0) {
       this.cycleWeather();
     }
 
-    // Rain update
-    if (this.currentWeather === 'rain' || this.currentWeather === 'storm') {
+    const inTundra = biome === 'tundra';
+
+    // Rain/snow update
+    if (inTundra || this.currentWeather === 'rain' || this.currentWeather === 'storm') {
       if (this.rainMesh) {
         this.rainMesh.visible = true;
         this.rainMesh.position.set(playerPos.x, 0, playerPos.z);
+        const mat = this.rainMesh.material as THREE.PointsMaterial;
+        if (inTundra) {
+          mat.color.setHex(0xffffff);
+          mat.size = 0.25;
+        } else {
+          mat.color.setHex(0xaaaacc);
+          mat.size = 0.15;
+        }
         const positions = this.rainMesh.geometry.attributes.position;
         const arr = positions.array as Float32Array;
-        const speed = this.currentWeather === 'storm' ? 80 : 40;
+        const speed = inTundra ? 8 : (this.currentWeather === 'storm' ? 80 : 40);
         for (let i = 0; i < this.rainCount; i++) {
           arr[i * 3 + 1] -= speed * delta;
           if (arr[i * 3 + 1] < 0) {

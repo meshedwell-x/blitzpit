@@ -4,6 +4,7 @@ import {
   WORLD_SIZE, BLOCK_SIZE, BLOCK_TYPES, BLOCK_COLORS,
   WATER_LEVEL,
 } from '../core/constants';
+import { BiomeSystem } from './BiomeSystem';
 
 interface Building {
   x: number;
@@ -177,13 +178,27 @@ export class WorldGenerator {
 
     // Create instanced meshes
     if (grassPositions.length > 0) {
-      const grassMat = new THREE.MeshLambertMaterial({ color: BLOCK_COLORS[BLOCK_TYPES.GRASS] });
+      const grassMat = new THREE.MeshLambertMaterial({ color: BLOCK_COLORS[BLOCK_TYPES.GRASS], vertexColors: false });
       const grassMesh = new THREE.InstancedMesh(blockGeo, grassMat, grassPositions.length);
       grassMesh.receiveShadow = true;
       grassMesh.castShadow = true;
+      // Per-instance biome color
+      const biomeSystem = new BiomeSystem();
+      const colorArr = new Float32Array(grassPositions.length * 3);
+      const tmpPos = new THREE.Vector3();
+      const tmpQuat = new THREE.Quaternion();
+      const tmpScale = new THREE.Vector3();
       for (let i = 0; i < grassPositions.length; i++) {
+        grassPositions[i].decompose(tmpPos, tmpQuat, tmpScale);
+        const b = biomeSystem.getBiome(tmpPos.x, tmpPos.z);
+        const c = new THREE.Color(biomeSystem.getBiomeColor(b));
+        colorArr[i * 3] = c.r;
+        colorArr[i * 3 + 1] = c.g;
+        colorArr[i * 3 + 2] = c.b;
         grassMesh.setMatrixAt(i, grassPositions[i]);
       }
+      grassMesh.instanceColor = new THREE.InstancedBufferAttribute(colorArr, 3);
+      grassMesh.instanceColor.needsUpdate = true;
       grassMesh.instanceMatrix.needsUpdate = true;
       this.scene.add(grassMesh);
     }

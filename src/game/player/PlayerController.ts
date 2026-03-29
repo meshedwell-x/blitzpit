@@ -32,6 +32,7 @@ export class PlayerController {
   private scene: THREE.Scene;
   private animTime = 0;
   private mobileInput = { x: 0, z: 0 };
+  biomeSpeedMultiplier = 1.0;
 
   private _onKeyDown: (e: KeyboardEvent) => void = () => {};
   private _onKeyUp: (e: KeyboardEvent) => void = () => {};
@@ -244,7 +245,7 @@ export class PlayerController {
     const isMoving = moveDir.length() > 0;
     if (isMoving) moveDir.normalize();
 
-    let speed = PLAYER_SPEED;
+    let speed = PLAYER_SPEED * this.biomeSpeedMultiplier;
     if (this.state.isSprinting) speed *= SPRINT_MULTIPLIER;
     if (this.state.isCrouching) speed *= CROUCH_MULTIPLIER;
 

@@ -11,6 +11,9 @@ import { ScoreboardSystem } from '../score/ScoreboardSystem';
 import { SoundManager } from '../audio/SoundManager';
 import { ParticleSystem } from '../effects/ParticleSystem';
 import { WeatherSystem } from '../world/WeatherSystem';
+import { DayNightSystem } from '../world/DayNightSystem';
+import { BiomeSystem } from '../world/BiomeSystem';
+import { AnimalSystem } from '../world/AnimalSystem';
 import { WORLD_SIZE, PLAYER_HEAL_BETWEEN_WAVES } from './constants';
 
 export type GamePhase = 'lobby' | 'plane' | 'dropping' | 'playing' | 'wave_transition' | 'dead';
@@ -45,6 +48,9 @@ export class GameEngine {
   soundManager: SoundManager;
   particleSystem: ParticleSystem;
   weatherSystem: WeatherSystem;
+  dayNightSystem: DayNightSystem;
+  biomeSystem: BiomeSystem;
+  animalSystem: AnimalSystem;
 
   gameState: GameState = {
     phase: 'lobby',
@@ -114,6 +120,9 @@ export class GameEngine {
     this.soundManager = new SoundManager();
     this.particleSystem = new ParticleSystem(this.scene);
     this.weatherSystem = new WeatherSystem(this.scene);
+    this.biomeSystem = new BiomeSystem();
+    this.dayNightSystem = new DayNightSystem(this.scene);
+    this.animalSystem = new AnimalSystem(this.scene, this.world, this.biomeSystem);
 
     this._onResize = () => this.onResize();
     window.addEventListener('resize', this._onResize);
@@ -196,6 +205,8 @@ export class GameEngine {
     this.botSystem.spawn();
     this.vehicleSystem.init();
     this.vehicleSystem.spawnVehicles(20);
+
+    this.animalSystem.spawn();
 
     this.planeMesh = this.createPlaneMesh();
     this.planeMesh.visible = false;
@@ -499,6 +510,10 @@ export class GameEngine {
     // Spawn new weapons
     this.weaponSystem.spawnItems(this.world.itemSpawns);
 
+    // Animal respawn
+    this.animalSystem.destroy();
+    this.animalSystem.spawn();
+
     // Heal player
     this.player.heal(PLAYER_HEAL_BETWEEN_WAVES);
 
@@ -630,7 +645,35 @@ export class GameEngine {
         this.botSystem.update(delta);
         this.zoneSystem.update(delta, this.botSystem.bots);
         this.particleSystem.update(delta);
-        this.weatherSystem.update(delta, this.player.state.position);
+
+        // Day/night cycle
+        this.dayNightSystem.update(delta);
+
+        // Biome effects on player
+        const playerBiome = this.biomeSystem.getBiome(
+          this.player.state.position.x,
+          this.player.state.position.z
+        );
+        this.player.biomeSpeedMultiplier = this.biomeSystem.getSpeedMultiplier(playerBiome);
+
+        // Animal update
+        this.animalSystem.update(delta, this.player.state.position, this.dayNightSystem.isNight);
+
+        // Animal attack damage
+        const animalDmg = this.animalSystem.getAttackingAnimalDamage(this.player.state.position);
+        if (animalDmg > 0) {
+          this.player.takeDamage(animalDmg);
+          this.soundManager.playDamageTaken();
+          this.player.addShake(0.15);
+        }
+
+        // Environment damage from biome
+        const envDmg = this.biomeSystem.getEnvironmentDamage(playerBiome, this.dayNightSystem.isNight, delta);
+        if (envDmg > 0) {
+          this.player.takeDamage(envDmg);
+        }
+
+        this.weatherSystem.update(delta, this.player.state.position, playerBiome);
 
         // Rain ambient sound
         if (this.weatherSystem.currentWeather === 'rain' || this.weatherSystem.currentWeather === 'storm') {
@@ -643,6 +686,26 @@ export class GameEngine {
         const bullets = this.weaponSystem.getBullets();
         const prevKills = this.player.state.kills;
         this.botSystem.checkBulletHits(bullets);
+
+        // Bullet-animal collision
+        for (let bi = bullets.length - 1; bi >= 0; bi--) {
+          const bullet = bullets[bi];
+          if (bullet.ownerId !== 'player') continue;
+          for (const animal of this.animalSystem.animals) {
+            if (animal.state === 'dead') continue;
+            if (bullet.position.distanceTo(animal.position) < 1.5) {
+              const killed = this.animalSystem.damageAnimal(animal.id, bullet.damage);
+              this.particleSystem.emitBlood(animal.position.clone());
+              if (killed) {
+                this.particleSystem.emitDeath(animal.position.clone());
+                this.soundManager.playKillConfirm();
+              }
+              this.weaponSystem.removeBullet(bi);
+              break;
+            }
+          }
+        }
+
         const newKills = this.player.state.kills;
 
         if (newKills > prevKills) {
@@ -728,6 +791,8 @@ export class GameEngine {
     this.soundManager.destroy();
     this.particleSystem.destroy();
     this.weatherSystem.destroy();
+    this.dayNightSystem.destroy();
+    this.animalSystem.destroy();
     this.renderer.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);

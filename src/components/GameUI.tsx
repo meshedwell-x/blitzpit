@@ -243,12 +243,22 @@ export default function GameUI() {
         {muted ? 'OFF' : 'SND'}
       </button>
 
-      {/* WEATHER HUD */}
-      {['playing'].includes(gameState.phase) && (
-        <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-[10px] font-mono text-gray-300">
-          {engineRef.current?.weatherSystem.currentWeather === 'rain' ? 'RAIN' :
-           engineRef.current?.weatherSystem.currentWeather === 'storm' ? 'STORM' :
-           engineRef.current?.weatherSystem.currentWeather === 'fog' ? 'FOG' : 'CLEAR'}
+      {/* TIME / BIOME / WEATHER HUD */}
+      {gameState.phase === 'playing' && (
+        <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-[10px] font-mono space-y-0.5">
+          <div className="text-gray-300">
+            {engineRef.current?.dayNightSystem.getTimeString() ?? '12:00'}
+            {engineRef.current?.dayNightSystem.isNight ? ' NIGHT' : ' DAY'}
+          </div>
+          <div className="text-gray-400">
+            {engineRef.current?.biomeSystem.getBiome(
+              engineRef.current?.player.state.position.x ?? 0,
+              engineRef.current?.player.state.position.z ?? 0
+            )?.toUpperCase() ?? 'URBAN'}
+          </div>
+          <div className="text-gray-400">
+            {engineRef.current?.weatherSystem.currentWeather?.toUpperCase() ?? 'CLEAR'}
+          </div>
         </div>
       )}
 
@@ -1016,6 +1026,22 @@ function Minimap({ engine }: { engine: GameEngine | null }) {
           ctx.beginPath();
           ctx.arc(bx, bz, 1.5, 0, Math.PI * 2);
           ctx.fill();
+        }
+      }
+
+      // Animals (green dots, orange if aggressive)
+      if (engine.animalSystem) {
+        for (const animal of engine.animalSystem.animals) {
+          if (animal.state === 'dead') continue;
+          const dist = Math.sqrt((animal.position.x - pp.x) ** 2 + (animal.position.z - pp.z) ** 2);
+          if (dist < 80) {
+            const ax = animal.position.x * scale + ox;
+            const az = animal.position.z * scale + oz;
+            ctx.fillStyle = animal.aggressive ? '#ff6600' : '#00cc44';
+            ctx.beginPath();
+            ctx.arc(ax, az, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
 
