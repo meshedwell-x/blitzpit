@@ -4,3 +4,15 @@ compatibility_date = "2024-09-23"
 
 # STRIPE_SECRET_KEY is set via `wrangler secret put STRIPE_SECRET_KEY`
 # Do NOT put secrets in this file -- GitHub will block the push
+
+# D1 Database for P2E Arena
+[[d1_databases]]
+binding = "DB"
+database_name = "blitzpit-db"
+database_id = "TO_BE_CREATED"
+# Create DB: wrangler d1 create blitzpit-db
+# Apply schema: wrangler d1 execute blitzpit-db --file=schema.sql
+
+# Daily tournament auto-creation (midnight UTC)
+[triggers]
+crons = ["0 0 * * *"]

@@ -9,9 +9,10 @@ export interface GameOverScreenProps {
   skinSystem: React.RefObject<SkinSystem | null>;
   fmt: (s: number) => string;
   onShowShop: () => void;
+  onShowArena?: () => void;
 }
 
-export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem, fmt, onShowShop }: GameOverScreenProps) {
+export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem, fmt, onShowShop, onShowArena }: GameOverScreenProps) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center z-30"
       style={{ background: 'radial-gradient(ellipse at center, rgba(13,15,11,0.88) 0%, rgba(13,15,11,0.97) 100%)', backdropFilter: 'blur(6px)' }}>
@@ -100,6 +101,15 @@ export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem
         </div>
       )}
 
+      {/* Tournament score submission indicator */}
+      {skinSystem.current?.getActiveTournament() && (
+        <div className="w-[360px] max-w-[90vw] mb-3 p-2 bg-[#4a6741]/10 border border-[#4a6741]/30 text-center">
+          <span className="text-xs font-mono text-[#4a6741] uppercase tracking-wider">
+            ARENA SCORE SUBMITTED: {gameState.currentWave * 1000 + (stats?.totalKills ?? gameState.kills)} pts
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-[90vw] max-w-[360px]">
         <button
           onClick={() => window.location.reload()}
@@ -115,6 +125,15 @@ export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem
         >
           SHOP
         </button>
+        {onShowArena && (
+          <button
+            onClick={onShowArena}
+            className="px-6 py-3 md:py-3.5 min-h-[48px] bg-[#c93a3a] text-white font-bold text-lg md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#b93030]"
+            style={{ fontFamily: "'Teko', sans-serif" }}
+          >
+            ARENA
+          </button>
+        )}
       </div>
     </div>
   );

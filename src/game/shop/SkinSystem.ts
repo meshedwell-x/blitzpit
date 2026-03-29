@@ -3,6 +3,24 @@ import { SHOP_ITEMS, SUPPLY_CRATES, ShopItem } from './monetization';
 
 const STORAGE_KEY = 'blitzpit_purchases';
 
+export type PlayerTier = 'free' | 'bronze' | 'silver' | 'gold' | 'diamond';
+
+export const TIER_THRESHOLDS: { tier: PlayerTier; minSpent: number }[] = [
+  { tier: 'diamond', minSpent: 120 },
+  { tier: 'gold', minSpent: 60 },
+  { tier: 'silver', minSpent: 25 },
+  { tier: 'bronze', minSpent: 5 },
+  { tier: 'free', minSpent: 0 },
+];
+
+export const TIER_COLORS: Record<PlayerTier, string> = {
+  free: '#6b7b6a',
+  bronze: '#cd7f32',
+  silver: '#c0c0c0',
+  gold: '#ffd700',
+  diamond: '#b9f2ff',
+};
+
 export interface PlayerPurchases {
   blitzCoins: number;
   blitzPoints: number;
@@ -18,6 +36,22 @@ export interface PlayerPurchases {
   reviveTokens: number;
   xpBoostEndTime: number; // timestamp
   welcomePurchased: boolean;
+  totalSpentUSD: number;
+  tier: PlayerTier;
+  activeTournamentId: string | null;
+  userId: string;
+}
+
+function generateUserId(): string {
+  try {
+    const stored = localStorage.getItem('blitzpit_user_id');
+    if (stored) return stored;
+    const id = 'bp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('blitzpit_user_id', id);
+    return id;
+  } catch {
+    return 'bp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+  }
 }
 
 function defaultStats(): PlayerPurchases {
@@ -36,6 +70,10 @@ function defaultStats(): PlayerPurchases {
     reviveTokens: 0,
     xpBoostEndTime: 0,
     welcomePurchased: false,
+    totalSpentUSD: 0,
+    tier: 'free',
+    activeTournamentId: null,
+    userId: generateUserId(),
   };
 }
 
@@ -206,6 +244,49 @@ export class SkinSystem {
   addCoins(amount: number): void {
     this.purchases.blitzCoins += amount;
     this.save();
+  }
+
+  addSpending(amountUSD: number): void {
+    this.purchases.totalSpentUSD += amountUSD;
+    this.purchases.tier = this.calculateTier();
+    this.save();
+  }
+
+  calculateTier(): PlayerTier {
+    for (const { tier, minSpent } of TIER_THRESHOLDS) {
+      if (this.purchases.totalSpentUSD >= minSpent) return tier;
+    }
+    return 'free';
+  }
+
+  getTier(): PlayerTier {
+    return this.purchases.tier;
+  }
+
+  getTierProgress(): { current: PlayerTier; nextTier: PlayerTier | null; spent: number; nextThreshold: number } {
+    const current = this.purchases.tier;
+    const spent = this.purchases.totalSpentUSD;
+    const tierOrder: PlayerTier[] = ['free', 'bronze', 'silver', 'gold', 'diamond'];
+    const idx = tierOrder.indexOf(current);
+    if (idx >= tierOrder.length - 1) {
+      return { current, nextTier: null, spent, nextThreshold: 0 };
+    }
+    const nextTier = tierOrder[idx + 1];
+    const nextThreshold = TIER_THRESHOLDS.find(t => t.tier === nextTier)?.minSpent ?? 0;
+    return { current, nextTier, spent, nextThreshold };
+  }
+
+  getUserId(): string {
+    return this.purchases.userId;
+  }
+
+  setActiveTournament(tournamentId: string | null): void {
+    this.purchases.activeTournamentId = tournamentId;
+    this.save();
+  }
+
+  getActiveTournament(): string | null {
+    return this.purchases.activeTournamentId;
   }
 
   // Apply skin colors to player mesh using named parts

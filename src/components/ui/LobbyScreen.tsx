@@ -6,9 +6,10 @@ export interface LobbyScreenProps {
   skinSystem: React.RefObject<SkinSystem | null>;
   bestLeaderboardEntry: { wave: number; kills: number } | null;
   onShowShop: () => void;
+  onShowArena?: () => void;
 }
 
-export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onShowShop }: LobbyScreenProps) {
+export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onShowShop, onShowArena }: LobbyScreenProps) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
       <h1 className="text-5xl md:text-7xl font-black mb-0 tracking-wider uppercase" style={{ fontFamily: "'Teko', sans-serif", color: '#e8e0d0', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
@@ -47,13 +48,24 @@ export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onSho
       >
         DEPLOY
       </button>
-      <button
-        onClick={onShowShop}
-        className="mt-2 w-[85vw] max-w-[280px] md:w-auto md:px-8 py-2 min-h-[44px] font-bold text-sm uppercase tracking-wider transition-all active:scale-95"
-        style={{ background: '#4a6741', color: '#e8e0d0', fontFamily: "'Teko', sans-serif", letterSpacing: '0.1em' }}
-      >
-        ARMORY
-      </button>
+      <div className="flex gap-2 mt-2 w-[85vw] max-w-[280px]">
+        <button
+          onClick={onShowShop}
+          className="flex-1 py-2 min-h-[44px] font-bold text-sm uppercase tracking-wider transition-all active:scale-95"
+          style={{ background: '#4a6741', color: '#e8e0d0', fontFamily: "'Teko', sans-serif", letterSpacing: '0.1em' }}
+        >
+          ARMORY
+        </button>
+        {onShowArena && (
+          <button
+            onClick={onShowArena}
+            className="flex-1 py-2 min-h-[44px] font-bold text-sm uppercase tracking-wider transition-all active:scale-95"
+            style={{ background: '#c93a3a', color: '#e8e0d0', fontFamily: "'Teko', sans-serif", letterSpacing: '0.1em' }}
+          >
+            ARENA
+          </button>
+        )}
+      </div>
 
       {skinSystem.current?.getActiveSkin() && (
         <div className="mt-2 text-center">

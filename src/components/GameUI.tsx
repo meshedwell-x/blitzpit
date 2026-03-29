@@ -8,10 +8,12 @@ import { MobileControls } from './MobileControls';
 import { InventoryPanel } from './InventoryPanel';
 import { Minimap } from './Minimap';
 import { ShopModal } from './ShopModal';
+import { ArenaModal } from './ArenaModal';
 import { PlayingHUD } from './ui/PlayingHUD';
 import { LobbyScreen } from './ui/LobbyScreen';
 import { GameOverScreen } from './ui/GameOverScreen';
 import { PlaneOverlay, DroppingOverlay, WaveTransitionOverlay, RevivePrompt, PauseOverlay } from './ui/PhaseOverlays';
+import { submitTournamentScore, submitLeaderboardScore } from '../game/arena/ArenaAPI';
 
 
 export default function GameUI() {
@@ -47,6 +49,7 @@ export default function GameUI() {
   const [isMobile, setIsMobile] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showArena, setShowArena] = useState(false);
   const [muted, setMuted] = useState(false);
   const skinSystem = useRef<SkinSystem | null>(null);
 
@@ -77,12 +80,15 @@ export default function GameUI() {
     setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
 
-  // Handle Stripe payment success redirect
+  // Handle Stripe payment success redirect (shop + tournament)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session_id');
     const packId = params.get('pack_id');
-    if (!sessionId || !packId) return;
+    const tournamentId = params.get('tournament_id');
+    const tournamentJoin = params.get('tournament_join');
+
+    if (!sessionId) return;
 
     // Clean URL immediately
     window.history.replaceState({}, '', window.location.pathname);
@@ -92,24 +98,37 @@ export default function GameUI() {
         const res = await fetch(
           `https://blitzpit-api.meshedwell.workers.dev/api/verify?session_id=${encodeURIComponent(sessionId)}`
         );
-        const data = await res.json() as { success: boolean; coins?: number; packId?: string };
+        const data = await res.json() as { success: boolean; coins?: number; packId?: string; usd?: number };
         if (data.success) {
-          // Wait for engine + skinSystem to init before granting coins
-          const grantCoins = () => {
+          const grantRewards = () => {
             if (!skinSystem.current) {
-              setTimeout(grantCoins, 200);
+              setTimeout(grantRewards, 200);
               return;
             }
+
+            // Tournament join verification
+            if (tournamentJoin === '1' && tournamentId) {
+              skinSystem.current.setActiveTournament(tournamentId);
+              setPaymentSuccess('Tournament joined! Your best score will be submitted automatically.');
+              setTimeout(() => setPaymentSuccess(null), 5000);
+              return;
+            }
+
+            // Regular shop purchase
             if ((data.coins ?? 0) > 0) {
               skinSystem.current.addCoins(data.coins!);
             }
             if (packId === 'welcome') {
               skinSystem.current.buyWelcomePack();
             }
+            // Track spending for tier system
+            if ((data.usd ?? 0) > 0) {
+              skinSystem.current.addSpending(data.usd!);
+            }
             setPaymentSuccess(`Payment successful! ${(data.coins ?? 0) > 0 ? `+${data.coins} BC` : 'Welcome Pack activated!'}`);
             setTimeout(() => setPaymentSuccess(null), 5000);
           };
-          grantCoins();
+          grantRewards();
         }
       } catch (err) {
         console.error('Payment verify failed:', err);
@@ -133,10 +152,31 @@ export default function GameUI() {
         setTimeout(() => setWaveFlashActive(false), 400);
       }
 
-      // Dead phase: clear transient UI
+      // Dead phase: clear transient UI + submit arena scores
       if (s.phase === 'dead') {
         setKillBanner(null);
         setHitMarkerActive(false);
+
+        // Submit tournament score if in an active tournament
+        if (skinSystem.current) {
+          const activeTournament = skinSystem.current.getActiveTournament();
+          if (activeTournament) {
+            submitTournamentScore(
+              activeTournament,
+              skinSystem.current.getUserId(),
+              s.currentWave,
+              s.totalKills,
+            ).catch(() => {});
+          }
+          // Submit to season leaderboard
+          const playerName = (typeof localStorage !== 'undefined' && localStorage.getItem('blitzpit_name')) || 'Player';
+          submitLeaderboardScore(
+            skinSystem.current.getUserId(),
+            playerName,
+            s.currentWave,
+            s.totalKills,
+          ).catch(() => {});
+        }
       }
 
       lastPhaseRef.current = s.phase;
@@ -358,7 +398,7 @@ export default function GameUI() {
 
       {/* LOBBY */}
       {gameState.phase === 'lobby' && (
-        <LobbyScreen engineRef={engineRef} skinSystem={skinSystem} bestLeaderboardEntry={bestLeaderboardEntry} onShowShop={() => setShowShop(true)} />
+        <LobbyScreen engineRef={engineRef} skinSystem={skinSystem} bestLeaderboardEntry={bestLeaderboardEntry} onShowShop={() => setShowShop(true)} onShowArena={() => setShowArena(true)} />
       )}
 
       {/* PLANE */}
@@ -385,6 +425,7 @@ export default function GameUI() {
           skinSystem={skinSystem}
           fmt={fmt}
           onShowShop={() => setShowShop(true)}
+          onShowArena={() => setShowArena(true)}
         />
       )}
 
@@ -398,6 +439,14 @@ export default function GameUI() {
               skinSystem.current.applySkinToMesh(engineRef.current.player.mesh);
             }
           }}
+        />
+      )}
+
+      {/* ARENA MODAL */}
+      {showArena && skinSystem.current && (
+        <ArenaModal
+          skinSystem={skinSystem.current}
+          onClose={() => setShowArena(false)}
         />
       )}
     </div>
