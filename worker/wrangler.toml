@@ -9,7 +9,7 @@ compatibility_date = "2024-09-23"
 [[d1_databases]]
 binding = "DB"
 database_name = "blitzpit-db"
-database_id = "TO_BE_CREATED"
+database_id = "a6b92446-d09b-48e3-833e-50f350a6b365"
 # Create DB: wrangler d1 create blitzpit-db
 # Apply schema: wrangler d1 execute blitzpit-db --file=schema.sql
 
