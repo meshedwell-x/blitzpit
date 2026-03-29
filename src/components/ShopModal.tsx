@@ -176,7 +176,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
             {/* Character Preview */}
             <div className="flex items-center gap-2 md:gap-3">
               <div className="hidden sm:flex flex-col items-center gap-0.5 p-2 bg-[#1a1f16] border border-[#c4a35a]/10">
-                <div className="text-[8px] font-mono text-[#6b7b6a] mb-1 tracking-wider uppercase">PREVIEW</div>
+                <div className="text-[8px] font-mono text-[#a0a890] mb-1 tracking-wider uppercase">PREVIEW</div>
                 <div className="flex flex-col items-center">
                   <div style={{ width: 18, height: 8, background: toHex(previewColors.body), opacity: 0.8 }} />
                   <div style={{ width: 14, height: 14, background: toHex(previewColors.head) }} />
@@ -195,7 +195,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center text-[#6b7b6a] hover:text-[#c4a35a] transition-colors"
+                className="w-8 h-8 flex items-center justify-center text-[#a0a890] hover:text-[#c4a35a] transition-colors"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M1 1l12 12M13 1L1 13" />
@@ -215,7 +215,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                 className={`relative px-3 py-1.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-all ${
                   tab === t
                     ? 'text-[#c4a35a] bg-[#c4a35a]/10'
-                    : 'text-[#6b7b6a] hover:text-[#c4a35a]/70'
+                    : 'text-[#a0a890] hover:text-[#c4a35a]/70'
                 }`}
               >
                 {TAB_LABELS[t]}
@@ -238,7 +238,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         <div className="overflow-y-auto flex-1 p-2 md:p-4">
           {tab === 'crates' && (
             <div className="flex flex-col gap-4">
-              <p className="text-[#6b7b6a] text-xs font-mono uppercase tracking-wider">Open supply crates for random field equipment. Basic crates cost WP. Premium crates cost BC.</p>
+              <p className="text-[#a0a890] text-xs font-mono uppercase tracking-wider">Open supply crates for random field equipment. Basic crates cost WP. Premium crates cost BC.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {SUPPLY_CRATES.map(crate => {
                   const canOpen = (crate.priceWP ? skinSystem.purchases.blitzPoints >= crate.priceWP : false)
@@ -259,7 +259,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                             <span className="text-xs font-mono font-bold text-[#d4a24e]">{crate.priceCUB} BC</span>
                           )}
                           {crate.priceINR && (
-                            <span className="text-[#6b7b6a] text-xs font-mono">or &#8377;{crate.priceINR}</span>
+                            <span className="text-[#a0a890] text-xs font-mono">or &#8377;{crate.priceINR}</span>
                           )}
                         </div>
                       </div>
@@ -282,7 +282,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                         className={`w-full py-2 text-sm font-bold tracking-wider uppercase active:scale-95 transition-all ${
                           canOpen
                             ? 'bg-[#d4a24e] text-black hover:bg-[#c4a35a]'
-                            : 'bg-[#2a2d2f] text-[#6b7b6a] cursor-not-allowed'
+                            : 'bg-[#2a2d2f] text-[#a0a890] cursor-not-allowed'
                         }`}
                         style={{ fontFamily: "'Teko', sans-serif", fontSize: '16px' }}
                       >
@@ -312,15 +312,15 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                   <div>
                     <h3 className="font-bold text-xl tracking-wider text-[#d4a24e] uppercase"
                       style={{ fontFamily: "'Teko', sans-serif" }}>{WELCOME_PACK.name}</h3>
-                    <p className="text-[#6b7b6a] text-sm mt-0.5">{WELCOME_PACK.description}</p>
+                    <p className="text-[#a0a890] text-sm mt-0.5">{WELCOME_PACK.description}</p>
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-xl text-[#d4a24e]" style={{ fontFamily: "'Teko', sans-serif" }}>&#8377;{WELCOME_PACK.priceINR}</div>
-                    <div className="text-[#6b7b6a] text-xs font-mono">${WELCOME_PACK.priceUSD.toFixed(2)}</div>
+                    <div className="text-[#a0a890] text-xs font-mono">${WELCOME_PACK.priceUSD.toFixed(2)}</div>
                   </div>
                 </div>
                 {skinSystem.purchases.welcomePurchased ? (
-                  <div className="w-full py-2 bg-[#2a2d2f] text-[#6b7b6a] font-bold text-sm text-center uppercase tracking-wider"
+                  <div className="w-full py-2 bg-[#2a2d2f] text-[#a0a890] font-bold text-sm text-center uppercase tracking-wider"
                     style={{ fontFamily: "'Teko', sans-serif" }}>
                     ACQUIRED
                   </div>
@@ -346,10 +346,10 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                         <p className="text-[#c4a35a] font-bold text-sm uppercase">{deal.name}</p>
                         <div className="text-right">
                           <div className="font-bold text-sm text-[#4a6741] font-mono">&#8377;{deal.priceINR}</div>
-                          <div className="text-[#6b7b6a] text-[10px] font-mono">${deal.priceUSD.toFixed(2)}</div>
+                          <div className="text-[#a0a890] text-[10px] font-mono">${deal.priceUSD.toFixed(2)}</div>
                         </div>
                       </div>
-                      <p className="text-[#6b7b6a] text-xs mb-2">{deal.description}</p>
+                      <p className="text-[#a0a890] text-xs mb-2">{deal.description}</p>
                       <button
                         className="w-full py-1.5 bg-[#4a6741] text-white font-bold text-xs active:scale-95 transition-all uppercase tracking-wider hover:bg-[#5a7751]"
                         onClick={() => stripeCheckout(deal.id)}
@@ -373,7 +373,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-[#c4a35a] font-bold text-sm uppercase">{pack.name}</p>
+                      <p className="text-[#eddcaa] font-bold text-sm uppercase">{pack.name}</p>
                       <p className="font-mono text-lg font-bold text-[#d4a24e]">
                         {(pack.coins + pack.bonus).toLocaleString()} BC
                         {pack.bonus > 0 && (
@@ -385,7 +385,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                     </div>
                     <div className="text-right">
                       <div className="text-[#c4a35a] font-mono font-bold text-sm">&#8377;{pack.priceINR}</div>
-                      <div className="text-[#6b7b6a] text-[10px] font-mono">${pack.priceUSD.toFixed(2)}</div>
+                      <div className="text-[#a0a890] text-[10px] font-mono">${pack.priceUSD.toFixed(2)}</div>
                     </div>
                   </div>
                   <button
@@ -410,12 +410,12 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                   {DAILY_DEALS.map(deal => (
                     <div key={deal.id} className="p-3 bg-[#1a1f16] border border-[#4a6741]/15">
                       <div className="flex justify-between items-start mb-1">
-                        <p className="text-[#c4a35a] font-bold text-xs uppercase">{deal.name}</p>
+                        <p className="text-[#eddcaa] font-bold text-xs uppercase">{deal.name}</p>
                         <div className="text-right">
                           <div className="font-bold text-xs text-[#4a6741] font-mono">&#8377;{deal.priceINR}</div>
                         </div>
                       </div>
-                      <p className="text-[#6b7b6a] text-[10px] mb-2">{deal.description}</p>
+                      <p className="text-[#a0a890] text-[10px] mb-2">{deal.description}</p>
                       <button
                         className="w-full py-1 bg-[#4a6741] text-white font-bold text-xs active:scale-95 transition-all uppercase tracking-wider hover:bg-[#5a7751]"
                         onClick={() => stripeCheckout(deal.id)}
@@ -463,11 +463,11 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                           )}
                         </div>
                         <div>
-                          <p className="text-[#c4a35a] text-xs font-bold leading-tight uppercase">{item.name}</p>
-                          <p className="text-[#6b7b6a] text-[10px] leading-tight mt-0.5">{item.description}</p>
+                          <p className="text-[#eddcaa] text-xs font-bold leading-tight uppercase">{item.name}</p>
+                          <p className="text-[#a0a890] text-[10px] leading-tight mt-0.5">{item.description}</p>
                         </div>
-                        <div className="text-[10px] font-mono text-[#6b7b6a]">
-                          <span className="text-[#c4a35a] font-bold">&#8377;{item.priceINR}</span>
+                        <div className="text-[10px] font-mono text-[#a0a890]">
+                          <span className="text-[#eddcaa] font-bold">&#8377;{item.priceINR}</span>
                           <span className="ml-1">or <span className="text-[#d4a24e]">{item.priceCUB} BC</span></span>
                         </div>
                         <div className="mt-auto">
@@ -475,7 +475,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                             onClick={() => handleUtilityAction(item.id)}
                             disabled={!canAfford}
                             className={`w-full py-1.5 text-xs font-bold active:scale-95 transition-all uppercase tracking-wider ${
-                              !canAfford ? 'bg-[#2a2d2f] text-[#6b7b6a] cursor-not-allowed' : 'bg-[#d4a24e] text-black hover:bg-[#c4a35a]'
+                              !canAfford ? 'bg-[#2a2d2f] text-[#a0a890] cursor-not-allowed' : 'bg-[#d4a24e] text-black hover:bg-[#c4a35a]'
                             }`}
                           >
                             {item.priceCUB.toLocaleString()} BC
@@ -535,14 +535,14 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                       )}
 
                       <div>
-                        <p className="text-[#c4a35a] text-xs font-bold leading-tight uppercase">{item.name}</p>
-                        <p className="text-[#6b7b6a] text-[10px] leading-tight mt-0.5">{item.description}</p>
+                        <p className="text-[#eddcaa] text-xs font-bold leading-tight uppercase">{item.name}</p>
+                        <p className="text-[#a0a890] text-[10px] leading-tight mt-0.5">{item.description}</p>
                       </div>
 
                       {/* Price display */}
                       {!owned && (
-                        <div className="text-[10px] font-mono text-[#6b7b6a]">
-                          <span className="text-[#c4a35a] font-bold">&#8377;{item.priceINR}</span>
+                        <div className="text-[10px] font-mono text-[#a0a890]">
+                          <span className="text-[#eddcaa] font-bold">&#8377;{item.priceINR}</span>
                           <span className="ml-1">or <span className="text-[#d4a24e]">{item.priceCUB} BC</span></span>
                         </div>
                       )}
@@ -564,7 +564,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
                             onClick={() => handleBuy(item.id)}
                             disabled={!canAfford}
                             className={`w-full py-1.5 text-xs font-bold active:scale-95 transition-all uppercase tracking-wider ${
-                              !canAfford ? 'bg-[#2a2d2f] text-[#6b7b6a] cursor-not-allowed' : 'bg-[#d4a24e] text-black hover:bg-[#c4a35a]'
+                              !canAfford ? 'bg-[#2a2d2f] text-[#a0a890] cursor-not-allowed' : 'bg-[#d4a24e] text-black hover:bg-[#c4a35a]'
                             }`}
                           >
                             {item.priceCUB.toLocaleString()} BC
@@ -581,7 +581,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
         {/* Footer */}
         <div className="px-3 py-1.5 md:px-5 md:py-2 border-t border-[#c4a35a]/10 text-center">
-          <p className="text-[#6b7b6a] text-[8px] md:text-[10px] font-mono uppercase tracking-wider">
+          <p className="text-[#a0a890] text-[8px] md:text-[10px] font-mono uppercase tracking-wider">
             Earn WP by playing (10/kill, 50/wave). BC via BLITZ COINS tab.
           </p>
         </div>
