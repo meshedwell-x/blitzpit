@@ -64,6 +64,14 @@ export default function GameUI() {
   const lastKillsRef = useRef(0);
   const lastPhaseRef = useRef<GameState['phase']>('lobby');
 
+  // Hit marker (X) on kill
+  const [hitMarkerActive, setHitMarkerActive] = useState(false);
+  const hitMarkerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Kill banner "Eliminated {name}"
+  const [killBanner, setKillBanner] = useState<string | null>(null);
+  const killBannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
@@ -82,6 +90,13 @@ export default function GameUI() {
         setWaveFlashActive(true);
         setTimeout(() => setWaveFlashActive(false), 400);
       }
+
+      // Dead phase: clear transient UI
+      if (s.phase === 'dead') {
+        setKillBanner(null);
+        setHitMarkerActive(false);
+      }
+
       lastPhaseRef.current = s.phase;
     };
 
@@ -117,11 +132,26 @@ export default function GameUI() {
         d.flashAlpha = Math.max(0, engine.flashTimer);
         d.gameState = { ...engine.gameState };
 
-        // Kill flash detection
+        // Kill flash + hit marker + banner detection
         const newKills = engine.player.state.kills;
         if (newKills > lastKillsRef.current) {
           setKillFlashActive(true);
           setTimeout(() => setKillFlashActive(false), 100);
+
+          // Hit marker (X) for 0.3s
+          if (hitMarkerTimerRef.current) clearTimeout(hitMarkerTimerRef.current);
+          setHitMarkerActive(true);
+          hitMarkerTimerRef.current = setTimeout(() => setHitMarkerActive(false), 300);
+
+          // Kill banner: find recently killed bot name from kill feed
+          const feed = engine.botSystem.killFeed;
+          const latestKill = feed.length > 0 ? feed[feed.length - 1] : null;
+          if (latestKill && latestKill.killer === 'You') {
+            if (killBannerTimerRef.current) clearTimeout(killBannerTimerRef.current);
+            setKillBanner(latestKill.victim);
+            killBannerTimerRef.current = setTimeout(() => setKillBanner(null), 2000);
+          }
+
           lastKillsRef.current = newKills;
         }
 
@@ -149,6 +179,7 @@ export default function GameUI() {
           if (i.type === 'weapon' && i.weaponId) item = `Pick up ${i.weaponId.toUpperCase()}`;
           else if (i.type === 'health') item = 'Pick up Health Pack';
           else if (i.type === 'ammo') item = 'Pick up Ammo';
+          else if (i.type === 'armor') item = 'Pick up Armor';
           break;
         }
         d.nearbyItem = item;
@@ -175,6 +206,8 @@ export default function GameUI() {
       cancelAnimationFrame(animFrameRef.current);
       document.removeEventListener('keydown', handleKey);
       if (streakTimerRef.current) clearTimeout(streakTimerRef.current);
+      if (hitMarkerTimerRef.current) clearTimeout(hitMarkerTimerRef.current);
+      if (killBannerTimerRef.current) clearTimeout(killBannerTimerRef.current);
       engine.destroy();
     };
   }, []);
@@ -211,14 +244,35 @@ export default function GameUI() {
       </button>
 
       {/* CROSSHAIR */}
-      {gameState.phase === 'playing' && (
+      {gameState.phase === 'playing' && !d.inVehicle && (() => {
+        const spread = weapon?.def.spread ?? 0.04;
+        const gap = Math.max(6, Math.round(spread * 200));
+        const size = gap * 2 + 8;
+        return (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="relative" style={{ width: size, height: size }}>
+              <div className="absolute left-1/2 -translate-x-1/2" style={{ top: 0, width: 2, height: gap, background: 'rgba(255,255,255,0.7)' }} />
+              <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: 0, width: 2, height: gap, background: 'rgba(255,255,255,0.7)' }} />
+              <div className="absolute top-1/2 -translate-y-1/2" style={{ left: 0, width: gap, height: 2, background: 'rgba(255,255,255,0.7)' }} />
+              <div className="absolute top-1/2 -translate-y-1/2" style={{ right: 0, width: gap, height: 2, background: 'rgba(255,255,255,0.7)' }} />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-red-500/60" />
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* HIT MARKER (X) on kill */}
+      {hitMarkerActive && gameState.phase === 'playing' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="relative w-8 h-8">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-2.5 bg-white/70" />
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0.5 h-2.5 bg-white/70" />
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-0.5 bg-white/70" />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-0.5 bg-white/70" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-red-500/50" />
+          <div className="text-red-500 font-black" style={{ fontSize: 28, lineHeight: 1, textShadow: '0 0 6px rgba(255,0,0,0.8)' }}>X</div>
+        </div>
+      )}
+
+      {/* KILL BANNER */}
+      {killBanner && gameState.phase === 'playing' && (
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 pointer-events-none">
+          <div className="bg-black/70 border border-red-500/60 px-4 py-1.5 rounded text-center">
+            <span className="text-red-400 text-sm font-bold font-mono">Eliminated {killBanner}</span>
           </div>
         </div>
       )}
@@ -262,13 +316,16 @@ export default function GameUI() {
       {/* KILL FEED */}
       {killFeed.length > 0 && (
         <div className="absolute top-12 right-10 flex flex-col gap-0.5">
-          {killFeed.map((k, i) => (
-            <div key={`${k.time}_${i}`} className="bg-black/60 px-2 py-0.5 rounded text-[10px] font-mono flex gap-1">
-              <span className={k.killer === 'You' ? 'text-yellow-400' : 'text-white'}>{k.killer}</span>
-              <span className="text-gray-500">[{k.weapon}]</span>
-              <span className={k.victim === 'You' ? 'text-red-400' : 'text-gray-300'}>{k.victim}</span>
-            </div>
-          ))}
+          {killFeed.map((k, i) => {
+            const isYouKill = k.killer === 'You';
+            return (
+              <div key={`${k.time}_${i}`} className={`px-2 py-0.5 rounded text-[12px] font-mono flex gap-1 ${isYouKill ? 'bg-yellow-900/50 border border-yellow-600/40' : 'bg-black/60'}`}>
+                <span className={isYouKill ? 'text-yellow-300 font-bold' : 'text-white'}>{k.killer}</span>
+                <span className="text-gray-500">[{k.weapon}]</span>
+                <span className={k.victim === 'You' ? 'text-red-400 font-bold' : 'text-gray-300'}>{k.victim}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -346,8 +403,12 @@ export default function GameUI() {
         </div>
       )}
       {inVehicle && (
-        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 bg-black/70 px-3 py-1.5 rounded border border-blue-500/50">
-          <span className="text-blue-300 text-xs font-mono">[E] Exit Vehicle | WASD Drive</span>
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 bg-black/70 px-4 py-2 rounded border border-blue-500/50 flex gap-4 items-center">
+          <span className="text-blue-300 text-xs font-mono">[E] Exit</span>
+          <span className="text-yellow-300 text-xs font-mono">
+            FUEL {Math.round(engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0)}%
+          </span>
+          <span className="text-gray-400 text-xs font-mono">WASD Drive</span>
         </div>
       )}
 
@@ -355,7 +416,7 @@ export default function GameUI() {
       {gameState.phase === 'playing' && <Minimap engine={engineRef.current} />}
 
       {/* MOBILE CONTROLS */}
-      {isMobile && gameState.phase === 'playing' && <MobileControls engine={engineRef.current} />}
+      {isMobile && gameState.phase === 'playing' && <MobileControls engine={engineRef.current} nearbyItem={nearbyItem} />}
 
       {/* INVENTORY (TAB) */}
       {showInventory && gameState.phase === 'playing' && (
@@ -375,6 +436,22 @@ export default function GameUI() {
           <div className="text-4xl md:text-5xl font-black text-yellow-400 drop-shadow-lg text-center tracking-wider">
             {streakLabel}
           </div>
+        </div>
+      )}
+
+      {/* ESC PAUSE OVERLAY */}
+      {engineRef.current?.isPaused && gameState.phase === 'playing' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 z-50">
+          <div className="text-4xl font-black text-white mb-6 tracking-widest">PAUSED</div>
+          <button
+            onClick={() => {
+              engineRef.current?.resume();
+              containerRef.current?.requestPointerLock();
+            }}
+            className="px-10 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-lg rounded transition-all active:scale-95"
+          >
+            RESUME
+          </button>
         </div>
       )}
 
@@ -402,10 +479,9 @@ export default function GameUI() {
           </button>
 
           <div className="mt-6 text-gray-500 text-[11px] font-mono space-y-0.5 text-center">
-            <p>WASD Move | SHIFT Sprint | C Crouch | SPACE Jump</p>
+            <p>ESC Pause | WASD Move | SHIFT Sprint | C Crouch | SPACE Jump</p>
             <p>Mouse Aim | Click Shoot | R Reload | F Pickup</p>
-            <p>1/2 Weapons | T Grenade Type | Q Drop | E Vehicle</p>
-            <p>TAB Inventory | M Mute | RMB Throw Grenade</p>
+            <p>1/2 Weapons | T Grenade Type | Q Drop | E Vehicle | TAB Inventory</p>
           </div>
         </div>
       )}
@@ -570,7 +646,7 @@ export default function GameUI() {
 }
 
 // ============ MOBILE CONTROLS ============
-function MobileControls({ engine }: { engine: GameEngine | null }) {
+function MobileControls({ engine, nearbyItem }: { engine: GameEngine | null; nearbyItem: string | null }) {
   const joyRef = useRef<HTMLDivElement>(null);
   const aimRef = useRef<HTMLDivElement>(null);
   const joyTouchId = useRef<number | null>(null);
@@ -700,16 +776,18 @@ function MobileControls({ engine }: { engine: GameEngine | null }) {
         <span className="text-white text-[9px] font-mono">RLD</span>
       </button>
 
-      {/* PICKUP (F) */}
-      <button
-        className="absolute left-1/2 -translate-x-1/2 bottom-44 px-4 py-2 bg-yellow-500/80 rounded active:bg-yellow-400"
-        onTouchStart={() => {
-          const ev = new KeyboardEvent('keydown', { code: 'KeyF' });
-          document.dispatchEvent(ev);
-        }}
-      >
-        <span className="text-black text-xs font-bold">PICK UP</span>
-      </button>
+      {/* PICKUP (F) - only shown when nearby item exists */}
+      {nearbyItem && (
+        <button
+          className="absolute left-1/2 -translate-x-1/2 bottom-44 px-4 py-2 bg-yellow-500/80 rounded active:bg-yellow-400"
+          onTouchStart={() => {
+            const ev = new KeyboardEvent('keydown', { code: 'KeyF' });
+            document.dispatchEvent(ev);
+          }}
+        >
+          <span className="text-black text-xs font-bold">PICK UP</span>
+        </button>
+      )}
 
       {/* GRENADE */}
       <button
@@ -863,9 +941,17 @@ function Minimap({ engine }: { engine: GameEngine | null }) {
       ctx.fillStyle = 'rgba(0,0,0,0.75)';
       ctx.fillRect(0, 0, size, size);
 
-      const scale = size / 400;
+      const scale = size / 800;
       const ox = size / 2;
       const oz = size / 2;
+
+      // Buildings (gray rects)
+      ctx.fillStyle = 'rgba(120,120,120,0.5)';
+      for (const b of engine.world.getBuildings()) {
+        const bx = b.x * scale + ox;
+        const bz = b.z * scale + oz;
+        ctx.fillRect(bx, bz, b.width * scale, b.depth * scale);
+      }
 
       // Zone
       const zr = engine.zoneSystem.currentRadius * scale;
