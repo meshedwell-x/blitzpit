@@ -1,0 +1,278 @@
+import * as THREE from 'three';
+import { WorldGenerator } from '../world/WorldGenerator';
+import { PlayerController } from '../player/PlayerController';
+
+export interface Vehicle {
+  id: string;
+  type: 'jeep' | 'buggy' | 'truck';
+  position: THREE.Vector3;
+  rotation: number; // yaw
+  speed: number;
+  maxSpeed: number;
+  health: number;
+  mesh: THREE.Group;
+  isOccupied: boolean;
+  occupantId: string | null;
+  fuel: number;
+}
+
+export class VehicleSystem {
+  private scene: THREE.Scene;
+  private world: WorldGenerator;
+  private player: PlayerController;
+  vehicles: Vehicle[] = [];
+  playerVehicle: Vehicle | null = null;
+  private keys: Set<string> = new Set();
+
+  constructor(scene: THREE.Scene, world: WorldGenerator, player: PlayerController) {
+    this.scene = scene;
+    this.world = world;
+    this.player = player;
+  }
+
+  init(): void {
+    document.addEventListener('keydown', (e) => {
+      this.keys.add(e.code);
+      if (e.code === 'KeyE') this.toggleVehicle();
+    });
+    document.addEventListener('keyup', (e) => this.keys.delete(e.code));
+  }
+
+  spawnVehicles(count: number = 12): void {
+    const rand = this.seededRandom(54321);
+    const types: Vehicle['type'][] = ['jeep', 'buggy', 'truck'];
+
+    for (let i = 0; i < count; i++) {
+      const x = (rand() - 0.5) * 300;
+      const z = (rand() - 0.5) * 300;
+      const h = this.world.getHeightAt(x, z);
+      if (h <= 5) continue; // skip water
+
+      const type = types[Math.floor(rand() * types.length)];
+      const mesh = this.createVehicleMesh(type);
+      mesh.position.set(x, h + 0.8, z);
+      mesh.rotation.y = rand() * Math.PI * 2;
+      this.scene.add(mesh);
+
+      this.vehicles.push({
+        id: `vehicle_${i}`,
+        type,
+        position: new THREE.Vector3(x, h + 0.8, z),
+        rotation: mesh.rotation.y,
+        speed: 0,
+        maxSpeed: type === 'truck' ? 18 : type === 'jeep' ? 25 : 30,
+        health: type === 'truck' ? 200 : 150,
+        mesh,
+        isOccupied: false,
+        occupantId: null,
+        fuel: 100,
+      });
+    }
+  }
+
+  private createVehicleMesh(type: Vehicle['type']): THREE.Group {
+    const group = new THREE.Group();
+
+    if (type === 'jeep') {
+      // Body
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(2.2, 1.0, 3.5),
+        new THREE.MeshLambertMaterial({ color: 0x4a6a3a })
+      );
+      body.position.y = 0.8;
+      body.castShadow = true;
+      group.add(body);
+
+      // Cabin frame
+      const cabin = new THREE.Mesh(
+        new THREE.BoxGeometry(2.0, 0.8, 1.5),
+        new THREE.MeshLambertMaterial({ color: 0x3a5a2a })
+      );
+      cabin.position.set(0, 1.5, -0.3);
+      group.add(cabin);
+
+      // Windshield
+      const windshield = new THREE.Mesh(
+        new THREE.BoxGeometry(1.8, 0.7, 0.1),
+        new THREE.MeshLambertMaterial({ color: 0x88bbdd, transparent: true, opacity: 0.5 })
+      );
+      windshield.position.set(0, 1.5, -1.0);
+      windshield.rotation.x = -0.2;
+      group.add(windshield);
+
+      // Wheels
+      this.addWheels(group, 1.0, 1.2, 0x222222);
+
+      // Roll bar
+      const rollBar = new THREE.Mesh(
+        new THREE.BoxGeometry(2.1, 0.08, 0.08),
+        new THREE.MeshLambertMaterial({ color: 0x333333 })
+      );
+      rollBar.position.set(0, 2.0, 0.5);
+      group.add(rollBar);
+
+    } else if (type === 'buggy') {
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(1.8, 0.6, 2.8),
+        new THREE.MeshLambertMaterial({ color: 0xcc6600 })
+      );
+      body.position.y = 0.7;
+      body.castShadow = true;
+      group.add(body);
+
+      // Open top frame
+      const frame1 = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 1.0, 0.08),
+        new THREE.MeshLambertMaterial({ color: 0x333333 })
+      );
+      frame1.position.set(-0.8, 1.2, -0.5);
+      group.add(frame1);
+      const frame2 = frame1.clone();
+      frame2.position.x = 0.8;
+      group.add(frame2);
+
+      this.addWheels(group, 0.9, 1.0, 0x222222);
+
+    } else { // truck
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(2.8, 1.5, 5.0),
+        new THREE.MeshLambertMaterial({ color: 0x5a5a4a })
+      );
+      body.position.y = 1.2;
+      body.castShadow = true;
+      group.add(body);
+
+      // Cabin
+      const cabin = new THREE.Mesh(
+        new THREE.BoxGeometry(2.6, 1.2, 2.0),
+        new THREE.MeshLambertMaterial({ color: 0x4a4a3a })
+      );
+      cabin.position.set(0, 2.2, -1.5);
+      group.add(cabin);
+
+      // Windshield
+      const ws = new THREE.Mesh(
+        new THREE.BoxGeometry(2.2, 0.9, 0.1),
+        new THREE.MeshLambertMaterial({ color: 0x88bbdd, transparent: true, opacity: 0.5 })
+      );
+      ws.position.set(0, 2.3, -2.5);
+      group.add(ws);
+
+      // Cargo bed
+      const cargo = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, 0.8, 2.5),
+        new THREE.MeshLambertMaterial({ color: 0x6a6a5a })
+      );
+      cargo.position.set(0, 1.8, 1.2);
+      group.add(cargo);
+
+      this.addWheels(group, 1.3, 1.8, 0x222222);
+    }
+
+    return group;
+  }
+
+  private addWheels(group: THREE.Group, offsetX: number, offsetZ: number, color: number): void {
+    const wheelGeo = new THREE.BoxGeometry(0.3, 0.6, 0.6);
+    const wheelMat = new THREE.MeshLambertMaterial({ color });
+
+    const positions = [
+      [-offsetX - 0.15, 0.3, -offsetZ],
+      [offsetX + 0.15, 0.3, -offsetZ],
+      [-offsetX - 0.15, 0.3, offsetZ],
+      [offsetX + 0.15, 0.3, offsetZ],
+    ];
+
+    for (const p of positions) {
+      const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+      wheel.position.set(p[0], p[1], p[2]);
+      group.add(wheel);
+    }
+  }
+
+  private toggleVehicle(): void {
+    if (this.playerVehicle) {
+      // Exit vehicle
+      this.playerVehicle.isOccupied = false;
+      this.playerVehicle.occupantId = null;
+      this.playerVehicle.speed = 0;
+
+      // Place player next to vehicle
+      const exitOffset = new THREE.Vector3(2.5, 0, 0);
+      exitOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerVehicle.rotation);
+      this.player.state.position.copy(this.playerVehicle.position).add(exitOffset);
+      this.player.mesh.visible = true;
+      this.playerVehicle = null;
+      return;
+    }
+
+    // Try enter nearest vehicle
+    for (const v of this.vehicles) {
+      if (v.isOccupied || v.health <= 0) continue;
+      const dist = this.player.state.position.distanceTo(v.position);
+      if (dist < 4) {
+        v.isOccupied = true;
+        v.occupantId = 'player';
+        this.playerVehicle = v;
+        this.player.mesh.visible = false;
+        break;
+      }
+    }
+  }
+
+  update(delta: number): void {
+    if (!this.playerVehicle) return;
+
+    const v = this.playerVehicle;
+    const accel = 15;
+    const turnSpeed = 2.5;
+    const friction = 0.95;
+
+    // Controls
+    if (this.keys.has('KeyW')) {
+      v.speed = Math.min(v.speed + accel * delta, v.maxSpeed);
+    } else if (this.keys.has('KeyS')) {
+      v.speed = Math.max(v.speed - accel * 1.5 * delta, -v.maxSpeed * 0.3);
+    } else {
+      v.speed *= friction;
+      if (Math.abs(v.speed) < 0.5) v.speed = 0;
+    }
+
+    if (this.keys.has('KeyA')) v.rotation += turnSpeed * delta * (v.speed > 0 ? 1 : -1);
+    if (this.keys.has('KeyD')) v.rotation -= turnSpeed * delta * (v.speed > 0 ? 1 : -1);
+
+    // Move
+    v.position.x -= Math.sin(v.rotation) * v.speed * delta;
+    v.position.z -= Math.cos(v.rotation) * v.speed * delta;
+
+    // Ground height
+    const groundH = this.world.getHeightAt(v.position.x, v.position.z);
+    v.position.y = groundH + 0.8;
+
+    // Fuel
+    if (v.speed !== 0) {
+      v.fuel -= Math.abs(v.speed) * delta * 0.05;
+      if (v.fuel <= 0) {
+        v.fuel = 0;
+        v.speed = 0;
+      }
+    }
+
+    // Update mesh
+    v.mesh.position.copy(v.position);
+    v.mesh.rotation.y = v.rotation;
+
+    // Player follows vehicle
+    this.player.state.position.copy(v.position);
+    this.player.state.position.y += 1.5;
+  }
+
+  isPlayerInVehicle(): boolean {
+    return this.playerVehicle !== null;
+  }
+
+  private seededRandom(seed: number): () => number {
+    let s = seed;
+    return () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  }
+}
