@@ -2,7 +2,7 @@ export interface ShopItem {
   id: string;
   name: string;
   description: string;
-  category: 'skin' | 'effect' | 'trail' | 'chute' | 'name_color' | 'banner' | 'utility';
+  category: 'skin' | 'effect' | 'trail' | 'chute' | 'name_color' | 'banner' | 'utility' | 'weapon_skin' | 'vehicle_skin' | 'emote' | 'title';
   rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'special';
   priceINR: number;
   priceUSD: number;
@@ -11,6 +11,48 @@ export interface ShopItem {
   emissive?: number;
   emissiveIntensity?: number;
 }
+
+export interface SupplyCrate {
+  id: string;
+  name: string;
+  priceWP?: number;
+  priceCUB?: number;
+  priceINR?: number;
+  items: { itemId: string; weight: number }[];
+}
+
+export const SUPPLY_CRATES: SupplyCrate[] = [
+  {
+    id: 'crate_basic',
+    name: 'Basic Crate',
+    priceWP: 500,
+    items: [
+      { itemId: 'skin_jungle', weight: 30 },
+      { itemId: 'skin_desert', weight: 30 },
+      { itemId: 'fx_explode', weight: 15 },
+      { itemId: 'trail_smoke', weight: 10 },
+      { itemId: 'skin_arctic', weight: 10 },
+      { itemId: 'skin_neon', weight: 4 },
+      { itemId: 'skin_lava', weight: 1 },
+    ],
+  },
+  {
+    id: 'crate_premium',
+    name: 'Premium Crate',
+    priceCUB: 300,
+    priceINR: 29,
+    items: [
+      { itemId: 'skin_arctic', weight: 25 },
+      { itemId: 'skin_neon', weight: 20 },
+      { itemId: 'fx_electric', weight: 15 },
+      { itemId: 'trail_spark', weight: 15 },
+      { itemId: 'name_rainbow', weight: 10 },
+      { itemId: 'skin_ghost', weight: 8 },
+      { itemId: 'skin_gold', weight: 5 },
+      { itemId: 'skin_shadow', weight: 2 },
+    ],
+  },
+];
 
 export interface CubCoinPack {
   id: string;
@@ -68,6 +110,20 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'revive_3', name: 'Revive Token x3', description: 'Revive on death (1/wave)', category: 'utility', rarity: 'special', priceINR: 19, priceUSD: 0.23, priceCUB: 200 },
   { id: 'xp_boost', name: '2x XP Boost (3hr)', description: 'Double XP for 3 hours', category: 'utility', rarity: 'special', priceINR: 29, priceUSD: 0.35, priceCUB: 250 },
   { id: 'name_change', name: 'Name Change', description: 'Change your nickname', category: 'utility', rarity: 'common', priceINR: 9, priceUSD: 0.11, priceCUB: 100 },
+  // Weapon Skins
+  { id: 'wskin_gold_ar', name: 'Gold Assault', description: 'Golden assault rifle', category: 'weapon_skin', rarity: 'legendary', priceINR: 199, priceUSD: 2.39, priceCUB: 2000 },
+  { id: 'wskin_neon_smg', name: 'Neon SMG', description: 'Neon glow SMG', category: 'weapon_skin', rarity: 'epic', priceINR: 99, priceUSD: 1.19, priceCUB: 1000 },
+  { id: 'wskin_red_sniper', name: 'Blood Sniper', description: 'Blood red sniper', category: 'weapon_skin', rarity: 'epic', priceINR: 149, priceUSD: 1.79, priceCUB: 1500 },
+  { id: 'wskin_camo_shotgun', name: 'Camo Shotgun', description: 'Forest camo shotgun', category: 'weapon_skin', rarity: 'rare', priceINR: 49, priceUSD: 0.59, priceCUB: 500 },
+  // Vehicle Skins
+  { id: 'vskin_flame_jeep', name: 'Flame Jeep', description: 'Fire painted jeep', category: 'vehicle_skin', rarity: 'epic', priceINR: 99, priceUSD: 1.19, priceCUB: 1000 },
+  { id: 'vskin_gold_buggy', name: 'Gold Buggy', description: 'Golden speed machine', category: 'vehicle_skin', rarity: 'legendary', priceINR: 199, priceUSD: 2.39, priceCUB: 2000 },
+  { id: 'vskin_army_truck', name: 'Army Truck', description: 'Military camo truck', category: 'vehicle_skin', rarity: 'rare', priceINR: 49, priceUSD: 0.59, priceCUB: 500 },
+  // Titles
+  { id: 'title_hunter', name: 'The Hunter', description: 'Kill 100 bots total', category: 'title', rarity: 'rare', priceINR: 0, priceUSD: 0, priceCUB: 0 },
+  { id: 'title_legend', name: 'Living Legend', description: 'Reach Wave 10', category: 'title', rarity: 'epic', priceINR: 0, priceUSD: 0, priceCUB: 0 },
+  { id: 'title_godofwar', name: 'God of War', description: 'Reach Wave 20', category: 'title', rarity: 'legendary', priceINR: 0, priceUSD: 0, priceCUB: 0 },
+  { id: 'title_whale', name: 'Big Spender', description: 'Exclusive VIP title', category: 'title', rarity: 'legendary', priceINR: 499, priceUSD: 5.99, priceCUB: 5000 },
 ];
 
 export const RARITY_COLORS_HEX: Record<string, string> = {

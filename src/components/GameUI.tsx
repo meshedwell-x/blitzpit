@@ -263,10 +263,11 @@ export default function GameUI() {
         {muted ? 'OFF' : 'SND'}
       </button>
 
-      {/* CUB COINS HUD */}
+      {/* CUB COINS + WILD POINTS HUD */}
       {gameState.phase === 'playing' && (
-        <div className="absolute top-2 right-12 bg-black/50 px-2 py-1 rounded text-[10px] font-mono text-yellow-400">
-          {skinSystem.current.purchases.cubCoins} CUB
+        <div className="absolute top-2 right-12 bg-black/50 px-2 py-1 rounded text-[10px] font-mono flex gap-2">
+          <span className="text-yellow-400">{skinSystem.current.purchases.cubCoins} CUB</span>
+          <span className="text-green-400">{skinSystem.current.purchases.wildPoints} WP</span>
         </div>
       )}
 

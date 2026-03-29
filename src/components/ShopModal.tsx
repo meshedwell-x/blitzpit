@@ -1,28 +1,45 @@
 'use client';
 import { useState } from 'react';
-import { SHOP_ITEMS, CUB_COIN_PACKS, RARITY_COLORS_HEX, WELCOME_PACK, DAILY_DEALS } from '../game/shop/monetization';
+import { SHOP_ITEMS, CUB_COIN_PACKS, RARITY_COLORS_HEX, WELCOME_PACK, DAILY_DEALS, SUPPLY_CRATES } from '../game/shop/monetization';
 import { SkinSystem } from '../game/shop/SkinSystem';
 
-type ShopTab = 'welcome' | 'skins' | 'effects' | 'utility' | 'coins';
+type ShopTab = 'welcome' | 'crates' | 'skins' | 'weapons' | 'vehicles' | 'effects' | 'utility' | 'coins';
 
 export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: SkinSystem; onClose: () => void; onSkinChange?: () => void }) {
   const [tab, setTab] = useState<ShopTab>('welcome');
   const [tick, setTick] = useState(0);
+  const [crateResult, setCrateResult] = useState<string | null>(null);
 
   const refresh = () => setTick(t => t + 1);
   void tick;
 
   const categoryMap: Record<ShopTab, string[]> = {
     welcome: [],
+    crates: [],
     skins: ['skin'],
+    weapons: ['weapon_skin'],
+    vehicles: ['vehicle_skin'],
     effects: ['effect', 'trail', 'name_color'],
-    utility: ['utility'],
+    utility: ['utility', 'title'],
     coins: [],
   };
 
-  const visibleItems = (tab === 'coins' || tab === 'welcome')
+  const visibleItems = (tab === 'coins' || tab === 'welcome' || tab === 'crates')
     ? []
     : SHOP_ITEMS.filter(item => categoryMap[tab].includes(item.category));
+
+  const handleOpenCrate = (crateId: string) => {
+    const result = skinSystem.openCrate(crateId);
+    if (result) {
+      const item = SHOP_ITEMS.find(i => i.id === result);
+      setCrateResult(item ? `${item.name} (${item.rarity.toUpperCase()})` : result);
+      setTimeout(() => setCrateResult(null), 3000);
+    } else {
+      setCrateResult('Not enough currency');
+      setTimeout(() => setCrateResult(null), 2000);
+    }
+    refresh();
+  };
 
   const handleBuy = (itemId: string) => {
     skinSystem.buyWithCoins(itemId);
@@ -33,6 +50,9 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
     if (category === 'skin') skinSystem.equipSkin(skinSystem.purchases.activeSkin === itemId ? null : itemId);
     else if (category === 'effect' || category === 'trail') skinSystem.equipEffect(skinSystem.purchases.activeEffect === itemId ? null : itemId);
     else if (category === 'name_color') skinSystem.equipNameColor(skinSystem.purchases.activeNameColor === itemId ? null : itemId);
+    else if (category === 'weapon_skin') skinSystem.equipWeaponSkin(skinSystem.purchases.activeWeaponSkin === itemId ? null : itemId);
+    else if (category === 'vehicle_skin') skinSystem.equipVehicleSkin(skinSystem.purchases.activeVehicleSkin === itemId ? null : itemId);
+    else if (category === 'title') skinSystem.equipTitle(skinSystem.purchases.activeTitle === itemId ? null : itemId);
     refresh();
     if (onSkinChange) onSkinChange();
   };
@@ -41,6 +61,9 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
     if (category === 'skin') return skinSystem.purchases.activeSkin === itemId;
     if (category === 'effect' || category === 'trail') return skinSystem.purchases.activeEffect === itemId;
     if (category === 'name_color') return skinSystem.purchases.activeNameColor === itemId;
+    if (category === 'weapon_skin') return skinSystem.purchases.activeWeaponSkin === itemId;
+    if (category === 'vehicle_skin') return skinSystem.purchases.activeVehicleSkin === itemId;
+    if (category === 'title') return skinSystem.purchases.activeTitle === itemId;
     return false;
   };
 
@@ -57,7 +80,10 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
 
   const TAB_LABELS: Record<ShopTab, string> = {
     welcome: 'WELCOME',
+    crates: 'CRATES',
     skins: 'SKINS',
+    weapons: 'WEAPONS',
+    vehicles: 'VEHICLES',
     effects: 'EFFECTS',
     utility: 'UTILITY',
     coins: 'CUB COINS',
@@ -79,6 +105,9 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-yellow-400 text-xs font-mono">
                 {skinSystem.purchases.cubCoins.toLocaleString()} CUB
+              </p>
+              <p className="text-green-400 text-xs font-mono">
+                {skinSystem.purchases.wildPoints.toLocaleString()} WP
               </p>
               {skinSystem.purchases.isVIP && (
                 <span className="text-[9px] font-bold font-mono bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 px-1.5 py-0.5 rounded">VIP</span>
@@ -110,8 +139,69 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
           ))}
         </div>
 
+        {/* Crate Result Popup */}
+        {crateResult && (
+          <div className="mx-4 mt-2 bg-purple-900/80 border border-purple-400/60 rounded-lg px-4 py-2 text-center">
+            <p className="text-purple-200 text-sm font-bold font-mono">{crateResult}</p>
+          </div>
+        )}
+
         {/* Content */}
         <div className="overflow-y-auto flex-1 p-4">
+          {tab === 'crates' && (
+            <div className="flex flex-col gap-4">
+              <p className="text-gray-400 text-xs font-mono">Open crates to earn random cosmetic items. Basic crates cost WP (earned in-game). Premium crates cost CUB.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {SUPPLY_CRATES.map(crate => {
+                  const canOpen = (crate.priceWP ? skinSystem.purchases.wildPoints >= crate.priceWP : false)
+                    || (crate.priceCUB ? skinSystem.purchases.cubCoins >= crate.priceCUB : false);
+                  return (
+                    <div key={crate.id} className="bg-gray-800 border border-gray-600 rounded-xl p-4 flex flex-col gap-3">
+                      <div>
+                        <h3 className="text-white font-black text-base">{crate.name}</h3>
+                        <div className="flex gap-2 mt-1">
+                          {crate.priceWP && (
+                            <span className="text-green-400 text-xs font-mono font-bold">{crate.priceWP} WP</span>
+                          )}
+                          {crate.priceCUB && (
+                            <span className="text-yellow-400 text-xs font-mono font-bold">{crate.priceCUB} CUB</span>
+                          )}
+                          {crate.priceINR && (
+                            <span className="text-white text-xs font-mono">or &#8377;{crate.priceINR}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {crate.items.map(ci => {
+                          const shopItem = SHOP_ITEMS.find(i => i.id === ci.itemId);
+                          if (!shopItem) return null;
+                          const rColor = RARITY_COLORS_HEX[shopItem.rarity];
+                          return (
+                            <span key={ci.itemId} className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                              style={{ color: rColor, background: `${rColor}20`, border: `1px solid ${rColor}40` }}>
+                              {shopItem.name}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => handleOpenCrate(crate.id)}
+                        disabled={!canOpen}
+                        className={`w-full py-2 text-sm font-bold rounded active:scale-95 transition-all ${
+                          canOpen
+                            ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                            : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        OPEN
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {tab === 'welcome' && (
             <div className="flex flex-col gap-4">
               {/* Welcome Pack */}
@@ -291,7 +381,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
             </div>
           )}
 
-          {(tab === 'skins' || tab === 'effects') && (
+          {(tab === 'skins' || tab === 'effects' || tab === 'weapons' || tab === 'vehicles') && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {visibleItems.map(item => {
                 const owned = skinSystem.owns(item.id);
@@ -382,7 +472,7 @@ export function ShopModal({ skinSystem, onClose, onSkinChange }: { skinSystem: S
         {/* Footer */}
         <div className="px-5 py-2 border-t border-gray-700 text-center">
           <p className="text-gray-600 text-[10px] font-mono">
-            Earn CUB coins by purchasing packs in the CUB COINS tab
+            Earn WP by playing (10 per kill, 50 per wave). Earn CUB via the CUB COINS tab.
           </p>
         </div>
       </div>

@@ -1,15 +1,19 @@
 import * as THREE from 'three';
-import { SHOP_ITEMS, ShopItem } from './monetization';
+import { SHOP_ITEMS, SUPPLY_CRATES, ShopItem } from './monetization';
 
 const STORAGE_KEY = 'cubwild_purchases';
 
 export interface PlayerPurchases {
   cubCoins: number;
+  wildPoints: number;
   ownedItems: string[];
   activeSkin: string | null;
   activeEffect: string | null;
   activeTrail: string | null;
   activeNameColor: string | null;
+  activeWeaponSkin: string | null;
+  activeVehicleSkin: string | null;
+  activeTitle: string | null;
   isVIP: boolean;
   reviveTokens: number;
   xpBoostEndTime: number; // timestamp
@@ -19,11 +23,15 @@ export interface PlayerPurchases {
 function defaultStats(): PlayerPurchases {
   return {
     cubCoins: 0,
+    wildPoints: 0,
     ownedItems: [],
     activeSkin: null,
     activeEffect: null,
     activeTrail: null,
     activeNameColor: null,
+    activeWeaponSkin: null,
+    activeVehicleSkin: null,
+    activeTitle: null,
     isVIP: false,
     reviveTokens: 0,
     xpBoostEndTime: 0,
@@ -91,6 +99,50 @@ export class SkinSystem {
   equipNameColor(itemId: string | null): void {
     this.purchases.activeNameColor = itemId;
     this.save();
+  }
+
+  equipWeaponSkin(itemId: string | null): void {
+    this.purchases.activeWeaponSkin = itemId;
+    this.save();
+  }
+
+  equipVehicleSkin(itemId: string | null): void {
+    this.purchases.activeVehicleSkin = itemId;
+    this.save();
+  }
+
+  equipTitle(itemId: string | null): void {
+    this.purchases.activeTitle = itemId;
+    this.save();
+  }
+
+  openCrate(crateId: string): string | null {
+    const crate = SUPPLY_CRATES.find(c => c.id === crateId);
+    if (!crate) return null;
+
+    if (crate.priceWP && this.purchases.wildPoints >= crate.priceWP) {
+      this.purchases.wildPoints -= crate.priceWP;
+    } else if (crate.priceCUB && this.purchases.cubCoins >= crate.priceCUB) {
+      this.purchases.cubCoins -= crate.priceCUB;
+    } else {
+      return null;
+    }
+
+    const totalWeight = crate.items.reduce((sum, i) => sum + i.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for (const item of crate.items) {
+      roll -= item.weight;
+      if (roll <= 0) {
+        if (!this.purchases.ownedItems.includes(item.itemId)) {
+          this.purchases.ownedItems.push(item.itemId);
+        } else {
+          this.purchases.cubCoins += 50;
+        }
+        this.save();
+        return item.itemId;
+      }
+    }
+    return null;
   }
 
   getActiveSkin(): ShopItem | null {

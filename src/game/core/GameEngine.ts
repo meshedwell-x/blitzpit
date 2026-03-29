@@ -630,6 +630,20 @@ export class GameEngine {
     // Heal player
     this.player.heal(PLAYER_HEAL_BETWEEN_WAVES);
 
+    // Award Wild Points for wave clear
+    this.skinSystem.purchases.wildPoints += 50;
+    this.skinSystem.save();
+
+    // Achievement titles on wave milestones
+    if (wave >= 10 && !this.skinSystem.owns('title_legend')) {
+      this.skinSystem.purchases.ownedItems.push('title_legend');
+      this.skinSystem.save();
+    }
+    if (wave >= 20 && !this.skinSystem.owns('title_godofwar')) {
+      this.skinSystem.purchases.ownedItems.push('title_godofwar');
+      this.skinSystem.save();
+    }
+
     // Update scoreboard wave
     this.scoreboardSystem.updateWave(wave);
 
@@ -860,15 +874,20 @@ export class GameEngine {
           for (let k = 0; k < killsDelta; k++) {
             this.scoreboardSystem.recordKill(false);
             this.soundManager.playKillConfirm();
+            // Award Wild Points per kill
+            this.skinSystem.purchases.wildPoints += 10;
           }
 
-          // Boss kill reward
+          // Boss kill reward + WP bonus
           const killedBoss = this.bossSystem.bosses.find(b => b.isDead && b.id.startsWith('boss_'));
           if (killedBoss) {
             this.soundManager.playWaveComplete();
             this.player.heal(50);
             this.player.addArmor(50);
+            this.skinSystem.purchases.wildPoints += 100;
           }
+
+          this.skinSystem.save();
 
           // Kill streak
           this.killStreakTimer = 5;
@@ -878,6 +897,12 @@ export class GameEngine {
           const streakLabel = this.scoreboardSystem.getKillStreakLabel(this.gameState.killStreak);
           if (streakLabel) {
             this.soundManager.playKillStreak(this.gameState.killStreak);
+          }
+
+          // Achievement titles
+          if (this.scoreboardSystem.stats.totalKills >= 100 && !this.skinSystem.owns('title_hunter')) {
+            this.skinSystem.purchases.ownedItems.push('title_hunter');
+            this.skinSystem.save();
           }
         }
 
