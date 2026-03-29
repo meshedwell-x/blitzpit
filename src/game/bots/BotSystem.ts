@@ -27,6 +27,8 @@ export interface Bot {
   lootingTimeLeft: number; // required looting time before switching to fighting
   inBuilding: boolean; // is bot currently inside a building
   flashlight: THREE.PointLight | null;
+  personality: 'aggressive' | 'cautious' | 'sniper' | 'scavenger' | 'camper';
+  level: 'recruit' | 'soldier' | 'veteran' | 'elite' | 'boss';
 }
 
 const BOT_NAMES = [
@@ -52,6 +54,19 @@ const BOT_NAMES = [
   'Sweat', 'Goated', 'TouchGrass', 'Ratio',
   'Sussy', 'NPC_Andy', 'AimBot', 'Lag',
 ];
+
+const BOT_PERSONALITIES: Bot['personality'][] = ['aggressive', 'cautious', 'sniper', 'scavenger', 'camper'];
+
+function randomPersonality(): Bot['personality'] {
+  return BOT_PERSONALITIES[Math.floor(Math.random() * BOT_PERSONALITIES.length)];
+}
+
+function skillToLevel(skill: number): Bot['level'] {
+  if (skill > 0.8) return 'elite';
+  if (skill > 0.6) return 'veteran';
+  if (skill > 0.4) return 'soldier';
+  return 'recruit';
+}
 
 export class BotSystem {
   bots: Bot[] = [];
@@ -106,6 +121,7 @@ export class BotSystem {
       this.scene.add(group);
 
       // Wave 1: all bots unarmed, start looting
+      const personality = randomPersonality();
       this.bots.push({
         id: `bot_${i}`,
         position: new THREE.Vector3(x, spawnY, z),
@@ -126,6 +142,8 @@ export class BotSystem {
         lootingTimeLeft: lootTime,
         inBuilding: false,
         flashlight: null,
+        personality,
+        level: skillToLevel(skill),
       });
     }
   }
@@ -346,6 +364,32 @@ export class BotSystem {
       return;
     }
 
+    // Camper: never leave building -- ignore fight timer if inside
+    if (bot.personality === 'camper' && bot.inBuilding) {
+      // Stay inside, only shoot if target is within range
+      const weapon = WEAPONS[bot.weaponId];
+      if (!weapon) return;
+      let targetPos = playerPos;
+      let targetDist = this.player.state.isDead ? Infinity : bot.position.distanceTo(playerPos);
+      for (const other of this.bots) {
+        if (other.id === bot.id || other.isDead) continue;
+        const d = bot.position.distanceTo(other.position);
+        if (d < targetDist) { targetDist = d; targetPos = other.position; }
+      }
+      if (targetDist < weapon.range && bot.fireTimer <= 0) {
+        const fireDir = this._tmpFireDir.subVectors(targetPos, bot.position).normalize();
+        const inaccuracy = (1 - bot.accuracy) * 0.15;
+        fireDir.x += (Math.random() - 0.5) * inaccuracy;
+        fireDir.y += (Math.random() - 0.5) * inaccuracy;
+        fireDir.z += (Math.random() - 0.5) * inaccuracy;
+        fireDir.normalize();
+        this._tmpFirePos.copy(bot.position); this._tmpFirePos.y += 0.5;
+        this.weaponSystem.fireBotWeapon(this._tmpFirePos, fireDir, bot.weaponId, bot.id);
+        bot.fireTimer = 1 / weapon.fireRate * (1 + (1 - bot.skill) * 0.5);
+      }
+      return;
+    }
+
     const weapon = WEAPONS[bot.weaponId];
     if (!weapon) return;
 
@@ -361,9 +405,11 @@ export class BotSystem {
       }
     }
 
+    // Personality: aggressive has extended detection
+    const detectionMult = bot.personality === 'aggressive' ? 1.3 : 1.0;
     const effectiveDetection = bot.inBuilding
-      ? bot.detectionRange * 0.5
-      : bot.detectionRange;
+      ? bot.detectionRange * 0.5 * detectionMult
+      : bot.detectionRange * detectionMult;
 
     // Lose interest if target too far
     if (targetDist > effectiveDetection * 2) {
@@ -372,8 +418,9 @@ export class BotSystem {
       return;
     }
 
-    // Seek cover when health is low
-    if (bot.health < 50) {
+    // Personality: cautious seeks cover earlier
+    const coverHpThreshold = bot.personality === 'cautious' ? bot.health * 100 * 0.5 : 50;
+    if (bot.health < coverHpThreshold) {
       const buildings = this.world.getBuildings();
       let nearestBuildingDist = Infinity;
       let ncx = 0, ncz = 0;
@@ -404,8 +451,9 @@ export class BotSystem {
       .normalize();
     bot.mesh.rotation.y = Math.atan2(dir.x, dir.z);
 
-    // Optimal range behavior
-    const optimalRange = weapon.range * 0.4;
+    // Optimal range: sniper prefers to stay farther back
+    const rangeMultiplier = bot.personality === 'sniper' ? 0.7 : 0.4;
+    const optimalRange = weapon.range * rangeMultiplier;
     if (targetDist > optimalRange * 1.5) {
       bot.position.x += dir.x * PLAYER_SPEED * 0.5 * delta;
       bot.position.z += dir.z * PLAYER_SPEED * 0.5 * delta;
@@ -443,7 +491,12 @@ export class BotSystem {
       bot.fireTimer = 1 / weapon.fireRate * (1 + (1 - bot.skill) * 0.5);
     }
 
-    if (bot.health < 30) {
+    // Personality-based flee HP threshold
+    let fleeHpThreshold = 30;
+    if (bot.personality === 'aggressive') fleeHpThreshold = 15;
+    else if (bot.personality === 'cautious') fleeHpThreshold = 50;
+
+    if (bot.health < fleeHpThreshold) {
       bot.state = 'fleeing';
       bot.stateTimer = 5;
       return;
@@ -652,6 +705,7 @@ export class BotSystem {
       const weaponId = hasWeapon ? weapons[Math.floor(Math.random() * weapons.length)] : null;
 
       const hasArmor = Math.random() < config.botArmorChance;
+      const wavePersonality = randomPersonality();
       this.bots.push({
         id: `bot_w${i}_${Date.now()}`,
         position: new THREE.Vector3(x, spawnY, z),
@@ -672,6 +726,8 @@ export class BotSystem {
         lootingTimeLeft: lootTime,
         inBuilding: false,
         flashlight: null,
+        personality: wavePersonality,
+        level: skillToLevel(skill),
       });
     }
   }
@@ -709,6 +765,8 @@ export class BotSystem {
         name: BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)] + '_' + Math.floor(Math.random() * 100),
         lootingTimeLeft: 5 + Math.random() * 5,
         inBuilding: false, flashlight: null,
+        personality: randomPersonality(),
+        level: skillToLevel(skill),
       });
       this.alive++;
     }
