@@ -74,6 +74,8 @@ export class GameEngine {
   private killStreakTimer = 0;
   private lastKillCount = 0;
 
+  isPaused = false;
+
   onStateChange: ((state: GameState) => void) | null = null;
   private _onResize: () => void = () => {};
 
@@ -230,6 +232,60 @@ export class GameEngine {
       this.soundManager.playKillConfirm();
     };
 
+    // Player fire callback
+    this.weaponSystem.onFire = (weaponType, pos, dir) => {
+      this.soundManager.playGunshot(weaponType);
+      this.particleSystem.emitMuzzleFlash(pos, dir);
+      this.player.applyRecoil(1.0);
+    };
+
+    // Bot fire callback
+    this.weaponSystem.onBotFire = (pos, _dir, weaponType) => {
+      this.soundManager.playGunshot(weaponType);
+    };
+
+    // Item pickup callback
+    this.weaponSystem.onPickup = (pos) => {
+      this.soundManager.playPickup();
+      this.particleSystem.emitPickupGlow(pos);
+    };
+
+    // Bot hit callback
+    this.botSystem.onBotHit = (pos, isHeadshot) => {
+      this.particleSystem.emitHitSpark(pos);
+      this.particleSystem.emitBlood(pos);
+      if (isHeadshot) this.soundManager.playHeadshot();
+      this.player.addShake(0.1);
+    };
+
+    // Bot death callback
+    this.botSystem.onBotDeath = (pos) => {
+      this.particleSystem.emitDeath(pos);
+    };
+
+    // Player hit callback
+    this.botSystem.onPlayerHit = () => {
+      this.soundManager.playDamageTaken();
+      this.player.addShake(0.2);
+    };
+
+    // Zone shrink start callback
+    this.zoneSystem.onShrinkStart = () => {
+      this.soundManager.playZoneWarning();
+    };
+
+    // Zone outside warning callback
+    this.zoneSystem.onPlayerOutsideZone = () => {
+      this.soundManager.playZoneWarning();
+    };
+
+    // ESC pause via pointerlock
+    document.addEventListener('pointerlockchange', () => {
+      if (!document.pointerLockElement && this.gameState.phase === 'playing') {
+        this.isPaused = true;
+      }
+    });
+
     this.botSystem.setWaveManager(this.waveManager);
 
     this.player.mesh.visible = false;
@@ -270,7 +326,10 @@ export class GameEngine {
     this.player.state.velocity.set(
       this.planeDirection.x * 20, -this.dropSpeed, this.planeDirection.z * 20
     );
+    const yaw = Math.atan2(-this.planeDirection.x, -this.planeDirection.z);
+    this.player.setYaw(yaw);
     this.player.mesh.visible = true;
+    if (this.planeMesh) this.planeMesh.visible = false;
     this.notifyStateChange();
   }
 
@@ -315,18 +374,25 @@ export class GameEngine {
       this.planeMesh.rotation.y = Math.atan2(this.planeDirection.x, this.planeDirection.z);
     }
 
-    this._tmpSide.set(-this.planeDirection.z * 25, 15, this.planeDirection.x * 25);
-    this.camera.position.copy(this.planePosition).add(this._tmpSide);
+    this.camera.position.set(
+      this.planePosition.x + this.planeDirection.x * 30,
+      this.planePosition.y + 15,
+      this.planePosition.z + this.planeDirection.z * 30
+    );
     this.camera.lookAt(this.planePosition);
 
-    if (this.planeTimer > 25) this.drop();
+    if (this.planeTimer > 15 ||
+        Math.abs(this.planePosition.x) > 400 ||
+        Math.abs(this.planePosition.z) > 400) {
+      this.drop();
+    }
   }
 
   private updateDropping(delta: number): void {
     const groundH = this.world.getHeightAt(this.player.state.position.x, this.player.state.position.z);
 
-    // Safety auto-open very close to ground (5m)
-    if (!this.parachuteOpen && this.player.state.position.y < groundH + 5) {
+    // Safety auto-open very close to ground (15m)
+    if (!this.parachuteOpen && this.player.state.position.y < groundH + 15) {
       this.openParachute();
     }
 
@@ -372,16 +438,18 @@ export class GameEngine {
         this.player.state.position.z
       );
     } else {
+      const yaw = this.player.getYaw();
       this.camera.position.set(
-        this.player.state.position.x + this.planeDirection.x * 12,
+        this.player.state.position.x + Math.sin(yaw) * 12,
         this.player.state.position.y + 8,
-        this.player.state.position.z + this.planeDirection.z * 12
+        this.player.state.position.z + Math.cos(yaw) * 12
       );
       this.camera.lookAt(this.player.state.position);
     }
 
     if (this.player.state.position.y <= groundH + 0.6) {
       this.player.state.position.y = groundH + 0.6;
+      this.player.state.velocity.set(0, 0, 0);
       this.player.state.isGrounded = true;
       this.gameState.phase = 'playing';
       this.player.mesh.visible = true;
@@ -412,6 +480,16 @@ export class GameEngine {
     }
     this.weaponSystem.items = [];
 
+    // Clear bullets and grenades
+    this.weaponSystem.clearBullets();
+    this.grenadeSystem.clearAll();
+
+    // Refuel and repair vehicles
+    for (const v of this.vehicleSystem.vehicles) {
+      v.fuel = 100;
+      v.health = v.type === 'truck' ? 200 : 150;
+    }
+
     // Respawn bots
     this.botSystem.respawnForWave(config);
 
@@ -434,7 +512,16 @@ export class GameEngine {
     this.notifyStateChange();
   }
 
+  resume(): void {
+    this.isPaused = false;
+  }
+
   update(): void {
+    if (this.isPaused) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.gameState.gameTime += delta;
     if (this.flashTimer > 0) this.flashTimer -= delta;

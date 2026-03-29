@@ -16,6 +16,8 @@ export interface WaveConfig {
   botArmorChance: number;
   botWeaponChance: number;
   scoreMultiplier: number;
+  botHealthBonus: number;
+  botArmorBonus: number;
 }
 
 export class WaveManager {
@@ -27,10 +29,10 @@ export class WaveManager {
   private botsTotal = 0;
 
   getWaveConfig(wave: number): WaveConfig {
-    // Wave-based weapon chance: Wave1=0%, Wave2=20%, Wave3+=30%+wave*5%, Wave5+=50%+
+    // Wave-based weapon chance: Wave1=25%, Wave2=20%, Wave3+=30%+wave*5%, Wave5+=50%+
     let botWeaponChance: number;
     if (wave <= 1) {
-      botWeaponChance = 0;
+      botWeaponChance = 0.25;
     } else if (wave === 2) {
       botWeaponChance = 0.2;
     } else if (wave >= 5) {
@@ -41,17 +43,19 @@ export class WaveManager {
 
     return {
       botCount: Math.min(39 + wave * 5, 80),
-      botSkillMin: Math.min(0.3 + wave * 0.05, 0.7),
+      botSkillMin: Math.min(0.3 + wave * 0.05, 0.9),
       botSkillMax: Math.min(0.7 + wave * 0.05, 1.0),
       zoneShrinkSpeedMultiplier: 1 + wave * 0.1,
       botArmorChance: Math.min(0.3 + wave * 0.05, 0.8),
       botWeaponChance,
       scoreMultiplier: 1 + wave * 0.5,
+      botHealthBonus: Math.max(0, (wave - 8) * 5),
+      botArmorBonus: Math.max(0, (wave - 8) * 3),
     };
   }
 
   getLootingTime(wave: number): number {
-    if (wave <= 1) return 15 + Math.random() * 15; // 15-30s
+    if (wave <= 1) return 10 + Math.random() * 5; // 10-15s
     if (wave === 2) return 10 + Math.random() * 5;  // 10-15s
     if (wave >= 5) return 3 + Math.random() * 2;    // 3-5s
     return 8 + Math.random() * 2;                   // 8-10s

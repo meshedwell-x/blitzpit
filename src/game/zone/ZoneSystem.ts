@@ -19,6 +19,9 @@ export class ZoneSystem {
   private zoneEdgeMesh: THREE.Mesh;
   private safeZoneMesh: THREE.Mesh;
   onBotKill: ((botId: string) => void) | null = null;
+  onShrinkStart: (() => void) | null = null;
+  onPlayerOutsideZone: (() => void) | null = null;
+  private zoneWarningTimer = 0;
 
   constructor(scene: THREE.Scene, player: PlayerController) {
     this.scene = scene;
@@ -81,6 +84,7 @@ export class ZoneSystem {
       if (this.phaseTimer <= 0) {
         this.isShrinking = true;
         this.shrinkTimer = phase.shrinkTime;
+        if (this.onShrinkStart) this.onShrinkStart();
 
         // Calculate next zone
         const maxOffset = this.currentRadius * 0.3;
@@ -125,6 +129,13 @@ export class ZoneSystem {
 
     if (playerDist > this.currentRadius && !this.player.state.isDead) {
       this.player.takeDamage(phase.damage * delta);
+      this.zoneWarningTimer -= delta;
+      if (this.zoneWarningTimer <= 0) {
+        this.zoneWarningTimer = 2.0;
+        if (this.onPlayerOutsideZone) this.onPlayerOutsideZone();
+      }
+    } else {
+      this.zoneWarningTimer = 0;
     }
 
     // Damage bots outside zone
@@ -192,6 +203,7 @@ export class ZoneSystem {
     this.isShrinking = false;
     this.shrinkTimer = 0;
     this.speedMultiplier = 1.0;
+    this.zoneWarningTimer = 0;
     this.updateZoneMesh();
   }
 

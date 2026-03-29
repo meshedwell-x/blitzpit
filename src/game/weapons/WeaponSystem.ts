@@ -42,6 +42,10 @@ export class WeaponSystem {
   private bulletMaterial: THREE.MeshBasicMaterial;
   private weaponModel: THREE.Group;
 
+  onFire: ((weaponType: string, position: THREE.Vector3, direction: THREE.Vector3) => void) | null = null;
+  onBotFire: ((position: THREE.Vector3, direction: THREE.Vector3, weaponType: string) => void) | null = null;
+  onPickup: ((position: THREE.Vector3, type: string) => void) | null = null;
+
   private _onMouseDown: (e: MouseEvent) => void = () => {};
   private _onMouseUp: (e: MouseEvent) => void = () => {};
   private _onKeyDown: (e: KeyboardEvent) => void = () => {};
@@ -139,18 +143,18 @@ export class WeaponSystem {
       if (spawn.type === 'weapon') {
         const weaponDef = WEAPONS[spawn.weaponId || 'pistol'];
         mesh = new THREE.Mesh(
-          new THREE.BoxGeometry(0.3, 0.2, 0.6),
-          new THREE.MeshLambertMaterial({ color: weaponDef.color })
+          new THREE.BoxGeometry(0.4, 0.3, 0.7),
+          new THREE.MeshLambertMaterial({ color: weaponDef.color, emissive: new THREE.Color(weaponDef.color), emissiveIntensity: 0.3 })
         );
       } else if (spawn.type === 'health') {
         mesh = new THREE.Mesh(
-          new THREE.BoxGeometry(0.3, 0.3, 0.3),
-          new THREE.MeshLambertMaterial({ color: 0xff4444 })
+          new THREE.BoxGeometry(0.35, 0.35, 0.35),
+          new THREE.MeshLambertMaterial({ color: 0xff4444, emissive: 0xff0000, emissiveIntensity: 0.3 })
         );
       } else if (spawn.type === 'ammo') {
         mesh = new THREE.Mesh(
-          new THREE.BoxGeometry(0.2, 0.2, 0.2),
-          new THREE.MeshLambertMaterial({ color: 0xffaa00 })
+          new THREE.BoxGeometry(0.25, 0.25, 0.25),
+          new THREE.MeshLambertMaterial({ color: 0xffaa00, emissive: 0xffaa00, emissiveIntensity: 0.2 })
         );
       } else {
         mesh = new THREE.Mesh(
@@ -210,6 +214,7 @@ export class WeaponSystem {
         this.player.addArmor(50);
       }
 
+      if (this.onPickup) this.onPickup(item.position.clone(), item.type);
       item.collected = true;
       this.scene.remove(item.mesh);
       break;
@@ -255,6 +260,8 @@ export class WeaponSystem {
 
     const pellets = w.def.type === 'shotgun' ? 8 : 1;
     const dir = this.player.getAimDirection();
+    const startPos = this.player.state.position.clone();
+    startPos.y += 1.2;
 
     for (let i = 0; i < pellets; i++) {
       const spread = w.def.spread;
@@ -265,14 +272,13 @@ export class WeaponSystem {
       bulletDir.normalize();
 
       const bulletMesh = new THREE.Mesh(this.bulletGeometry, this.bulletMaterial);
-      const startPos = this.player.state.position.clone();
-      startPos.y += 1.2;
-      startPos.add(bulletDir.clone().multiplyScalar(1.5));
-      bulletMesh.position.copy(startPos);
+      const bPos = startPos.clone();
+      bPos.add(bulletDir.clone().multiplyScalar(1.5));
+      bulletMesh.position.copy(bPos);
       this.scene.add(bulletMesh);
 
       this.bullets.push({
-        position: startPos,
+        position: bPos,
         velocity: bulletDir.multiplyScalar(w.def.bulletSpeed),
         damage: w.def.damage,
         range: w.def.range,
@@ -281,6 +287,8 @@ export class WeaponSystem {
         ownerId: 'player',
       });
     }
+
+    if (this.onFire) this.onFire(w.def.type, startPos, dir);
   }
 
   fireBotWeapon(position: THREE.Vector3, direction: THREE.Vector3, weaponId: string, botId: string): void {
@@ -308,6 +316,8 @@ export class WeaponSystem {
       mesh: bulletMesh,
       ownerId: botId,
     });
+
+    if (this.onBotFire) this.onBotFire(position.clone(), direction.clone(), weaponId);
   }
 
   update(delta: number): void {
@@ -402,5 +412,10 @@ export class WeaponSystem {
       this.scene.remove(this.bullets[index].mesh);
       this.bullets.splice(index, 1);
     }
+  }
+
+  clearBullets(): void {
+    for (const b of this.bullets) { this.scene.remove(b.mesh); }
+    this.bullets = [];
   }
 }

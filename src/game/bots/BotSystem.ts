@@ -54,6 +54,10 @@ export class BotSystem {
   private _tmpStrafeDir = new THREE.Vector3();
   private _tmpFirePos = new THREE.Vector3();
 
+  onBotHit: ((position: THREE.Vector3, isHeadshot: boolean, damage: number) => void) | null = null;
+  onBotDeath: ((position: THREE.Vector3) => void) | null = null;
+  onPlayerHit: (() => void) | null = null;
+
   constructor(
     scene: THREE.Scene,
     world: WorldGenerator,
@@ -186,6 +190,10 @@ export class BotSystem {
         bot.position.y = surfaceY;
       }
 
+      // Map bounds
+      bot.position.x = Math.max(-400, Math.min(400, bot.position.x));
+      bot.position.z = Math.max(-400, Math.min(400, bot.position.z));
+
       // Update mesh
       bot.mesh.position.copy(bot.position);
 
@@ -273,9 +281,27 @@ export class BotSystem {
         bot.targetPos = null;
       }
     }
+
+    // Bot-vs-bot: detect nearby armed bots
+    if (bot.weaponId && bot.lootingTimeLeft <= 0) {
+      for (const other of this.bots) {
+        if (other.id === bot.id || other.isDead) continue;
+        const d = bot.position.distanceTo(other.position);
+        if (d < bot.detectionRange * 0.4) {
+          bot.state = 'fighting';
+          bot.stateTimer = 3 + Math.random() * 5;
+          break;
+        }
+      }
+    }
   }
 
   private updateLooting(bot: Bot, delta: number): void {
+    const distToPlayer = bot.position.distanceTo(this.player.state.position);
+    if (distToPlayer < bot.detectionRange && !this.player.state.isDead) {
+      if (!bot.weaponId) { bot.state = 'fleeing'; bot.stateTimer = 8; return; }
+    }
+
     // Find nearest weapon
     let nearestItem: { position: THREE.Vector3; weaponId?: string; index: number } | null = null;
     let nearestDist = Infinity;
@@ -471,6 +497,7 @@ export class BotSystem {
         const distToPlayer = bullet.position.distanceTo(this.player.state.position);
         if (distToPlayer < 1.0) {
           this.player.takeDamage(bullet.damage);
+          if (this.onPlayerHit) this.onPlayerHit();
           if (this.player.state.isDead) {
             const killerBot = this.bots.find(b => b.id === bullet.ownerId);
             this.killFeed.push({
@@ -491,7 +518,7 @@ export class BotSystem {
         const dist = bullet.position.distanceTo(bot.position);
         if (dist < 1.2) {
           // Headshot check
-          const headY = bot.position.y + 0.4;
+          const headY = bot.position.y + 1.2;
           const isHeadshot = Math.abs(bullet.position.y - headY) < 0.3;
           const damage = isHeadshot ? bullet.damage * 2.5 : bullet.damage;
 
@@ -502,6 +529,8 @@ export class BotSystem {
           } else {
             bot.health -= damage;
           }
+
+          if (this.onBotHit) this.onBotHit(bot.position.clone(), isHeadshot, damage);
 
           // Hit reaction
           if (!bot.isDead && bot.state !== 'fighting') {
@@ -517,6 +546,21 @@ export class BotSystem {
             // Death animation - lay down
             bot.mesh.rotation.x = Math.PI / 2;
             bot.mesh.position.y -= 0.5;
+
+            if (this.onBotDeath) this.onBotDeath(bot.position.clone());
+
+            // Remove dead bot mesh after 5 seconds
+            const deadMesh = bot.mesh;
+            const sceneRef = this.scene;
+            setTimeout(() => {
+              sceneRef.remove(deadMesh);
+              deadMesh.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                  child.geometry.dispose();
+                  if (child.material instanceof THREE.Material) child.material.dispose();
+                }
+              });
+            }, 5000);
 
             const killerName = bullet.ownerId === 'player' ? 'You' :
               (this.bots.find(b => b.id === bullet.ownerId)?.name || 'Bot');
@@ -576,7 +620,7 @@ export class BotSystem {
     if (bot.health <= 0) {
       bot.isDead = true;
       bot.health = 0;
-      this.alive--;
+      this.alive = Math.max(0, this.alive - 1);
       bot.mesh.rotation.x = Math.PI / 2;
       bot.mesh.position.y -= 0.5;
 
@@ -679,12 +723,13 @@ export class BotSystem {
       const hasWeapon = Math.random() < config.botWeaponChance;
       const weaponId = hasWeapon ? weapons[Math.floor(Math.random() * weapons.length)] : null;
 
+      const hasArmor = Math.random() < config.botArmorChance;
       this.bots.push({
         id: `bot_w${i}_${Date.now()}`,
         position: new THREE.Vector3(x, spawnY, z),
         velocity: new THREE.Vector3(0, 0, 0),
-        health: 100,
-        armor: Math.random() < config.botArmorChance ? 50 : 0,
+        health: 100 + (config.botHealthBonus || 0),
+        armor: hasArmor ? 50 + (config.botArmorBonus || 0) : 0,
         isDead: false,
         weaponId,
         mesh: group,

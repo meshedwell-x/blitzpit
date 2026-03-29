@@ -242,4 +242,11 @@ export class GrenadeSystem {
       this.inventory[type] = (this.inventory[type] || 0) + count;
     }
   }
+
+  clearAll(): void {
+    for (const g of this.grenades) { this.scene.remove(g.mesh); }
+    this.grenades = [];
+    for (const s of this.smokeClouds) { this.scene.remove(s.mesh); }
+    this.smokeClouds = [];
+  }
 }

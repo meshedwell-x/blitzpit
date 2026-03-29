@@ -286,6 +286,7 @@ export class PlayerController {
       this.state.position.z
     );
     this.mesh.rotation.y = this.yaw;
+    this.mesh.scale.y = this.state.isCrouching ? 0.7 : 1.0;
 
     // Walk animation
     if (isMoving && this.state.isGrounded) {
@@ -335,6 +336,20 @@ export class PlayerController {
       this.state.position.z
     );
     this.camera.lookAt(lookTarget);
+
+    // Camera shake
+    if (this.shakeAmount > 0) {
+      this.camera.position.x += (Math.random() - 0.5) * this.shakeAmount;
+      this.camera.position.y += (Math.random() - 0.5) * this.shakeAmount * 0.5;
+      this.shakeAmount *= 0.9;
+      if (this.shakeAmount < 0.01) this.shakeAmount = 0;
+    }
+
+    // Camera terrain collision
+    const camGroundH = this.world.getHeightAt(this.camera.position.x, this.camera.position.z);
+    if (this.camera.position.y < camGroundH + 1.5) {
+      this.camera.position.y = camGroundH + 1.5;
+    }
   }
 
   takeDamage(amount: number): void {
@@ -388,6 +403,16 @@ export class PlayerController {
   getYaw(): number {
     return this.yaw;
   }
+
+  setYaw(value: number): void { this.yaw = value; }
+
+  applyRecoil(amount: number): void {
+    this.pitch += amount * 0.015;
+    this.pitch = Math.max(-1.2, Math.min(0.6, this.pitch));
+  }
+
+  private shakeAmount = 0;
+  addShake(amount: number): void { this.shakeAmount = Math.min(this.shakeAmount + amount, 0.5); }
 
   setMobileInput(x: number, z: number): void {
     this.mobileInput.x = x;
