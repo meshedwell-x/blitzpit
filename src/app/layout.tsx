@@ -62,21 +62,12 @@ export const metadata: Metadata = {
     title: "BLITZPIT - Free Battle Royale Browser Game",
     description:
       "Endless voxel battle royale in your browser. No download. No signup. Just fight.",
-    images: [
-      {
-        url: `${SITE_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
-        alt: "BLITZPIT - Voxel Battle Royale",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "BLITZPIT - Free Battle Royale Browser Game",
     description:
       "Endless voxel battle royale in your browser. No download. Just fight.",
-    images: [`${SITE_URL}/og-image.png`],
   },
   alternates: {
     canonical: SITE_URL,
