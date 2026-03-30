@@ -206,6 +206,7 @@ export class GameEngine {
     document.addEventListener('pointerlockchange', this._onPointerLockChange);
 
     this.botSystem.setWaveManager(this.waveManager);
+    this.botSystem.setVehicles(this.vehicleSystem.vehicles);
 
     // Mobile: zone shrinks 2x faster so the effective play area collapses
     // quicker, compensating for the wide map on small screens.

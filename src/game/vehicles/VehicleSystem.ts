@@ -5,7 +5,7 @@ import { createVehicleMesh } from './VehicleMesh';
 
 export interface Vehicle {
   id: string;
-  type: 'jeep' | 'buggy' | 'truck';
+  type: 'jeep' | 'buggy' | 'truck' | 'helicopter';
   position: THREE.Vector3;
   rotation: number;
   speed: number;
@@ -80,6 +80,28 @@ export class VehicleSystem {
         mesh, isOccupied: false, occupantId: null, fuel: 100, headlight: null,
       });
     }
+
+    // Spawn 2 helicopters near map center (military area)
+    const heliRand = this.seededRandom(99887);
+    for (let i = 0; i < 2; i++) {
+      const angle = (i / 2) * Math.PI * 2 + heliRand() * 0.5;
+      const dist = 80 + heliRand() * 60;
+      const hx = Math.cos(angle) * dist;
+      const hz = Math.sin(angle) * dist;
+      const hh = this.world.getHeightAt(hx, hz);
+      if (hh <= 3) continue;
+      const heliMesh = createVehicleMesh('helicopter');
+      heliMesh.position.set(hx, hh + 2.0, hz);
+      heliMesh.rotation.y = heliRand() * Math.PI * 2;
+      this.scene.add(heliMesh);
+      this.vehicles.push({
+        id: `heli_${i}`, type: 'helicopter',
+        position: new THREE.Vector3(hx, hh + 2.0, hz),
+        rotation: heliMesh.rotation.y, speed: 0,
+        maxSpeed: 35, health: 180,
+        mesh: heliMesh, isOccupied: false, occupantId: null, fuel: 60, headlight: null,
+      });
+    }
   }
 
   private toggleVehicle(): void {
@@ -110,10 +132,77 @@ export class VehicleSystem {
   update(delta: number): void {
     if (!this.playerVehicle) return;
     const v = this.playerVehicle;
+    if (this.honkCooldown > 0) this.honkCooldown -= delta;
+
+    if (v.type === 'helicopter') {
+      this.updateHelicopter(v, delta);
+    } else {
+      this.updateGroundVehicle(v, delta);
+    }
+
+    this.player.state.position.copy(v.position);
+    this.player.state.position.y += 1.5;
+
+    if (v.health <= 0) {
+      v.isOccupied = false;
+      v.occupantId = null;
+      this.player.state.position.copy(v.position);
+      this.player.state.position.y += 2;
+      this.player.mesh.visible = true;
+      this.player.takeDamage(30);
+      this.playerVehicle = null;
+    }
+  }
+
+  private updateHelicopter(v: Vehicle, delta: number): void {
+    // Ascend / descend
+    if (this.keys.has('Space')) {
+      v.position.y += 12 * delta;
+      v.fuel -= 0.15 * delta;
+    }
+    if (this.keys.has('KeyC') || this.keys.has('ControlLeft')) {
+      v.position.y -= 10 * delta;
+    }
+
+    // Minimum altitude: ground + 2
+    const groundH = this.world.getHeightAt(v.position.x, v.position.z);
+    if (v.position.y < groundH + 2) v.position.y = groundH + 2;
+    if (v.position.y > 100) v.position.y = 100;
+
+    // Horizontal movement
+    const moveSpeed = v.maxSpeed * 0.8;
+    if (this.keys.has('KeyW')) {
+      v.position.x -= Math.sin(v.rotation) * moveSpeed * delta;
+      v.position.z -= Math.cos(v.rotation) * moveSpeed * delta;
+      v.speed = moveSpeed;
+    } else if (this.keys.has('KeyS')) {
+      v.position.x += Math.sin(v.rotation) * moveSpeed * 0.5 * delta;
+      v.position.z += Math.cos(v.rotation) * moveSpeed * 0.5 * delta;
+      v.speed = -moveSpeed * 0.5;
+    } else {
+      v.speed *= 0.9;
+    }
+    if (this.keys.has('KeyA')) v.rotation += 2.5 * delta;
+    if (this.keys.has('KeyD')) v.rotation -= 2.5 * delta;
+
+    // Fuel consumption
+    v.fuel -= Math.abs(v.speed) * delta * 0.1;
+    if (v.fuel <= 0) { v.fuel = 0; v.position.y -= 5 * delta; }
+
+    v.mesh.position.copy(v.position);
+    v.mesh.rotation.y = v.rotation;
+
+    // Rotor animation
+    const mainRotor = v.mesh.getObjectByName('mainRotor');
+    if (mainRotor) mainRotor.rotation.y += 15 * delta;
+    const tailRotor = v.mesh.getObjectByName('tailRotor');
+    if (tailRotor) tailRotor.rotation.x += 20 * delta;
+  }
+
+  private updateGroundVehicle(v: Vehicle, delta: number): void {
     const accel = 15;
     const turnSpeed = 2.5;
     const friction = 0.95;
-    if (this.honkCooldown > 0) this.honkCooldown -= delta;
 
     if (this.keys.has('KeyW')) {
       v.speed += (v.maxSpeed - v.speed) * accel * delta * 0.15;
@@ -167,19 +256,6 @@ export class VehicleSystem {
       v.position.x + Math.sin(v.rotation) * 1.5, v.position.z + Math.cos(v.rotation) * 1.5);
     const targetPitch = Math.atan2(backH - frontH, 3.0);
     v.mesh.rotation.x += (targetPitch - v.mesh.rotation.x) * delta * 5;
-
-    this.player.state.position.copy(v.position);
-    this.player.state.position.y += 1.5;
-
-    if (v.health <= 0) {
-      v.isOccupied = false;
-      v.occupantId = null;
-      this.player.state.position.copy(v.position);
-      this.player.state.position.y += 2;
-      this.player.mesh.visible = true;
-      this.player.takeDamage(30);
-      this.playerVehicle = null;
-    }
   }
 
   setNightMode(isNight: boolean): void {

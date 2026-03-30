@@ -331,6 +331,75 @@ export function updateFleeing(bot: Bot, delta: number, ctx: BotAIContext): void 
   }
 }
 
+export function updateBotDriving(bot: Bot, delta: number, playerPos: THREE.Vector3, world: WorldGenerator): void {
+  const v = bot.vehicleRef;
+  if (!v || v.health <= 0 || v.fuel <= 0) {
+    exitBotVehicle(bot);
+    return;
+  }
+
+  // Drive toward player
+  const dx = playerPos.x - v.position.x;
+  const dz = playerPos.z - v.position.z;
+  const targetAngle = Math.atan2(-dx, -dz);
+
+  let angleDiff = targetAngle - v.rotation;
+  while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+  while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+  v.rotation += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), 2.0 * delta);
+
+  const distToPlayer = Math.sqrt(dx * dx + dz * dz);
+  if (distToPlayer > 5) {
+    v.speed = Math.min(v.speed + 15 * delta, v.maxSpeed * 0.7);
+  } else {
+    v.speed *= 0.95;
+  }
+
+  const newX = v.position.x - Math.sin(v.rotation) * v.speed * delta;
+  const newZ = v.position.z - Math.cos(v.rotation) * v.speed * delta;
+  v.position.x = newX;
+  v.position.z = newZ;
+
+  const groundH = world.getHeightAt(v.position.x, v.position.z);
+  v.position.y = groundH + 0.8;
+
+  // Fuel consumption
+  v.fuel -= Math.abs(v.speed) * delta * 0.05;
+
+  // Sync mesh
+  v.mesh.position.copy(v.position);
+  v.mesh.rotation.y = v.rotation;
+
+  // Wheel animation
+  const childCount = v.mesh.children.length;
+  for (let wi = Math.max(0, childCount - 4); wi < childCount; wi++) {
+    const wheel = v.mesh.children[wi];
+    if (wheel) wheel.rotation.x += v.speed * delta * 0.5;
+  }
+
+  // Bot follows vehicle position
+  bot.position.copy(v.position);
+
+  // Exit conditions
+  if (bot.health < 30 || v.fuel < 5 || bot.stateTimer <= 0) {
+    exitBotVehicle(bot);
+  }
+}
+
+function exitBotVehicle(bot: Bot): void {
+  if (bot.vehicleRef) {
+    bot.vehicleRef.isOccupied = false;
+    bot.vehicleRef.occupantId = null;
+    bot.vehicleRef.speed = 0;
+    bot.position.x += 2;
+    bot.vehicleRef = null;
+  }
+  bot.inVehicle = false;
+  bot.mesh.visible = true;
+  bot.state = 'roaming';
+  bot.stateTimer = 3;
+}
+
 export function updateWalkAnimation(bot: Bot): void {
   const isMoving = bot.state === 'roaming' || bot.state === 'fighting' || bot.state === 'fleeing' || bot.state === 'looting';
   if (isMoving && bot.state !== 'landing') {

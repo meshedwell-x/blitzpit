@@ -3,7 +3,7 @@ import { SimplexNoise } from '../core/noise';
 import { WORLD_SIZE, WATER_LEVEL } from '../core/constants';
 import { generateHeightMap, generateRiver, generateRoads, buildTerrainMesh, addGroundPlane, addWater } from './TerrainGenerator';
 import { Building, generateBuildings, buildBuildingMeshes } from './BuildingGenerator';
-import { ItemSpawn, POILocation, generateTrees, generateRocks, generateItemSpawns } from './VegetationGenerator';
+import { ItemSpawn, POILocation, generateTrees, generateRocks, generateItemSpawns, generateBushes, generateFences, generateFallenTrees, generateUrbanDetails } from './VegetationGenerator';
 import { generatePOIs } from './POIGenerator';
 
 export class WorldGenerator {
@@ -44,6 +44,10 @@ export class WorldGenerator {
     buildBuildingMeshes(this.scene, this.buildings, this.getHeightAt.bind(this));
     generateTrees(this.scene, this.treePositions, this.treeGrid, this.treeGridCellSize, this.buildings, this.getHeightAt.bind(this), this.seededRandom.bind(this));
     generateRocks(this.scene, this.buildings, this.getHeightAt.bind(this), this.seededRandom.bind(this));
+    generateBushes(this.scene, this.buildings, this.getHeightAt.bind(this), this.seededRandom.bind(this));
+    generateFences(this.scene, this.buildings, this.getHeightAt.bind(this), this.seededRandom.bind(this));
+    generateFallenTrees(this.scene, this.buildings, this.getHeightAt.bind(this), this.seededRandom.bind(this));
+    generateUrbanDetails(this.scene, this.buildings, this.getHeightAt.bind(this), this.seededRandom.bind(this));
     generateItemSpawns(this.itemSpawns, this.buildings, this.getHeightAt.bind(this), this.seededRandom.bind(this));
     addGroundPlane(this.scene);
     addWater(this.scene);

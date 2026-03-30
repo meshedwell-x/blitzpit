@@ -227,6 +227,48 @@ export function updatePlayingPhase(engine: GameEngine, delta: number): void {
   engine.weaponSystem.update(delta);
   engine.grenadeSystem.update(delta, engine.botSystem.bots);
   engine.botSystem.update(delta);
+
+  // Bot-driven vehicle roadkill: bots driving into player
+  for (const bot of engine.botSystem.bots) {
+    if (!bot.inVehicle || !bot.vehicleRef || bot.isDead) continue;
+    const bv = bot.vehicleRef;
+    if (Math.abs(bv.speed) < 3) continue;
+    if (!engine.player.state.isDead) {
+      const dx = bv.position.x - engine.player.state.position.x;
+      const dz = bv.position.z - engine.player.state.position.z;
+      if (Math.sqrt(dx * dx + dz * dz) < 2.5) {
+        engine.player.takeDamage(Math.abs(bv.speed) * 4);
+        bv.speed *= 0.7;
+        engine.particleSystem.emitHitSpark(engine.player.state.position.clone());
+        engine.soundManager.playExplosion();
+        engine.player.addShake(0.3);
+      }
+    }
+    // Bot vehicles ramming other bots
+    for (const target of engine.botSystem.bots) {
+      if (target.id === bot.id || target.isDead || target.inVehicle) continue;
+      const dx = bv.position.x - target.position.x;
+      const dz = bv.position.z - target.position.z;
+      if (Math.sqrt(dx * dx + dz * dz) < 2.5) {
+        const dmg = Math.abs(bv.speed) * 4;
+        target.health -= dmg;
+        bv.speed *= 0.7;
+        engine.particleSystem.emitHitSpark(target.position.clone());
+        if (target.health <= 0 && !target.isDead) {
+          target.isDead = true;
+          target.health = 0;
+          target.mesh.rotation.x = Math.PI / 2;
+          engine.botSystem.alive = Math.max(0, engine.botSystem.alive - 1);
+          engine.particleSystem.emitDeath(target.position.clone());
+          target.deathTime = Date.now();
+          engine.botSystem.killFeed.push({
+            killer: bot.name, victim: target.name, weapon: 'Vehicle', time: Date.now()
+          });
+        }
+        break;
+      }
+    }
+  }
   engine.bossSystem.updatePhases();
   engine.zoneSystem.update(delta, engine.botSystem.bots);
   engine.particleSystem.update(delta);

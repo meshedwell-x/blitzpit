@@ -78,6 +78,8 @@ export class BossSystem {
       specialCooldown: 5,
       maxHealth: cfg.hp,
       rewardClaimed: false,
+      inVehicle: false,
+      vehicleRef: null,
     };
 
     this.bosses.push(boss);

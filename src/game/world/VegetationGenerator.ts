@@ -32,7 +32,7 @@ export function generateTrees(
   const leafPositions: THREE.Matrix4[] = [];
   const matrix = new THREE.Matrix4();
 
-  for (let i = 0; i < 6000; i++) {
+  for (let i = 0; i < 10000; i++) {
     const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.8);
     const z = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.8);
     const height = getHeightAt(x, z);
@@ -114,7 +114,7 @@ export function generateRocks(
   const rand = seededRandom(55555);
   const rockPositions: THREE.Matrix4[] = [];
   const matrix = new THREE.Matrix4();
-  const count = 1200;
+  const count = 3000;
 
   for (let i = 0; i < count; i++) {
     const x = Math.floor((rand() - 0.5) * WORLD_SIZE * 0.8);
@@ -129,7 +129,7 @@ export function generateRocks(
     );
     if (inBuilding) continue;
 
-    const rockH = 2 + Math.floor(rand() * 3);
+    const rockH = 1 + Math.floor(rand() * 5);
     for (let y = 0; y < rockH; y++) {
       const scale = 1 + rand() * 0.5;
       matrix.makeScale(scale, 1, scale);
@@ -149,6 +149,194 @@ export function generateRocks(
     }
     rockMesh.instanceMatrix.needsUpdate = true;
     scene.add(rockMesh);
+  }
+}
+
+export function generateBushes(
+  scene: THREE.Scene,
+  buildings: Building[],
+  getHeightAt: (x: number, z: number) => number,
+  seededRandom: (seed: number) => () => number
+): void {
+  const rand = seededRandom(33333);
+  const bushPositions: THREE.Matrix4[] = [];
+  const matrix = new THREE.Matrix4();
+  const scale = new THREE.Matrix4();
+
+  for (let i = 0; i < 2000; i++) {
+    const x = (rand() - 0.5) * WORLD_SIZE * 0.85;
+    const z = (rand() - 0.5) * WORLD_SIZE * 0.85;
+    const height = getHeightAt(x, z);
+    if (height <= WATER_LEVEL + 1) continue;
+
+    const inBuilding = buildings.some(b =>
+      x >= b.x - 1 && x <= b.x + b.width + 1 &&
+      z >= b.z - 1 && z <= b.z + b.depth + 1
+    );
+    if (inBuilding) continue;
+
+    const sx = 0.6 + rand() * 0.6;
+    const sy = 0.4 + rand() * 0.4;
+    const sz = 0.6 + rand() * 0.6;
+    scale.makeScale(sx, sy, sz);
+    matrix.makeTranslation(x, height + 0.25, z);
+    matrix.multiply(scale);
+    bushPositions.push(matrix.clone());
+  }
+
+  if (bushPositions.length > 0) {
+    const bushGeo = new THREE.BoxGeometry(1.0, 0.6, 1.0);
+    const bushMat = new THREE.MeshLambertMaterial({ color: 0x3a6b2a });
+    const bushMesh = new THREE.InstancedMesh(bushGeo, bushMat, bushPositions.length);
+    bushMesh.castShadow = false;
+    for (let i = 0; i < bushPositions.length; i++) {
+      bushMesh.setMatrixAt(i, bushPositions[i]);
+    }
+    bushMesh.instanceMatrix.needsUpdate = true;
+    scene.add(bushMesh);
+  }
+}
+
+export function generateFences(
+  scene: THREE.Scene,
+  buildings: Building[],
+  getHeightAt: (x: number, z: number) => number,
+  seededRandom: (seed: number) => () => number
+): void {
+  const rand = seededRandom(44444);
+  const fencePositions: THREE.Matrix4[] = [];
+  const matrix = new THREE.Matrix4();
+  const rotation = new THREE.Matrix4();
+
+  for (let i = 0; i < 80; i++) {
+    const x = (rand() - 0.5) * WORLD_SIZE * 0.7;
+    const z = (rand() - 0.5) * WORLD_SIZE * 0.7;
+    const height = getHeightAt(x, z);
+    if (height <= WATER_LEVEL + 1) continue;
+
+    const inBuilding = buildings.some(b =>
+      x >= b.x - 5 && x <= b.x + b.width + 5 &&
+      z >= b.z - 5 && z <= b.z + b.depth + 5
+    );
+    if (inBuilding) continue;
+
+    const length = 5 + Math.floor(rand() * 8);
+    const angle = Math.floor(rand() * 2) * Math.PI * 0.5;
+    rotation.makeRotationY(angle);
+    matrix.makeTranslation(x, height + 0.5, z);
+    matrix.multiply(rotation);
+    matrix.scale(new THREE.Vector3(length, 1, 1));
+    fencePositions.push(matrix.clone());
+  }
+
+  if (fencePositions.length > 0) {
+    const fenceGeo = new THREE.BoxGeometry(1.0, 1.0, 0.3);
+    const fenceMat = new THREE.MeshLambertMaterial({ color: 0x7a6a5a });
+    const fenceMesh = new THREE.InstancedMesh(fenceGeo, fenceMat, fencePositions.length);
+    fenceMesh.castShadow = true;
+    fenceMesh.receiveShadow = true;
+    for (let i = 0; i < fencePositions.length; i++) {
+      fenceMesh.setMatrixAt(i, fencePositions[i]);
+    }
+    fenceMesh.instanceMatrix.needsUpdate = true;
+    scene.add(fenceMesh);
+  }
+}
+
+export function generateFallenTrees(
+  scene: THREE.Scene,
+  buildings: Building[],
+  getHeightAt: (x: number, z: number) => number,
+  seededRandom: (seed: number) => () => number
+): void {
+  const rand = seededRandom(66666);
+  const logPositions: THREE.Matrix4[] = [];
+  const matrix = new THREE.Matrix4();
+  const rotation = new THREE.Matrix4();
+
+  for (let i = 0; i < 120; i++) {
+    const x = (rand() - 0.5) * WORLD_SIZE * 0.8;
+    const z = (rand() - 0.5) * WORLD_SIZE * 0.8;
+    const height = getHeightAt(x, z);
+    if (height <= WATER_LEVEL + 1) continue;
+
+    const inBuilding = buildings.some(b =>
+      x >= b.x - 3 && x <= b.x + b.width + 3 &&
+      z >= b.z - 3 && z <= b.z + b.depth + 3
+    );
+    if (inBuilding) continue;
+
+    const logLength = 4 + Math.floor(rand() * 3);
+    const angle = rand() * Math.PI * 2;
+    rotation.makeRotationY(angle);
+    matrix.makeTranslation(x, height + 0.3, z);
+    matrix.multiply(rotation);
+    matrix.scale(new THREE.Vector3(logLength, 0.5, 0.5));
+    logPositions.push(matrix.clone());
+  }
+
+  if (logPositions.length > 0) {
+    const logGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+    const logMat = new THREE.MeshLambertMaterial({ color: BLOCK_COLORS[BLOCK_TYPES.WOOD] });
+    const logMesh = new THREE.InstancedMesh(logGeo, logMat, logPositions.length);
+    logMesh.castShadow = true;
+    logMesh.receiveShadow = true;
+    for (let i = 0; i < logPositions.length; i++) {
+      logMesh.setMatrixAt(i, logPositions[i]);
+    }
+    logMesh.instanceMatrix.needsUpdate = true;
+    scene.add(logMesh);
+  }
+}
+
+export function generateUrbanDetails(
+  scene: THREE.Scene,
+  buildings: Building[],
+  getHeightAt: (x: number, z: number) => number,
+  seededRandom: (seed: number) => () => number
+): void {
+  const rand = seededRandom(77777);
+  const containerPositions: THREE.Matrix4[] = [];
+  const matrix = new THREE.Matrix4();
+  const rotation = new THREE.Matrix4();
+
+  for (const b of buildings) {
+    if (rand() > 0.35) continue;
+    const cx = b.x + b.width + 2;
+    const cz = b.z + Math.floor(b.depth / 2);
+    const h = getHeightAt(cx, cz);
+    if (h <= WATER_LEVEL) continue;
+    const angle = Math.floor(rand() * 4) * Math.PI * 0.5;
+    rotation.makeRotationY(angle);
+    matrix.makeTranslation(cx, h + 1.0, cz);
+    matrix.multiply(rotation);
+    containerPositions.push(matrix.clone());
+
+    // Occasionally add a second container on the other side
+    if (rand() < 0.4) {
+      const cx2 = b.x - 3;
+      const cz2 = b.z + Math.floor(b.depth / 2);
+      const h2 = getHeightAt(cx2, cz2);
+      if (h2 > WATER_LEVEL) {
+        rotation.makeRotationY(rand() * Math.PI * 2);
+        matrix.makeTranslation(cx2, h2 + 1.0, cz2);
+        matrix.multiply(rotation);
+        containerPositions.push(matrix.clone());
+      }
+    }
+  }
+
+  if (containerPositions.length > 0) {
+    const containerGeo = new THREE.BoxGeometry(2.0, 2.0, 4.0);
+    const containerMat = new THREE.MeshLambertMaterial({ color: 0x4a6a8a });
+    const containerMesh = new THREE.InstancedMesh(containerGeo, containerMat, containerPositions.length);
+    containerMesh.castShadow = true;
+    containerMesh.receiveShadow = true;
+    for (let i = 0; i < containerPositions.length; i++) {
+      containerMesh.setMatrixAt(i, containerPositions[i]);
+    }
+    containerMesh.instanceMatrix.needsUpdate = true;
+    scene.add(containerMesh);
   }
 }
 

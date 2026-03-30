@@ -1,7 +1,75 @@
 import * as THREE from 'three';
 import type { Vehicle } from './VehicleSystem';
 
+export function createHelicopterMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Body
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.8, 1.2, 4.0),
+    new THREE.MeshLambertMaterial({ color: 0x4a5a4a })
+  );
+  body.position.y = 0.8;
+  body.castShadow = true;
+  group.add(body);
+
+  // Cockpit glass
+  const cockpit = new THREE.Mesh(
+    new THREE.BoxGeometry(1.6, 0.8, 1.5),
+    new THREE.MeshLambertMaterial({ color: 0x88bbdd, transparent: true, opacity: 0.5 })
+  );
+  cockpit.position.set(0, 1.2, -1.5);
+  group.add(cockpit);
+
+  // Tail boom
+  const tail = new THREE.Mesh(
+    new THREE.BoxGeometry(0.4, 0.4, 3.0),
+    new THREE.MeshLambertMaterial({ color: 0x4a5a4a })
+  );
+  tail.position.set(0, 0.8, 3.0);
+  group.add(tail);
+
+  // Tail fin
+  const tailFin = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 1.0, 0.6),
+    new THREE.MeshLambertMaterial({ color: 0x4a5a4a })
+  );
+  tailFin.position.set(0, 1.5, 4.2);
+  group.add(tailFin);
+
+  // Main rotor
+  const rotor = new THREE.Mesh(
+    new THREE.BoxGeometry(8.0, 0.05, 0.3),
+    new THREE.MeshLambertMaterial({ color: 0x333333 })
+  );
+  rotor.position.y = 2.0;
+  rotor.name = 'mainRotor';
+  group.add(rotor);
+
+  // Tail rotor
+  const tailRotor = new THREE.Mesh(
+    new THREE.BoxGeometry(0.05, 1.5, 0.15),
+    new THREE.MeshLambertMaterial({ color: 0x333333 })
+  );
+  tailRotor.position.set(0.3, 1.5, 4.2);
+  tailRotor.name = 'tailRotor';
+  group.add(tailRotor);
+
+  // Skids
+  const skidMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+  const skidGeo = new THREE.BoxGeometry(0.1, 0.1, 3.0);
+  const leftSkid = new THREE.Mesh(skidGeo, skidMat);
+  leftSkid.position.set(-0.7, -0.1, 0);
+  group.add(leftSkid);
+  const rightSkid = new THREE.Mesh(skidGeo, skidMat);
+  rightSkid.position.set(0.7, -0.1, 0);
+  group.add(rightSkid);
+
+  return group;
+}
+
 export function createVehicleMesh(type: Vehicle['type']): THREE.Group {
+  if (type === 'helicopter') return createHelicopterMesh();
   const group = new THREE.Group();
 
   if (type === 'jeep') {

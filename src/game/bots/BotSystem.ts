@@ -9,7 +9,7 @@ import { BotMeshFactory } from '../rendering/BotMeshFactory';
 // Re-export Bot so downstream imports don't break
 export type { Bot } from './BotTypes';
 import { type Bot, BOT_NAMES, randomPersonality, skillToLevel } from './BotTypes';
-import { BotAIContext, updateLanding, updateRoaming, updateLooting, updateFighting, updateFleeing, updateWalkAnimation } from './BotAI';
+import { BotAIContext, updateLanding, updateRoaming, updateLooting, updateFighting, updateFleeing, updateWalkAnimation, updateBotDriving } from './BotAI';
 import { checkBulletHits as combatCheckBulletHits, damageBotDirect, BotCombatCallbacks } from './BotCombat';
 
 export class BotSystem {
@@ -19,6 +19,7 @@ export class BotSystem {
   private player: PlayerController;
   private scene: THREE.Scene;
   private waveManager: WaveManager | null = null;
+  private vehicles: import('../vehicles/VehicleSystem').Vehicle[] = [];
   alive = BOT_COUNT;
   killFeed: { killer: string; victim: string; weapon: string; time: number }[] = [];
 
@@ -42,6 +43,10 @@ export class BotSystem {
 
   setWaveManager(wm: WaveManager): void {
     this.waveManager = wm;
+  }
+
+  setVehicles(vehicles: import('../vehicles/VehicleSystem').Vehicle[]): void {
+    this.vehicles = vehicles;
   }
 
   private getAIContext(): BotAIContext {
@@ -97,6 +102,8 @@ export class BotSystem {
         personality,
         level: skillToLevel(skill),
         deathTime: 0,
+        inVehicle: false,
+        vehicleRef: null,
       });
     }
   }
@@ -119,6 +126,24 @@ export class BotSystem {
         bot.position.z >= b.z && bot.position.z <= b.z + b.depth
       );
 
+      // Vehicle boarding check: skilled armed bots board nearby empty vehicles
+      if (!bot.inVehicle && bot.weaponId && bot.skill > 0.5 && bot.state !== 'landing' && this.vehicles.length > 0) {
+        for (const v of this.vehicles) {
+          if (v.isOccupied || v.health <= 0 || v.fuel <= 0 || v.type === 'helicopter') continue;
+          const dist = bot.position.distanceTo(v.position);
+          if (dist < 15) {
+            v.isOccupied = true;
+            v.occupantId = bot.id;
+            bot.inVehicle = true;
+            bot.vehicleRef = v;
+            bot.mesh.visible = false;
+            bot.state = 'driving';
+            bot.stateTimer = 20 + Math.random() * 20;
+            break;
+          }
+        }
+      }
+
       // State machine -- delegates to BotAI functions
       switch (bot.state) {
         case 'landing':
@@ -136,17 +161,20 @@ export class BotSystem {
         case 'fleeing':
           updateFleeing(bot, delta, ctx);
           break;
+        case 'driving':
+          updateBotDriving(bot, delta, ctx.player.state.position, this.world);
+          break;
       }
 
       // Ground collision -- snap to terrain/building height (bots always walk on ground)
-      if (bot.state !== 'landing') {
+      if (bot.state !== 'landing' && !bot.inVehicle) {
         const groundH = this.world.getEffectiveHeightAt(bot.position.x, bot.position.z);
         const surfaceY = groundH + 0.6;
         bot.position.y = surfaceY; // Always snap to ground -- no floating
       }
 
-      // Building collision for bots -- only check when bot is moving
-      const isMovingBot = bot.velocity.x !== 0 || bot.velocity.z !== 0;
+      // Building collision for bots -- only check when bot is moving and not in vehicle
+      const isMovingBot = !bot.inVehicle && (bot.velocity.x !== 0 || bot.velocity.z !== 0);
       if (isMovingBot && bot.state !== 'landing') {
         for (const b of this.world.getNearbyBuildings(bot.position.x, bot.position.z)) {
           if (
@@ -182,20 +210,33 @@ export class BotSystem {
       bot.position.x = Math.max(-botBound, Math.min(botBound, bot.position.x));
       bot.position.z = Math.max(-botBound, Math.min(botBound, bot.position.z));
 
-      // Update mesh
-      bot.mesh.position.copy(bot.position);
+      // Update mesh (driving bots: vehicle mesh drives position; bot mesh is hidden)
+      if (!bot.inVehicle) {
+        bot.mesh.position.copy(bot.position);
+      }
 
-      // Walking animation
-      updateWalkAnimation(bot);
+      // Walking animation (not while driving)
+      if (!bot.inVehicle) updateWalkAnimation(bot);
     }
 
-    // Clean up dead bot meshes after 5 seconds
+    // Clean up dead bot meshes after 5 seconds; eject from vehicle on death
     const now = Date.now();
     for (const bot of this.bots) {
-      if (bot.isDead && bot.deathTime > 0 && now - bot.deathTime > 5000) {
-        this.scene.remove(bot.mesh);
-        BotMeshFactory.dispose(bot.mesh);
-        bot.deathTime = 0; // Mark as cleaned
+      if (bot.isDead) {
+        // Eject from vehicle if still marked as driver
+        if (bot.inVehicle && bot.vehicleRef) {
+          bot.vehicleRef.isOccupied = false;
+          bot.vehicleRef.occupantId = null;
+          bot.vehicleRef.speed = 0;
+          bot.vehicleRef = null;
+          bot.inVehicle = false;
+          bot.mesh.visible = true;
+        }
+        if (bot.deathTime > 0 && now - bot.deathTime > 5000) {
+          this.scene.remove(bot.mesh);
+          BotMeshFactory.dispose(bot.mesh);
+          bot.deathTime = 0; // Mark as cleaned
+        }
       }
     }
   }
@@ -267,6 +308,8 @@ export class BotSystem {
         personality: wavePersonality,
         level: skillToLevel(skill),
         deathTime: 0,
+        inVehicle: false,
+        vehicleRef: null,
       });
     }
   }
@@ -307,6 +350,8 @@ export class BotSystem {
         personality: randomPersonality(),
         level: skillToLevel(skill),
         deathTime: 0,
+        inVehicle: false,
+        vehicleRef: null,
       });
       this.alive++;
     }

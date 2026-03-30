@@ -1,5 +1,19 @@
 import * as THREE from 'three';
 
+// Forward declaration to avoid circular import; Vehicle is structurally matched at runtime
+export interface BotVehicleRef {
+  position: THREE.Vector3;
+  rotation: number;
+  speed: number;
+  maxSpeed: number;
+  health: number;
+  fuel: number;
+  isOccupied: boolean;
+  occupantId: string | null;
+  mesh: THREE.Group;
+  type: string;
+}
+
 export interface Bot {
   id: string;
   position: THREE.Vector3;
@@ -10,7 +24,7 @@ export interface Bot {
   weaponId: string | null;
   mesh: THREE.Group;
   targetPos: THREE.Vector3 | null;
-  state: 'landing' | 'looting' | 'roaming' | 'fighting' | 'fleeing';
+  state: 'landing' | 'looting' | 'roaming' | 'fighting' | 'fleeing' | 'driving';
   stateTimer: number;
   fireTimer: number;
   detectionRange: number;
@@ -23,6 +37,8 @@ export interface Bot {
   personality: 'aggressive' | 'cautious' | 'sniper' | 'scavenger' | 'camper';
   level: 'recruit' | 'soldier' | 'veteran' | 'elite' | 'boss';
   deathTime: number; // timestamp when bot died, 0 if alive or mesh already cleaned
+  inVehicle: boolean;
+  vehicleRef: BotVehicleRef | null;
 }
 
 export const BOT_NAMES = [
