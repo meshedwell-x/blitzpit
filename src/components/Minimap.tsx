@@ -192,7 +192,7 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
     <div className="absolute top-10 left-2 z-10">
       <canvas
         ref={canvasRef}
-        className="w-[110px] h-[110px] md:w-[170px] md:h-[170px]"
+        className="w-[70px] h-[70px] md:w-[130px] md:h-[130px]"
         style={{
           border: '2px solid #d4a24e',
           boxShadow: '0 0 8px rgba(0,0,0,0.6), inset 0 0 4px rgba(0,0,0,0.4)',

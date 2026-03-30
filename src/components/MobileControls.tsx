@@ -107,9 +107,13 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
         <div className="absolute h-px w-full top-1/2 -translate-y-1/2" style={{ background: 'rgba(212,162,78,0.12)' }} />
       </div>
 
-      {/* SPRINT (hold) — above joystick */}
+      {/* SPRINT (hold) — above joystick
+          bottom-[136px]: joystick top = bottom-6 + 120px = bottom-[126px] → sprint clears at bottom-[136px]+44px=bottom-[180px] OK.
+          Actually joystick base: bottom-6=24px, height 120px → top edge at 144px from bottom.
+          Sprint: bottom-[148px] h-[44px] → occupies 148..192px from bottom. Clears joystick.
+      */}
       <button
-        className={`absolute bottom-[140px] w-[56px] h-[44px] rounded-sm ${btnBase}`}
+        className={`absolute bottom-[148px] w-[56px] h-[44px] rounded-sm ${btnBase}`}
         style={{
           left: safeLeft,
           background: 'rgba(74,103,65,0.35)',
@@ -122,13 +126,13 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
         <span className="text-[11px] font-bold tracking-wider" style={{ color: '#c4a35a' }}>RUN</span>
       </button>
 
-      {/* ═══ LEFT MID — Grenade row ═══
-          bottom-[168px], staggered horizontally from left-[68px].
-          Clear of joystick (ends at ~140px from bottom) and sprint button.
+      {/* GRN — above sprint, left side
+          bottom-[200px]: above sprint (192px top) with 8px gap.
       */}
       <button
-        className={`absolute bottom-[194px] left-4 w-[48px] h-[48px] rounded-sm ${btnBase}`}
+        className={`absolute bottom-[200px] w-[56px] h-[48px] rounded-sm ${btnBase}`}
         style={{
+          left: safeLeft,
           background: 'rgba(74,103,65,0.4)',
           border: '1px solid rgba(74,103,65,0.6)',
           fontFamily: teko,
@@ -136,36 +140,6 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
         onTouchStart={() => engine?.throwGrenadeAction()}
       >
         <span className="text-[10px] font-bold tracking-wide" style={{ color: '#8fbc5a' }}>GRN</span>
-      </button>
-
-      <button
-        className={`absolute bottom-[194px] left-[60px] w-[48px] h-[48px] rounded-sm ${btnBase}`}
-        style={{
-          background: 'rgba(196,163,90,0.25)',
-          border: '1px solid rgba(196,163,90,0.45)',
-          fontFamily: teko,
-        }}
-        onTouchStart={() => {
-          const ev = new KeyboardEvent('keydown', { code: 'KeyT' });
-          document.dispatchEvent(ev);
-        }}
-      >
-        <span className="text-[10px] font-bold tracking-wide" style={{ color: '#c4a35a' }}>SWT</span>
-      </button>
-
-      <button
-        className={`absolute bottom-[194px] left-[116px] w-[48px] h-[48px] rounded-sm ${btnBase}`}
-        style={{
-          background: 'rgba(138,126,107,0.25)',
-          border: '1px solid rgba(138,126,107,0.45)',
-          fontFamily: teko,
-        }}
-        onTouchStart={() => {
-          const ev = new KeyboardEvent('keydown', { code: 'KeyE' });
-          document.dispatchEvent(ev);
-        }}
-      >
-        <span className="text-[10px] font-bold tracking-wide" style={{ color: '#8a7e6b' }}>VHC</span>
       </button>
 
       {/* ═══ RIGHT — Aim zone (invisible drag area) ═══
@@ -211,12 +185,17 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
         <span className="text-[12px] font-bold tracking-wider" style={{ color: '#c4a35a' }}>AIM</span>
       </button>
 
-      {/* ═══ RIGHT UPPER — JUMP, CROUCH, RELOAD ═══
-          Stacked vertically: bottom-[92px], bottom-[148px].
-          Right aligned with FIRE, respects safe-area-inset-right.
+      {/* ═══ RIGHT UPPER — JUMP, CROUCH, RELOAD, SWAP ═══
+          Layout (screen height ~400px in landscape):
+          FIRE:  bottom-8  (32px)  → occupies 32..104px from bottom
+          JUMP:  bottom-[112px]    → occupies 112..160px from bottom (8px gap above FIRE)
+          CRCH:  bottom-[112px]    → same row as JUMP, left of JUMP
+          RLD:   bottom-[168px]    → occupies 168..212px from bottom (8px gap above JUMP)
+          SWAP:  bottom-[168px]    → same row as RLD, left of RLD
+          No overlap guaranteed.
       */}
       <button
-        className={`absolute bottom-[92px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-[112px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
         style={{
           right: safeRight,
           background: 'rgba(74,103,65,0.3)',
@@ -229,7 +208,7 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
       </button>
 
       <button
-        className={`absolute bottom-[92px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-[112px] w-[56px] h-[48px] rounded-sm z-10 ${btnBase}`}
         style={{
           right: safeRightSecond,
           background: 'rgba(74,103,65,0.3)',
@@ -242,7 +221,7 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
       </button>
 
       <button
-        className={`absolute bottom-[148px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-[168px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
         style={{
           right: safeRight,
           background: 'rgba(212,162,78,0.2)',
@@ -259,7 +238,7 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
 
       {/* Weapon slot switch — left of RELOAD */}
       <button
-        className={`absolute bottom-[148px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
+        className={`absolute bottom-[168px] w-[56px] h-[44px] rounded-sm z-10 ${btnBase}`}
         style={{
           right: safeRightSecond,
           background: 'rgba(138,126,107,0.2)',

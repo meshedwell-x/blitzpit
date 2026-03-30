@@ -45,9 +45,9 @@ export function PlayingHUD({
 }: PlayingHUDProps) {
   return (
     <>
-      {/* BLITZ COINS + WILD POINTS HUD */}
+      {/* BLITZ COINS + WILD POINTS HUD -- hidden on mobile to save space */}
       {gameState.phase === 'playing' && skinSystem.current && (
-        <div className="absolute top-2 right-12 px-2 py-1 text-[10px] font-mono flex gap-2 border" style={{ background: '#1a1f16', borderColor: '#4a4535' }}>
+        <div className="hidden md:flex absolute top-2 right-12 px-2 py-1 text-[10px] font-mono gap-2 border" style={{ background: '#1a1f16', borderColor: '#4a4535' }}>
           <span style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", fontSize: '12px' }}>{skinSystem.current.purchases.blitzCoins} BC</span>
           <span style={{ color: '#4a6741', fontFamily: "'Teko', sans-serif", fontSize: '12px' }}>{skinSystem.current.purchases.blitzPoints} WP</span>
         </div>
@@ -55,7 +55,7 @@ export function PlayingHUD({
 
       {/* TIME / BIOME / WEATHER HUD */}
       {gameState.phase === 'playing' && (
-        <div className="absolute top-[132px] md:top-40 left-2 px-1.5 py-0.5 md:px-2 md:py-1 text-[8px] md:text-[10px] font-mono space-y-0.5 border rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', borderColor: '#4a4535' }}>
+        <div className="absolute top-[90px] md:top-40 left-2 px-1.5 py-0.5 md:px-2 md:py-1 text-[8px] md:text-[10px] font-mono space-y-0.5 border rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', borderColor: '#4a4535' }}>
           <div style={{ color: '#c4a35a' }}>
             {(() => {
               const period = engineRef.current?.dayNightSystem.getTimePeriod() ?? 'noon';
@@ -155,7 +155,7 @@ export function PlayingHUD({
       {/* TOP HUD */}
       {['playing', 'dropping', 'plane'].includes(gameState.phase) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center max-w-[95vw]">
-          <div className="px-2 py-1 md:px-4 md:py-1.5 flex items-center gap-2 md:gap-4 text-xs font-mono border" style={{ background: 'rgba(26,31,22,0.80)', borderColor: '#4a4535' }}>
+          <div className="px-1.5 py-0.5 md:px-4 md:py-1.5 flex items-center gap-1.5 md:gap-4 text-xs font-mono border" style={{ background: 'rgba(26,31,22,0.80)', borderColor: '#4a4535' }}>
             {/* Wave indicator */}
             {gameState.phase === 'playing' && (
               <>
@@ -227,7 +227,8 @@ export function PlayingHUD({
         <div className="absolute top-14 right-2 flex flex-col gap-0.5 z-5">
           {(() => {
             const myName = typeof localStorage !== 'undefined' ? localStorage.getItem('blitzpit_name') || 'You' : 'You';
-            return killFeed.map((k, i) => {
+            const feedSlice = isMobile ? killFeed.slice(-3) : killFeed;
+            return feedSlice.map((k, i) => {
               const isMyKill = k.killer === myName || k.killer === 'You';
               const isMyDeath = k.victim === myName || k.victim === 'You';
               return (
@@ -242,12 +243,15 @@ export function PlayingHUD({
         </div>
       )}
 
-      {/* BOTTOM LEFT - HP + ARMOR */}
+      {/* BOTTOM - HP + ARMOR
+          Mobile: centered at bottom-2 (above nothing, below weapon info at bottom-10)
+          PC: left-3 bottom-4
+      */}
       {['playing', 'dead'].includes(gameState.phase) && (
-        <div className="absolute bottom-[254px] left-2 md:bottom-4 md:left-3 flex flex-col gap-1 z-10">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 md:bottom-4 md:left-3 md:translate-x-0 flex flex-col gap-1 z-10">
           <div className="flex items-center gap-1">
             <span className="text-[9px] md:text-[10px] font-bold w-4 md:w-5" style={{ color: '#c4a35a', fontFamily: "'Teko', sans-serif" }}>HP</span>
-            <div className="w-28 md:w-48 h-3 md:h-3.5 overflow-hidden rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', border: '1px solid #4a4535' }}>
+            <div className="w-20 md:w-48 h-2.5 md:h-3.5 overflow-hidden rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', border: '1px solid #4a4535' }}>
               <div className="h-full transition-all duration-200" style={{
                 width: `${health}%`,
                 backgroundColor: health > 60 ? '#4a6741' : health > 30 ? '#d4a24e' : '#c93a3a',
@@ -257,7 +261,7 @@ export function PlayingHUD({
           </div>
           <div className="flex items-center gap-1">
             <span className="text-[9px] md:text-[10px] font-bold w-4 md:w-5" style={{ color: '#8a7e6b', fontFamily: "'Teko', sans-serif" }}>AR</span>
-            <div className="w-28 md:w-48 h-2.5 md:h-3 overflow-hidden rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', border: '1px solid #4a4535' }}>
+            <div className="w-20 md:w-48 h-2 md:h-3 overflow-hidden rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', border: '1px solid #4a4535' }}>
               <div className="h-full transition-all duration-200" style={{ width: `${armor}%`, backgroundColor: '#c4a35a' }} />
             </div>
             <span className="text-[10px] font-bold w-6" style={{ color: '#c4a35a', fontFamily: "'Teko', sans-serif", fontSize: '13px' }}>{Math.ceil(armor)}</span>
@@ -265,43 +269,63 @@ export function PlayingHUD({
         </div>
       )}
 
-      {/* BOTTOM RIGHT - WEAPONS */}
+      {/* BOTTOM - WEAPONS
+          Mobile: centered, above HP bar (bottom-10), compact 1-line
+          PC: bottom-4 right-3, full display
+      */}
       {gameState.phase === 'playing' && (
-        <div className="absolute bottom-[210px] right-2 md:bottom-4 md:right-3 flex flex-col items-end gap-1 z-10">
-          <div className="flex gap-1">
-            {weapons.map((w, i) => {
-              return (
-                <div key={i} className="px-3 py-1.5 border text-[11px] font-mono transition-all" style={{
-                  background: i === activeSlot ? 'rgba(74,103,65,0.5)' : '#1a1f16',
-                  borderColor: i === activeSlot ? '#d4a24e' : '#4a4535',
-                  color: i === activeSlot ? '#d4a24e' : '#8a7e6b',
-                  transform: i === activeSlot ? 'scale(1.05)' : 'scale(1)',
-                }}>
-                  <div className="text-[8px]" style={{ color: '#8a7e6b' }}>{i + 1}</div>
-                  {w ? w.def.name : 'Empty'}
-                </div>
-              );
-            })}
-          </div>
-          {weapon && (
-            <div className="flex items-center gap-2 px-2 py-0.5" style={{ background: 'rgba(26,31,22,0.85)' }}>
-              {weapon.isReloading ? (
-                <span className="text-xs font-mono animate-pulse uppercase tracking-wider" style={{ color: '#d4a24e' }}>RELOADING</span>
-              ) : (
-                <>
-                  <span className="text-xl font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>{weapon.currentAmmo}</span>
-                  <span className="text-xs font-mono" style={{ color: '#8a7e6b' }}>/ {weapon.reserveAmmo}</span>
-                </>
+        <>
+          {/* Mobile weapon info: 1 line, centered, above HP bar */}
+          <div className="md:hidden absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 text-[9px] font-mono rounded-sm" style={{ background: 'rgba(26,31,22,0.85)', border: '1px solid #4a4535' }}>
+              <span className="font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
+                {weapon?.def.name ?? 'Empty'}
+              </span>
+              {weapon && (
+                <span style={{ color: '#8a7e6b' }}>
+                  {weapon.isReloading ? 'RELOADING...' : `${weapon.currentAmmo}/${weapon.reserveAmmo}`}
+                </span>
               )}
             </div>
-          )}
-          {/* Grenade indicator */}
-          <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono" style={{ background: 'rgba(26,31,22,0.7)' }}>
-            <span style={{ color: '#4a6741' }}>{GRENADES[grenadeType]?.name || 'Frag'}</span>
-            <span style={{ color: '#8a7e6b' }}>x{grenadeCount[grenadeType] || 0}</span>
-            <span className="ml-1" style={{ color: '#4a4535' }}>RMB throw</span>
           </div>
-        </div>
+
+          {/* PC weapon info: full display bottom-right */}
+          <div className="hidden md:flex absolute bottom-4 right-3 flex-col items-end gap-1 z-10">
+            <div className="flex gap-1">
+              {weapons.map((w, i) => {
+                return (
+                  <div key={i} className="px-3 py-1.5 border text-[11px] font-mono transition-all" style={{
+                    background: i === activeSlot ? 'rgba(74,103,65,0.5)' : '#1a1f16',
+                    borderColor: i === activeSlot ? '#d4a24e' : '#4a4535',
+                    color: i === activeSlot ? '#d4a24e' : '#8a7e6b',
+                    transform: i === activeSlot ? 'scale(1.05)' : 'scale(1)',
+                  }}>
+                    <div className="text-[8px]" style={{ color: '#8a7e6b' }}>{i + 1}</div>
+                    {w ? w.def.name : 'Empty'}
+                  </div>
+                );
+              })}
+            </div>
+            {weapon && (
+              <div className="flex items-center gap-2 px-2 py-0.5" style={{ background: 'rgba(26,31,22,0.85)' }}>
+                {weapon.isReloading ? (
+                  <span className="text-xs font-mono animate-pulse uppercase tracking-wider" style={{ color: '#d4a24e' }}>RELOADING</span>
+                ) : (
+                  <>
+                    <span className="text-xl font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>{weapon.currentAmmo}</span>
+                    <span className="text-xs font-mono" style={{ color: '#8a7e6b' }}>/ {weapon.reserveAmmo}</span>
+                  </>
+                )}
+              </div>
+            )}
+            {/* Grenade indicator -- PC only */}
+            <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono" style={{ background: 'rgba(26,31,22,0.7)' }}>
+              <span style={{ color: '#4a6741' }}>{GRENADES[grenadeType]?.name || 'Frag'}</span>
+              <span style={{ color: '#8a7e6b' }}>x{grenadeCount[grenadeType] || 0}</span>
+              <span className="ml-1" style={{ color: '#4a4535' }}>RMB throw</span>
+            </div>
+          </div>
+        </>
       )}
 
       {/* WATER OVERLAY */}
@@ -311,7 +335,7 @@ export function PlayingHUD({
 
       {/* SWIMMING INDICATOR */}
       {engineRef.current?.player.state.isSwimming && gameState.phase === 'playing' && (
-        <div className="absolute bottom-[280px] md:bottom-40 left-1/2 -translate-x-1/2 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-xs font-mono border rounded-sm z-20" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a6741', color: '#c4a35a' }}>
+        <div className="absolute bottom-20 md:bottom-40 left-1/2 -translate-x-1/2 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-xs font-mono border rounded-sm z-20" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#4a6741', color: '#c4a35a' }}>
           <span className="md:hidden">SWIMMING | SPACE up</span>
           <span className="hidden md:inline">SWIMMING -- Speed reduced | SPACE to surface</span>
         </div>
@@ -336,7 +360,7 @@ export function PlayingHUD({
         </div>
       )}
       {inVehicle && (
-        <div className="absolute bottom-[280px] md:bottom-28 left-1/2 -translate-x-1/2 px-3 py-1.5 md:px-5 md:py-2.5 border rounded-sm flex gap-3 md:gap-5 items-center z-20" style={{ background: 'rgba(26,31,22,0.90)', borderColor: '#4a4535' }}>
+        <div className="absolute bottom-20 md:bottom-28 left-1/2 -translate-x-1/2 px-3 py-1.5 md:px-5 md:py-2.5 border rounded-sm flex gap-3 md:gap-5 items-center z-20" style={{ background: 'rgba(26,31,22,0.90)', borderColor: '#4a4535' }}>
           <span className="text-[10px] md:text-xs font-mono font-bold" style={{ color: '#c4a35a' }}>[E] Exit</span>
           <div className="text-center">
             <div className="text-sm md:text-lg font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>

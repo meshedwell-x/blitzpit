@@ -392,13 +392,13 @@ export default function GameUI() {
     <div className="relative w-full h-screen overflow-hidden bg-black select-none touch-none">
       {/* PORTRAIT MODE BLOCKER -- mobile only, shows rotate prompt */}
       {isPortrait && (
-        <div className="fixed inset-0 bg-black z-[200] flex flex-col items-center justify-center">
-          <div className="text-white font-bold mb-4" style={{ fontSize: '3rem', fontFamily: "'Teko', sans-serif", letterSpacing: '0.1em', transform: 'rotate(90deg)' }}>
-            ROTATE
+        <div className="fixed inset-0 bg-gray-900 z-[200] flex flex-col items-center justify-center">
+          <div className="text-white font-black mb-2" style={{ fontSize: '2rem', fontFamily: "'Teko', sans-serif", letterSpacing: '0.1em' }}>
+            BLITZ<span style={{ color: '#c93a3a' }}>PIT</span>
           </div>
-          <p className="text-gray-400 text-sm font-mono uppercase tracking-widest mt-2">
-            Landscape mode required
-          </p>
+          <div className="text-gray-400 text-sm mb-6">Rotate your device to play</div>
+          <div className="text-6xl animate-pulse" style={{ color: '#d4a24e' }}>&#x21BB;</div>
+          <div className="text-gray-500 text-xs mt-4 font-mono tracking-widest">LANDSCAPE MODE REQUIRED</div>
         </div>
       )}
       <div ref={containerRef} className="w-full h-full" />
