@@ -87,6 +87,11 @@ export default function GameUI() {
   const [killBanner, setKillBanner] = useState<string | null>(null);
   const killBannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // First blood
+  const [firstBlood, setFirstBlood] = useState(false);
+  const firstBloodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firstBloodFiredRef = useRef(false);
+
   // Payment success notification
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
 
@@ -218,6 +223,8 @@ export default function GameUI() {
         GA.gameOver(s.currentWave, s.totalKills, s.gameTime);
         setKillBanner(null);
         setHitMarkerActive(false);
+        firstBloodFiredRef.current = false;
+        setFirstBlood(false);
 
         // Submit tournament score if in an active tournament
         if (skinSystem.current) {
@@ -298,6 +305,14 @@ export default function GameUI() {
         // Kill flash + hit marker (X) + banner detection
         const newKills = engine.player.state.kills;
         if (newKills > lastKillsRef.current) {
+          // First blood: show on very first kill of the session
+          if (newKills === 1 && lastKillsRef.current === 0 && !firstBloodFiredRef.current) {
+            firstBloodFiredRef.current = true;
+            setFirstBlood(true);
+            if (firstBloodTimerRef.current) clearTimeout(firstBloodTimerRef.current);
+            firstBloodTimerRef.current = setTimeout(() => setFirstBlood(false), 3000);
+          }
+
           setKillFlashActive(true);
           setTimeout(() => setKillFlashActive(false), 100);
 
@@ -391,6 +406,7 @@ export default function GameUI() {
       if (playerHitFlashTimerRef.current) clearTimeout(playerHitFlashTimerRef.current);
       if (wpPopupTimerRef.current) clearTimeout(wpPopupTimerRef.current);
       if (waveAnnounceTimerRef.current) clearTimeout(waveAnnounceTimerRef.current);
+      if (firstBloodTimerRef.current) clearTimeout(firstBloodTimerRef.current);
       engine.destroy();
     };
   }, []);
@@ -462,6 +478,7 @@ export default function GameUI() {
         streakLabel={streakLabel}
         killFlashActive={killFlashActive}
         waveFlashActive={waveFlashActive}
+        firstBlood={firstBlood}
         engineRef={engineRef}
         skinSystem={skinSystem}
         fmt={fmt}

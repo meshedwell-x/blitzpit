@@ -67,14 +67,21 @@ export function DroppingOverlay({ engineRef }: { engineRef: React.RefObject<Game
 }
 
 export function WaveTransitionOverlay({ gameState, engineRef, rank }: { gameState: GameState; engineRef: React.RefObject<GameEngine | null>; rank: string }) {
+  const milestones: Record<number, string> = { 5: 'SURVIVOR', 10: 'VETERAN', 15: 'ELITE', 20: 'LEGENDARY' };
+  const milestone = milestones[gameState.currentWave];
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: 'rgba(26,31,22,0.88)', backdropFilter: 'blur(4px)' }}>
       <h2 className="text-3xl md:text-5xl font-black mb-3 animate-pulse uppercase tracking-[0.2em]" style={{ fontFamily: "'Teko', sans-serif", color: '#4a6741', filter: 'drop-shadow(0 0 12px rgba(74,103,65,0.5))' }}>
         WAVE {gameState.currentWave} CLEAR
       </h2>
+      {milestone && (
+        <div className="mb-2 px-4 py-1 border text-center" style={{ borderColor: '#d4a24e', background: 'rgba(212,162,78,0.1)' }}>
+          <span className="text-lg md:text-2xl font-black uppercase tracking-[0.3em]" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>{milestone}</span>
+        </div>
+      )}
       <p className="text-sm md:text-lg font-mono" style={{ color: '#c4a35a' }}>{gameState.totalKills} Total Kills</p>
       <p className="text-xs md:text-base font-mono mb-4" style={{ color: '#8a7e6b' }}>Rank: {rank}</p>
-      <div className="p-3 md:p-4 mb-4 text-center border max-w-[90vw]" style={{ background: '#12150f', borderColor: '#4a4535' }}>
+      <div className="p-3 md:p-4 mb-3 text-center border max-w-[90vw]" style={{ background: '#12150f', borderColor: '#4a4535' }}>
         <p className="text-xl md:text-2xl font-bold uppercase tracking-wider" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
           NEXT WAVE IN {Math.ceil(engineRef.current?.waveManager.transitionTimer ?? 0)}s
         </p>
@@ -82,6 +89,19 @@ export function WaveTransitionOverlay({ gameState, engineRef, rank }: { gameStat
           Wave {gameState.currentWave + 1}: {engineRef.current?.waveManager.getWaveConfig(gameState.currentWave + 1).botCount ?? '?'} enemies
         </p>
       </div>
+      <button onClick={() => {
+        const text = `Just cleared Wave ${gameState.currentWave} in BLITZPIT with ${gameState.totalKills} kills!`;
+        const url = 'https://blitzpit.com';
+        if (navigator.share) {
+          navigator.share({ title: 'BLITZPIT', text, url }).catch(() => {
+            navigator.clipboard?.writeText(`${text} ${url}`);
+          });
+        } else {
+          navigator.clipboard?.writeText(`${text} ${url}`);
+        }
+      }} className="text-xs font-mono underline cursor-pointer" style={{ color: '#8a7e6b', background: 'none', border: 'none' }}>
+        Share achievement
+      </button>
     </div>
   );
 }

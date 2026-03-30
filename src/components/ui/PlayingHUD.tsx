@@ -39,6 +39,7 @@ export interface PlayingHUDProps {
   streakLabel: string | null;
   killFlashActive: boolean;
   waveFlashActive: boolean;
+  firstBlood: boolean;
   engineRef: React.RefObject<GameEngine | null>;
   skinSystem: React.RefObject<SkinSystem | null>;
   fmt: (s: number) => string;
@@ -50,7 +51,7 @@ export function PlayingHUD({
   nearbyItem, nearbyVehicle, isMobile, damageDirection, flashAlpha,
   killBanner, hitMarkerActive, hitMarkerIsKill, playerHitFlash,
   wpPopup, waveAnnounce, streakLabel, killFlashActive, waveFlashActive,
-  engineRef, skinSystem, fmt,
+  firstBlood, engineRef, skinSystem, fmt,
 }: PlayingHUDProps) {
   return (
     <>
@@ -140,6 +141,15 @@ export function PlayingHUD({
       {wpPopup && gameState.phase === 'playing' && (
         <div className="absolute top-[35%] left-1/2 -translate-x-1/2 pointer-events-none animate-bounce">
           <span className="text-green-400 text-sm md:text-lg font-bold font-mono">{wpPopup} | Kill #{gameState.kills}</span>
+        </div>
+      )}
+
+      {/* FIRST BLOOD */}
+      {firstBlood && gameState.phase === 'playing' && (
+        <div className="absolute top-[25%] left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-bounce">
+          <div className="text-2xl font-black" style={{ color: '#c93a3a', textShadow: '0 2px 8px rgba(0,0,0,0.8)', fontFamily: "'Teko', sans-serif" }}>
+            FIRST BLOOD!
+          </div>
         </div>
       )}
 

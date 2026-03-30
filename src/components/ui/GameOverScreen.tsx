@@ -110,33 +110,52 @@ export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem
         </div>
       )}
 
-      <div className="flex flex-row gap-2 md:gap-3 w-[90vw] max-w-[360px] shrink-0 mb-auto md:mb-0">
-        <button
-          onClick={(e) => {
-            (e.currentTarget as HTMLButtonElement).textContent = 'LOADING...';
-            window.location.reload();
-          }}
-          className="flex-1 py-2 md:py-3.5 min-h-[44px] bg-[#d4a24e] text-black font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#c4a35a]"
-          style={{ fontFamily: "'Teko', sans-serif" }}
-        >
-          AGAIN
-        </button>
-        <button
-          onClick={onShowShop}
-          className="px-4 md:px-6 py-2 md:py-3.5 min-h-[44px] bg-[#4a6741] text-white font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#5a7751]"
-          style={{ fontFamily: "'Teko', sans-serif" }}
-        >
-          SHOP
-        </button>
-        {onShowArena && (
+      <div className="flex flex-col w-[90vw] max-w-[360px] shrink-0 mb-auto md:mb-0 gap-2">
+        <div className="flex flex-row gap-2 md:gap-3">
           <button
-            onClick={onShowArena}
-            className="px-4 md:px-6 py-2 md:py-3.5 min-h-[44px] bg-[#c93a3a] text-white font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#b93030]"
+            onClick={(e) => {
+              (e.currentTarget as HTMLButtonElement).textContent = 'LOADING...';
+              window.location.reload();
+            }}
+            className="flex-1 py-2 md:py-3.5 min-h-[44px] bg-[#d4a24e] text-black font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#c4a35a]"
             style={{ fontFamily: "'Teko', sans-serif" }}
           >
-            ARENA
+            AGAIN
           </button>
-        )}
+          <button
+            onClick={onShowShop}
+            className="px-4 md:px-6 py-2 md:py-3.5 min-h-[44px] bg-[#4a6741] text-white font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#5a7751]"
+            style={{ fontFamily: "'Teko', sans-serif" }}
+          >
+            SHOP
+          </button>
+          {onShowArena && (
+            <button
+              onClick={onShowArena}
+              className="px-4 md:px-6 py-2 md:py-3.5 min-h-[44px] bg-[#c93a3a] text-white font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#b93030]"
+              style={{ fontFamily: "'Teko', sans-serif" }}
+            >
+              ARENA
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => {
+            const text = `I survived ${gameState.currentWave} waves and got ${stats?.totalKills ?? 0} kills in BLITZPIT! Can you beat me?`;
+            const url = 'https://blitzpit.com';
+            if (navigator.share) {
+              navigator.share({ title: 'BLITZPIT Score', text, url }).catch(() => {
+                navigator.clipboard?.writeText(`${text} ${url}`);
+              });
+            } else {
+              navigator.clipboard?.writeText(`${text} ${url}`);
+            }
+          }}
+          className="py-2 w-full font-bold text-sm uppercase tracking-wider min-h-[44px] active:scale-95 transition-all"
+          style={{ background: '#4a6741', color: '#e8e0d0', fontFamily: "'Teko', sans-serif" }}
+        >
+          SHARE SCORE
+        </button>
       </div>
     </div>
   );
