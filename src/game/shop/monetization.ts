@@ -82,8 +82,7 @@ export const BLITZ_COIN_PACKS: BlitzCoinPack[] = [
 ];
 
 export const DAILY_DEALS = [
-  { id: 'daily_boost', name: 'DAILY BOOST', description: '200 BC + 2x XP 1hr + Random Kill Effect', priceINR: 49, priceUSD: 0.59, daily: true },
-  { id: 'lucky_box', name: 'LUCKY BOX', description: 'Random Skin (Legendary 1%!)', priceINR: 49, priceUSD: 0.59, daily: true },
+  { id: 'daily_boost', name: 'DAILY BOOST', description: '200 BC + 2x XP 1hr + Bonus Kill Effect', priceINR: 49, priceUSD: 0.59, daily: true },
 ];
 
 export const SHOP_ITEMS: ShopItem[] = [

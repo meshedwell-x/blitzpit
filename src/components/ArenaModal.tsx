@@ -67,7 +67,7 @@ export function ArenaModal({ skinSystem, onClose }: ArenaModalProps) {
 
   const handleJoin = async (tournament: Tournament) => {
     if (!joinEmail || !joinEmail.includes('@')) {
-      setError('Enter a valid email for prize delivery');
+      setError('Enter a valid email for your account');
       return;
     }
     setJoiningId(tournament.id);
@@ -220,10 +220,10 @@ export function ArenaModal({ skinSystem, onClose }: ArenaModalProps) {
           {/* TOURNAMENTS TAB */}
           {!loading && tab === 'tournaments' && (
             <div className="space-y-3">
-              {/* Email input for prize delivery */}
+              {/* Email input for account */}
               <div className="p-3 bg-[#1a1f16] border border-[#4a4535]">
                 <label className="text-[9px] font-mono text-[#8a7e6b] uppercase tracking-wider block mb-1">
-                  EMAIL (for prize delivery)
+                  EMAIL (for your account)
                 </label>
                 <input
                   type="email"
@@ -277,9 +277,9 @@ export function ArenaModal({ skinSystem, onClose }: ArenaModalProps) {
                       </div>
                       <div>
                         <div className="text-lg font-bold" style={{ color: '#4a6741', fontFamily: "'Teko', sans-serif" }}>
-                          ${t.prizePool.toFixed(2)}
+                          {t.prizePool.toLocaleString()} BC
                         </div>
-                        <div className="text-[8px] font-mono text-[#6b6356] uppercase">PRIZE POOL</div>
+                        <div className="text-[8px] font-mono text-[#6b6356] uppercase">COIN PRIZE</div>
                       </div>
                       <div>
                         <div className="text-lg font-bold" style={{ color: '#c4a35a', fontFamily: "'Teko', sans-serif" }}>
@@ -329,8 +329,8 @@ export function ArenaModal({ skinSystem, onClose }: ArenaModalProps) {
               <div className="p-3 bg-[#1a1f16]/50 border border-[#4a4535]/30 text-[9px] font-mono text-[#6b6356] space-y-1">
                 <p>-- 24-hour asynchronous tournaments. Play anytime, best score counts.</p>
                 <p>-- Score = Wave x 1000 + Kills. Higher wave = better score.</p>
-                <p>-- Top 3 win prizes. 80% of entry fees go to prize pool.</p>
-                <p>-- Prizes delivered as gift cards to your email.</p>
+                <p>-- Top 3 win in-game coin prizes. Coins credited to your account.</p>
+                <p>-- Use coins to unlock skins, effects, and exclusive items.</p>
               </div>
             </div>
           )}
@@ -381,14 +381,14 @@ export function ArenaModal({ skinSystem, onClose }: ArenaModalProps) {
                     {TIER_LABELS[selectedResult.tournament.tier]} ARENA RESULTS
                   </span>
                   <span className="text-xs font-mono text-[#8a7e6b]">
-                    Prize Pool: ${selectedResult.tournament.prizePool.toFixed(2)}
+                    Coin Prize: {selectedResult.tournament.prizePool.toLocaleString()} BC
                   </span>
                 </div>
                 {selectedResult.myEntry && (
                   <div className="p-2 bg-[#4a6741]/10 border border-[#4a6741]/30 mb-2">
                     <span className="text-xs font-mono text-[#4a6741]">
                       YOUR RANK: #{selectedResult.myEntry.rank} | SCORE: {selectedResult.myEntry.bestScore}
-                      {selectedResult.myEntry.prizeWon > 0 && ` | WON: $${selectedResult.myEntry.prizeWon.toFixed(2)}`}
+                      {selectedResult.myEntry.prizeWon > 0 && ` | WON: ${selectedResult.myEntry.prizeWon.toLocaleString()} BC`}
                     </span>
                   </div>
                 )}
@@ -405,7 +405,7 @@ export function ArenaModal({ skinSystem, onClose }: ArenaModalProps) {
                     <span className="text-[#c4a35a] flex-1 ml-2 truncate">{isMe ? 'YOU' : entry.userId.slice(0, 8)}</span>
                     <span className="font-bold ml-2 text-[#d4a24e]">{entry.bestScore}</span>
                     {entry.prizeWon > 0 && (
-                      <span className="font-bold ml-2 text-[#4a6741]">${entry.prizeWon.toFixed(2)}</span>
+                      <span className="font-bold ml-2 text-[#4a6741]">{entry.prizeWon.toLocaleString()} BC</span>
                     )}
                   </div>
                 );
@@ -490,7 +490,7 @@ export function ArenaModal({ skinSystem, onClose }: ArenaModalProps) {
         {/* Footer */}
         <div className="px-3 py-1.5 md:px-5 md:py-2 border-t border-[#c93a3a]/10 text-center">
           <p className="text-[#a0a890] text-[8px] md:text-[10px] font-mono uppercase tracking-wider">
-            Skill-based tournaments. Play your best, win real prizes.
+            Skill-based tournaments. Play your best, win in-game coins.
           </p>
         </div>
       </div>

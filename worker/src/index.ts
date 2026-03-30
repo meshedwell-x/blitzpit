@@ -32,22 +32,22 @@ function getCountry(request: Request): string {
 
 // -- Coin Packs --
 const PACKS: Record<string, { name: string; amountINR: number; coins: number; bonus: number; usd: number }> = {
-  pack_29:  { name: 'Small Crate - 300 Blitz Coins',       amountINR: 4900,  coins: 300,  bonus: 0,    usd: 0.59 },
-  pack_79:  { name: 'Supply Box - 1000 Blitz Coins',      amountINR: 7900,  coins: 900,  bonus: 100,  usd: 0.95 },
-  pack_149: { name: 'Airdrop - 2300 Blitz Coins',         amountINR: 14900, coins: 2000, bonus: 300,  usd: 1.79 },
-  pack_299: { name: 'War Chest - 5500 Blitz Coins',       amountINR: 29900, coins: 4500, bonus: 1000, usd: 3.59 },
-  pack_499: { name: 'Arsenal - 10500 Blitz Coins',        amountINR: 49900, coins: 8000, bonus: 2500, usd: 5.99 },
-  welcome:  { name: 'Welcome Pack - VIP + 500 Coins',     amountINR: 4900,  coins: 500,  bonus: 0,    usd: 0.59 },
-  daily_boost: { name: 'Daily Boost - 200 BC + 2x XP',   amountINR: 4900,  coins: 200,  bonus: 0,    usd: 0.59 },
-  lucky_box:   { name: 'Lucky Box - Random Skin',         amountINR: 4900,  coins: 0,    bonus: 0,    usd: 0.59 },
+  pack_29:  { name: 'BLITZPIT Small Crate - 300 Game Coins',       amountINR: 4900,  coins: 300,  bonus: 0,    usd: 0.59 },
+  pack_79:  { name: 'BLITZPIT Supply Box - 1000 Game Coins',      amountINR: 7900,  coins: 900,  bonus: 100,  usd: 0.95 },
+  pack_149: { name: 'BLITZPIT Airdrop - 2300 Game Coins',         amountINR: 14900, coins: 2000, bonus: 300,  usd: 1.79 },
+  pack_299: { name: 'BLITZPIT War Chest - 5500 Game Coins',       amountINR: 29900, coins: 4500, bonus: 1000, usd: 3.59 },
+  pack_499: { name: 'BLITZPIT Arsenal - 10500 Game Coins',        amountINR: 49900, coins: 8000, bonus: 2500, usd: 5.99 },
+  welcome:  { name: 'BLITZPIT Welcome Pack - VIP + 500 Coins',    amountINR: 4900,  coins: 500,  bonus: 0,    usd: 0.59 },
+  daily_boost: { name: 'BLITZPIT Daily Boost - 200 Coins + 2x XP', amountINR: 4900,  coins: 200,  bonus: 0,    usd: 0.59 },
 };
 
 // -- Tournament Entry Fees (USD cents for Stripe) --
-const TOURNAMENT_FEES: Record<string, { usdCents: number; usd: number }> = {
-  bronze:  { usdCents: 50,   usd: 0.50 },
-  silver:  { usdCents: 200,  usd: 2.00 },
-  gold:    { usdCents: 500,  usd: 5.00 },
-  diamond: { usdCents: 1000, usd: 10.00 },
+// Prizes are awarded as in-game coins only (no monetary payouts)
+const TOURNAMENT_FEES: Record<string, { usdCents: number; usd: number; coinPrizePool: number }> = {
+  bronze:  { usdCents: 50,   usd: 0.50, coinPrizePool: 5000 },
+  silver:  { usdCents: 200,  usd: 2.00, coinPrizePool: 25000 },
+  gold:    { usdCents: 500,  usd: 5.00, coinPrizePool: 75000 },
+  diamond: { usdCents: 1000, usd: 10.00, coinPrizePool: 200000 },
 };
 
 // -- Current Season --
@@ -290,7 +290,7 @@ async function handleTournamentJoin(request: Request, env: Env): Promise<Respons
   params.append('cancel_url', body.cancelUrl);
   params.append('line_items[0][price_data][currency]', 'usd');
   params.append('line_items[0][price_data][unit_amount]', fee.usdCents.toString());
-  params.append('line_items[0][price_data][product_data][name]', `${tier.toUpperCase()} Arena Entry`);
+  params.append('line_items[0][price_data][product_data][name]', `BLITZPIT ${tier.toUpperCase()} League Pass - Game Coins Prize`);
   params.append('line_items[0][quantity]', '1');
   params.append('customer_email', body.email);
   params.append('metadata[tournament_id]', body.tournamentId);
@@ -490,19 +490,20 @@ async function autoCreateDailyTournaments(env: Env): Promise<void> {
     if (!existing) {
       await env.DB.prepare(
         `INSERT INTO tournaments (id, tier, entry_fee, prize_pool, start_time, end_time, status)
-         VALUES (?, ?, ?, 0, ?, ?, 'active')`
-      ).bind(id, tier, fee.usd, now, endTime).run();
+         VALUES (?, ?, ?, ?, ?, ?, 'active')`
+      ).bind(id, tier, fee.usd, fee.coinPrizePool, now, endTime).run();
     }
   }
 
-  // Complete expired tournaments and distribute prizes
+  // Complete expired tournaments and distribute in-game coin prizes
   const expired = await env.DB.prepare(
-    `SELECT id, prize_pool FROM tournaments WHERE status = 'active' AND end_time < ?`
+    `SELECT id, tier FROM tournaments WHERE status = 'active' AND end_time < ?`
   ).bind(now).all();
 
   for (const t of (expired.results || [])) {
     const tournamentId = t.id as string;
-    const prizePool = t.prize_pool as number;
+    const tier = t.tier as string;
+    const coinPool = TOURNAMENT_FEES[tier]?.coinPrizePool ?? 5000;
 
     // Get top 3 entries
     const topEntries = await env.DB.prepare(
@@ -512,13 +513,13 @@ async function autoCreateDailyTournaments(env: Env): Promise<void> {
     ).bind(tournamentId).all();
 
     const entries = topEntries.results || [];
-    // Prize split: 50% / 30% / 20%
+    // Prize split: 50% / 30% / 20% (in-game coins, not monetary)
     const splits = [0.50, 0.30, 0.20];
     for (let i = 0; i < Math.min(entries.length, 3); i++) {
-      const prize = prizePool * splits[i];
+      const coinPrize = Math.floor(coinPool * splits[i]);
       await env.DB.prepare(
         'UPDATE tournament_entries SET prize_won = ? WHERE id = ?'
-      ).bind(prize, entries[i].id).run();
+      ).bind(coinPrize, entries[i].id).run();
     }
 
     await env.DB.prepare(
