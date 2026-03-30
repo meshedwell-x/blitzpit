@@ -411,31 +411,7 @@ export default function GameUI() {
 
   return (
     <div className="relative w-full overflow-hidden bg-black select-none touch-none" style={{ height: '100dvh' }}>
-      {/* PORTRAIT MODE -- tap to go fullscreen + landscape */}
-      {isPortrait && (
-        <div className="fixed inset-0 bg-gray-900 z-[200] flex flex-col items-center justify-center"
-          onClick={() => {
-            const el = document.documentElement;
-            const rfs = el.requestFullscreen || (el as any).webkitRequestFullscreen;
-            if (rfs) {
-              rfs.call(el).then(() => {
-                try {
-                  const o = screen.orientation as any;
-                  if (o?.lock) o.lock('landscape').catch(() => {});
-                } catch {}
-              }).catch(() => {});
-            }
-          }}>
-          <div className="text-white font-black mb-2 text-3xl tracking-tight">
-            BLITZ<span className="text-red-500">PIT</span>
-          </div>
-          <div className="text-gray-400 text-sm mb-4">Tap to enter fullscreen</div>
-          <div className="w-16 h-16 border-2 border-gray-500 rounded-lg flex items-center justify-center mb-4 animate-pulse">
-            <div className="text-white text-2xl">TAP</div>
-          </div>
-          <div className="text-gray-500 text-xs font-mono">Best experience in landscape mode</div>
-        </div>
-      )}
+      {/* Portrait mode: no blocker -- lobby visible in portrait, fullscreen on PLAY */}
       <div ref={containerRef} className="w-full h-full" />
 
       {/* PAYMENT SUCCESS NOTIFICATION */}

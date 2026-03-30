@@ -45,7 +45,29 @@ export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onSho
       )}
 
       <button
-        onClick={() => engineRef.current?.startGame()}
+        onClick={() => {
+          // Mobile: go fullscreen + landscape before starting
+          const isMob = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+          if (isMob) {
+            const el = document.documentElement;
+            const rfs = el.requestFullscreen || (el as any).webkitRequestFullscreen;
+            if (rfs) {
+              rfs.call(el).then(() => {
+                try {
+                  const o = screen.orientation as any;
+                  if (o?.lock) o.lock('landscape').catch(() => {});
+                } catch {}
+                engineRef.current?.startGame();
+              }).catch(() => {
+                engineRef.current?.startGame();
+              });
+            } else {
+              engineRef.current?.startGame();
+            }
+          } else {
+            engineRef.current?.startGame();
+          }
+        }}
         className="w-[85vw] max-w-[280px] md:w-auto md:px-14 py-3 min-h-[48px] font-black text-xl uppercase tracking-widest transition-all active:scale-95"
         style={{ background: '#d4a24e', color: '#1a1f16', fontFamily: "'Teko', sans-serif", fontSize: '1.5rem', letterSpacing: '0.15em' }}
       >
