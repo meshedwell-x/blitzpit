@@ -50,11 +50,11 @@ export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onSho
           const isMob = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
           if (isMob) {
             const el = document.documentElement;
-            const rfs = el.requestFullscreen || (el as any).webkitRequestFullscreen;
+            const rfs = el.requestFullscreen || (el as unknown as { webkitRequestFullscreen?: () => Promise<void> }).webkitRequestFullscreen;
             if (rfs) {
               rfs.call(el).then(() => {
                 try {
-                  const o = screen.orientation as any;
+                  const o = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
                   if (o?.lock) o.lock('landscape').catch(() => {});
                 } catch {}
                 engineRef.current?.startGame();

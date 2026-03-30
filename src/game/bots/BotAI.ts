@@ -26,7 +26,8 @@ const _tmpGrenadeDir = new THREE.Vector3();
 
 export function updateLanding(bot: Bot, delta: number, ctx: BotAIContext): void {
   const groundH = ctx.world.getEffectiveHeightAt(bot.position.x, bot.position.z);
-  const surfaceY = groundH + 0.6;
+  // Terrain block top = heightMap + 1.0 (block geo height=2, centered at heightMap)
+  const surfaceY = groundH + 1.0;
   bot.position.y -= 40 * delta;
   if (bot.position.y <= surfaceY) {
     bot.position.y = surfaceY;
@@ -380,7 +381,7 @@ export function updateBotDriving(bot: Bot, delta: number, playerPos: THREE.Vecto
   v.position.z = newZ;
 
   const groundH = world.getHeightAt(v.position.x, v.position.z);
-  v.position.y = groundH + 0.8;
+  v.position.y = groundH + 1.2;
 
   // Fuel consumption
   v.fuel -= Math.abs(v.speed) * delta * 0.05;

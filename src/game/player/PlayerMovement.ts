@@ -146,7 +146,8 @@ export function updatePlayerMovement(controller: PlayerController, delta: number
 
   // Ground collision + swimming
   const groundHeight = controller.world.getEffectiveHeightAt(newPos.x, newPos.z);
-  const surfaceY = groundHeight + 0.6;
+  // Terrain block top = heightMap + 1.0 (block geo height=2, centered at heightMap)
+  const surfaceY = groundHeight + 1.0;
 
   // Swimming: terrain height at or below WATER_LEVEL (4)
   const WATER_SURFACE = 4.5; // WATER_LEVEL + 0.5

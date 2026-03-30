@@ -111,8 +111,8 @@ export class PlayerController {
         this.state.velocity.y += -9.8 * delta;
         this.state.position.y += this.state.velocity.y * delta;
         const groundH = this.world.getHeightAt(this.state.position.x, this.state.position.z);
-        if (this.state.position.y < groundH + 0.3) {
-          this.state.position.y = groundH + 0.3;
+        if (this.state.position.y < groundH + 1.0) {
+          this.state.position.y = groundH + 1.0;
           this.state.velocity.y = 0;
         }
         this.mesh.position.copy(this.state.position);

@@ -60,13 +60,13 @@ export class AnimalSystem {
       if (h <= 4) continue;
 
       const mesh = this.createAnimalMesh(def.type, def.color);
-      mesh.position.set(x, h + 0.5, z);
+      mesh.position.set(x, h + 1.0, z);
       this.scene.add(mesh);
 
       this.animals.push({
         id: `animal_${spawned}`,
         type: def.type,
-        position: new THREE.Vector3(x, h + 0.5, z),
+        position: new THREE.Vector3(x, h + 1.0, z),
         velocity: new THREE.Vector3(),
         health: def.health,
         mesh,
@@ -258,7 +258,7 @@ export class AnimalSystem {
 
       if (animal.type !== 'eagle') {
         const groundH = this.world.getHeightAt(animal.position.x, animal.position.z);
-        animal.position.y = groundH + 0.5;
+        animal.position.y = groundH + 1.0;
       }
 
       animal.position.x = Math.max(-380, Math.min(380, animal.position.x));

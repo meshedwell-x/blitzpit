@@ -93,7 +93,7 @@ export default function GameUI() {
   const handleShowShop = () => { GA.shopOpen(); setShowShop(true); };
   const handleShowArena = () => { GA.arenaOpen(); setShowArena(true); };
 
-  const [isPortrait, setIsPortrait] = useState(false);
+  const [, setIsPortrait] = useState(false);
 
   useEffect(() => {
     const mobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -103,7 +103,7 @@ export default function GameUI() {
     if (mobile) {
       const requestFullscreen = () => {
         const el = document.documentElement;
-        const rfs = el.requestFullscreen || (el as any).webkitRequestFullscreen || (el as any).msRequestFullscreen;
+        const rfs = el.requestFullscreen || (el as unknown as { webkitRequestFullscreen?: () => Promise<void> }).webkitRequestFullscreen || (el as unknown as { msRequestFullscreen?: () => Promise<void> }).msRequestFullscreen;
         if (rfs) {
           rfs.call(el).then(() => {
             // Try landscape lock after fullscreen

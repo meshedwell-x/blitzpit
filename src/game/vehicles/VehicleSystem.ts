@@ -68,12 +68,12 @@ export class VehicleSystem {
       if (h <= 5) continue;
       const type = types[Math.floor(rand() * types.length)];
       const mesh = createVehicleMesh(type);
-      mesh.position.set(x, h + 0.8, z);
+      mesh.position.set(x, h + 1.2, z);
       mesh.rotation.y = rand() * Math.PI * 2;
       this.scene.add(mesh);
       this.vehicles.push({
         id: `vehicle_${i}`, type,
-        position: new THREE.Vector3(x, h + 0.8, z),
+        position: new THREE.Vector3(x, h + 1.2, z),
         rotation: mesh.rotation.y, speed: 0,
         maxSpeed: type === 'truck' ? 18 : type === 'jeep' ? 25 : 30,
         health: type === 'truck' ? 200 : 150,
@@ -91,12 +91,12 @@ export class VehicleSystem {
       const hh = this.world.getHeightAt(hx, hz);
       if (hh <= 3) continue;
       const heliMesh = createVehicleMesh('helicopter');
-      heliMesh.position.set(hx, hh + 2.0, hz);
+      heliMesh.position.set(hx, hh + 2.5, hz);
       heliMesh.rotation.y = heliRand() * Math.PI * 2;
       this.scene.add(heliMesh);
       this.vehicles.push({
         id: `heli_${i}`, type: 'helicopter',
-        position: new THREE.Vector3(hx, hh + 2.0, hz),
+        position: new THREE.Vector3(hx, hh + 2.5, hz),
         rotation: heliMesh.rotation.y, speed: 0,
         maxSpeed: 35, health: 180,
         mesh: heliMesh, isOccupied: false, occupantId: null, fuel: 60, headlight: null,
@@ -166,7 +166,7 @@ export class VehicleSystem {
 
     // Minimum altitude: ground + 2
     const groundH = this.world.getHeightAt(v.position.x, v.position.z);
-    if (v.position.y < groundH + 2) v.position.y = groundH + 2;
+    if (v.position.y < groundH + 2.5) v.position.y = groundH + 2.5;
     if (v.position.y > 100) v.position.y = 100;
 
     // Horizontal movement
@@ -227,7 +227,7 @@ export class VehicleSystem {
     if (!blocked) { v.position.x = newX; v.position.z = newZ; }
 
     const groundH = this.world.getHeightAt(v.position.x, v.position.z);
-    v.position.y = groundH + 0.8;
+    v.position.y = groundH + 1.2;
 
     const aheadX = v.position.x - Math.sin(v.rotation) * 2;
     const aheadZ = v.position.z - Math.cos(v.rotation) * 2;

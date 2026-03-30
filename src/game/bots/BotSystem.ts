@@ -80,7 +80,7 @@ export class BotSystem {
       const group = BotMeshFactory.create(skill);
 
       // Start slightly high for landing animation
-      const spawnY = h + 0.6 + PLAYER_HEIGHT + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
+      const spawnY = h + 1.0 + PLAYER_HEIGHT + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
       group.position.set(x, spawnY, z);
       this.scene.add(group);
 
@@ -176,7 +176,7 @@ export class BotSystem {
       // Ground collision -- snap to terrain/building height (bots always walk on ground)
       if (bot.state !== 'landing' && !bot.inVehicle) {
         const groundH = this.world.getEffectiveHeightAt(bot.position.x, bot.position.z);
-        const surfaceY = groundH + 0.6;
+        const surfaceY = groundH + 1.0;
         bot.position.y = surfaceY; // Always snap to ground -- no floating
       }
 
@@ -282,7 +282,7 @@ export class BotSystem {
       const skill = config.botSkillMin + Math.random() * (config.botSkillMax - config.botSkillMin);
       const group = BotMeshFactory.create(skill);
 
-      const spawnY = h + 0.6 + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
+      const spawnY = h + 1.0 + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
       group.position.set(x, spawnY, z);
       this.scene.add(group);
 
@@ -333,7 +333,7 @@ export class BotSystem {
 
       const skill = 0.3 + Math.random() * 0.7;
       const group = BotMeshFactory.create(skill);
-      const spawnY = h + 0.6 + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
+      const spawnY = h + 1.0 + BOT_LANDING_HEIGHT_MIN + Math.random() * (BOT_LANDING_HEIGHT_MAX - BOT_LANDING_HEIGHT_MIN);
       group.position.set(x, spawnY, z);
       this.scene.add(group);
 
