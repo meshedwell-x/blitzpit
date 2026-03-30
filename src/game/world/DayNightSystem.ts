@@ -7,7 +7,7 @@ export class DayNightSystem {
   private sunLight: THREE.DirectionalLight | null = null;
   private ambientLight: THREE.AmbientLight | null = null;
   timeOfDay = 0.3; // 0~1 (0=midnight, 0.25=sunrise, 0.5=noon, 0.75=sunset)
-  private daySpeed = 0.008; // 125 seconds per full day cycle
+  private daySpeed = 0.002; // 500 seconds (~8 minutes) per full day cycle
   isNight = false;
 
   // Temp colors reused each frame to avoid per-frame allocations

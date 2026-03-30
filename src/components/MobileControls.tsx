@@ -2,7 +2,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { GameEngine } from '../game/core/GameEngine';
 
-export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | null; nearbyItem: string | null }) {
+export function MobileControls({ engine, nearbyItem, onToggleInventory }: { engine: GameEngine | null; nearbyItem: string | null; onToggleInventory?: () => void }) {
   const joyRef = useRef<HTMLDivElement>(null);
   const aimRef = useRef<HTMLDivElement>(null);
   const joyTouchId = useRef<number | null>(null);
@@ -72,6 +72,28 @@ export function MobileControls({ engine, nearbyItem }: { engine: GameEngine | nu
 
   return (
     <>
+      {/* BAG — inventory button, top-left next to minimap */}
+      <button
+        className="absolute top-2 z-20 w-8 h-8 flex items-center justify-center rounded"
+        style={{
+          left: 'max(90px, calc(90px + env(safe-area-inset-left)))',
+          background: 'rgba(0,0,0,0.6)',
+          border: '1px solid rgba(138,126,107,0.5)',
+          fontFamily: "'Teko', sans-serif",
+        }}
+        onTouchStart={(e) => {
+          e.stopPropagation();
+          if (onToggleInventory) {
+            onToggleInventory();
+          } else {
+            const ev = new KeyboardEvent('keydown', { code: 'Tab', bubbles: true });
+            document.dispatchEvent(ev);
+          }
+        }}
+      >
+        <span className="text-white text-[9px] font-mono">BAG</span>
+      </button>
+
       {/* ═══ LEFT — Movement Joystick ═══
           Position: bottom-6, safe-left. 120x120.
           Safe area insets applied for notch/home bar in landscape mode.

@@ -14,6 +14,7 @@ import { LobbyScreen } from './ui/LobbyScreen';
 import { GameOverScreen } from './ui/GameOverScreen';
 import { PlaneOverlay, DroppingOverlay, WaveTransitionOverlay, RevivePrompt, PauseOverlay } from './ui/PhaseOverlays';
 import { submitTournamentScore, submitLeaderboardScore } from '../game/arena/ArenaAPI';
+import { GA } from '../game/utils/analytics';
 
 
 export default function GameUI() {
@@ -88,6 +89,9 @@ export default function GameUI() {
 
   // Payment success notification
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+
+  const handleShowShop = () => { GA.shopOpen(); setShowShop(true); };
+  const handleShowArena = () => { GA.arenaOpen(); setShowArena(true); };
 
   const [isPortrait, setIsPortrait] = useState(false);
 
@@ -184,6 +188,11 @@ export default function GameUI() {
       setGameState({ ...s });
       gameDataRef.current.gameState = { ...s };
 
+      // GA: game start (first wave drop)
+      if (s.phase === 'playing' && lastPhaseRef.current === 'dropping') {
+        GA.gameStart();
+      }
+
       // Wave start flash + wave announce
       if (s.phase === 'playing' && lastPhaseRef.current === 'wave_transition') {
         setWaveFlashActive(true);
@@ -195,6 +204,7 @@ export default function GameUI() {
 
       // Dead phase: clear transient UI + submit arena scores
       if (s.phase === 'dead') {
+        GA.gameOver(s.currentWave, s.totalKills, s.gameTime);
         setKillBanner(null);
         setHitMarkerActive(false);
 
@@ -460,7 +470,7 @@ export default function GameUI() {
       {(gameState.phase === 'playing' || gameState.phase === 'plane' || gameState.phase === 'dropping') && <Minimap engine={engineRef.current} />}
 
       {/* MOBILE CONTROLS */}
-      {isMobile && gameState.phase === 'playing' && <MobileControls engine={engineRef.current} nearbyItem={nearbyItem} />}
+      {isMobile && gameState.phase === 'playing' && <MobileControls engine={engineRef.current} nearbyItem={nearbyItem} onToggleInventory={() => setShowInventory(v => !v)} />}
 
       {/* INVENTORY (TAB) */}
       {showInventory && gameState.phase === 'playing' && (
@@ -476,7 +486,7 @@ export default function GameUI() {
 
       {/* ESC PAUSE OVERLAY */}
       {engineRef.current?.isPaused && gameState.phase === 'playing' && (
-        <PauseOverlay engineRef={engineRef} containerRef={containerRef} onShowShop={() => setShowShop(true)} />
+        <PauseOverlay engineRef={engineRef} containerRef={containerRef} onShowShop={handleShowShop} />
       )}
 
       {/* COUNTDOWN OVERLAY */}
@@ -490,7 +500,7 @@ export default function GameUI() {
 
       {/* LOBBY */}
       {gameState.phase === 'lobby' && (
-        <LobbyScreen engineRef={engineRef} skinSystem={skinSystem} bestLeaderboardEntry={bestLeaderboardEntry} onShowShop={() => setShowShop(true)} onShowArena={() => setShowArena(true)} />
+        <LobbyScreen engineRef={engineRef} skinSystem={skinSystem} bestLeaderboardEntry={bestLeaderboardEntry} onShowShop={handleShowShop} onShowArena={handleShowArena} />
       )}
 
       {/* PLANE */}
@@ -516,8 +526,8 @@ export default function GameUI() {
           leaderboard={leaderboard}
           skinSystem={skinSystem}
           fmt={fmt}
-          onShowShop={() => setShowShop(true)}
-          onShowArena={() => setShowArena(true)}
+          onShowShop={handleShowShop}
+          onShowArena={handleShowArena}
         />
       )}
 

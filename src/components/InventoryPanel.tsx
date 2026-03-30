@@ -58,21 +58,47 @@ export function InventoryPanel({ engine, weapons, activeSlot, grenadeCount, game
 
         {/* Weapons */}
         <div className="mb-3">
-          <p className="text-gray-400 text-xs mb-1 font-mono">WEAPONS</p>
+          <p className="text-gray-400 text-xs mb-1 font-mono">WEAPONS <span className="text-gray-600">(tap to equip)</span></p>
           {weapons.map((w, i) => {
             const rarity = w?.def.rarity ?? 'common';
+            const isActive = i === activeSlot;
             return (
-              <div key={i} className={`flex justify-between items-center p-2 mb-1 rounded ${
-                i === activeSlot ? `${RARITY_BG[rarity]} border ${RARITY_COLORS[rarity]}` : 'bg-gray-800'
-              }`}>
-                <span className={`text-sm ${i === activeSlot ? RARITY_COLORS[rarity].split(' ')[0] : 'text-white'}`}>
-                  {w ? w.def.name : `Slot ${i + 1} (Empty)`}
-                </span>
-                {w && (
-                  <span className="text-gray-400 text-xs">
-                    {w.currentAmmo}/{w.def.magazineSize} | {w.reserveAmmo}
+              <div
+                key={i}
+                onClick={() => {
+                  if (engine && w) engine.weaponSystem.activeSlot = i;
+                }}
+                className={`flex justify-between items-center p-2 mb-1 rounded cursor-pointer ${
+                  isActive ? `${RARITY_BG[rarity]} border ${RARITY_COLORS[rarity]}` : 'bg-gray-800 hover:bg-gray-700'
+                }`}
+              >
+                <div className="flex flex-col">
+                  <span className={`text-sm ${isActive ? RARITY_COLORS[rarity].split(' ')[0] : 'text-white'}`}>
+                    {w ? w.def.name : `Slot ${i + 1} (Empty)`}
                   </span>
-                )}
+                  {isActive && w && (
+                    <span className="text-[9px] font-mono text-green-400 mt-0.5">EQUIPPED</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {w && (
+                    <span className="text-gray-400 text-xs">
+                      {w.currentAmmo}/{w.def.magazineSize} | {w.reserveAmmo}
+                    </span>
+                  )}
+                  {w && isActive && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const evt = new KeyboardEvent('keydown', { code: 'KeyQ', bubbles: true });
+                        document.dispatchEvent(evt);
+                      }}
+                      className="text-red-400 text-[9px] font-mono border border-red-800 px-1 py-0.5 rounded hover:bg-red-900/40"
+                    >
+                      DROP
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}

@@ -107,7 +107,7 @@ export class WeatherSystem {
     };
     const table = weatherTables[biome] ?? weatherTables.urban;
     this.currentWeather = table[Math.floor(Math.random() * table.length)];
-    this.weatherDuration = 30 + Math.random() * 60; // 30~90 seconds
+    this.weatherDuration = 120 + Math.random() * 180; // 120~300 seconds (2~5 minutes)
     this.weatherTimer = this.weatherDuration;
     // Reset lightning timer on weather change
     this.lightningTimer = 5 + Math.random() * 10;
