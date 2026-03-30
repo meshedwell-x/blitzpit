@@ -174,13 +174,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* TODO: Replace G-PLACEHOLDER with actual GA4 Measurement ID from Google Analytics console */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-PLACEHOLDER" />
+        {/* TODO: Replace G-K1T9GZSF1T with actual GA4 Measurement ID from Google Analytics console */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-K1T9GZSF1T" />
         <script dangerouslySetInnerHTML={{ __html: `
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'G-PLACEHOLDER');
+          gtag('config', 'G-K1T9GZSF1T');
         `}} />
         <script
           type="application/ld+json"
