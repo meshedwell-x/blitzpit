@@ -12,6 +12,9 @@ export interface LobbyScreenProps {
 export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onShowShop, onShowArena }: LobbyScreenProps) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+      <div className="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-2">
+        FREE TO PLAY
+      </div>
       <h1 className="text-5xl md:text-7xl font-black mb-0 tracking-wider uppercase" style={{ fontFamily: "'Teko', sans-serif", color: '#e8e0d0', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
         BLITZ<span style={{ color: '#c93a3a' }}>PIT</span>
       </h1>
@@ -81,6 +84,14 @@ export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onSho
         <p>Click Shoot | RMB Aim | R Reload | F Pickup</p>
         <p>1/2 Weapons | T Grenade | E Vehicle | TAB Inv</p>
       </div>
+      <button onClick={() => {
+        if (typeof navigator !== 'undefined') {
+          navigator.share?.({ title: 'BLITZPIT', text: 'Free Battle Royale!', url: 'https://blitzpit.com' })
+            .catch(() => navigator.clipboard?.writeText('https://blitzpit.com'));
+        }
+      }} className="mt-3 text-gray-500 text-xs font-mono underline">
+        Share with friends
+      </button>
     </div>
   );
 }

@@ -306,7 +306,7 @@ export function PlayingHUD({
 
       {/* WATER OVERLAY */}
       {engineRef.current?.player.state.isSwimming && gameState.phase === 'playing' && (
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(74,103,65,0.12)' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(30,80,180,0.18)' }} />
       )}
 
       {/* SWIMMING INDICATOR */}
