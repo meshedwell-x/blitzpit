@@ -14,55 +14,55 @@ export interface GameOverScreenProps {
 
 export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem, fmt, onShowShop, onShowArena }: GameOverScreenProps) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center z-30"
+    <div className="absolute inset-0 flex flex-col items-center z-30 overflow-y-auto py-2 md:py-0 md:justify-center"
       style={{ background: 'radial-gradient(ellipse at center, rgba(13,15,11,0.88) 0%, rgba(13,15,11,0.97) 100%)', backdropFilter: 'blur(6px)' }}>
 
       {/* GAME OVER Title */}
-      <h2 className="text-4xl sm:text-6xl md:text-8xl font-bold mb-0 tracking-[0.2em] md:tracking-[0.4em] text-[#c93a3a]"
+      <h2 className="text-3xl sm:text-6xl md:text-8xl font-bold mb-0 tracking-[0.2em] md:tracking-[0.4em] text-[#c93a3a] mt-auto md:mt-0 shrink-0"
         style={{
           fontFamily: "'Teko', sans-serif",
           filter: 'drop-shadow(0 0 20px rgba(201,58,58,0.4))',
         }}>
         GAME OVER
       </h2>
-      <p className="text-[#6b7b6a] text-xs md:text-sm font-mono mb-3 md:mb-5 tracking-[0.3em] uppercase">WAVE {gameState.currentWave}</p>
+      <p className="text-[#6b7b6a] text-[10px] md:text-sm font-mono mb-1 md:mb-5 tracking-[0.3em] uppercase shrink-0">WAVE {gameState.currentWave}</p>
 
-      {/* Final stats card */}
-      <div className="relative w-[420px] max-w-[92vw] mb-4 overflow-hidden bg-[#12150f] border border-[#c4a35a]/20"
+      {/* Final stats card -- compact on mobile landscape */}
+      <div className="relative w-[420px] max-w-[92vw] mb-2 md:mb-4 overflow-hidden bg-[#12150f] border border-[#c4a35a]/20 shrink-0"
         style={{ clipPath: 'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))' }}>
         <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#c93a3a]" />
-        <div className="p-3 md:p-5">
-          <div className="grid grid-cols-2 gap-2 md:gap-3 text-center">
-            <div className="p-2 md:p-3 bg-[#1a1f16] border border-[#c93a3a]/20">
-              <div className="text-xl md:text-3xl font-bold text-[#c93a3a]" style={{ fontFamily: "'Teko', sans-serif" }}>{stats?.totalKills ?? gameState.kills}</div>
-              <div className="text-[#6b7b6a] text-[8px] md:text-[10px] font-mono tracking-wider mt-0.5 md:mt-1">TOTAL KILLS</div>
+        <div className="p-2 md:p-5">
+          <div className="grid grid-cols-4 md:grid-cols-2 gap-1 md:gap-3 text-center">
+            <div className="p-1 md:p-3 bg-[#1a1f16] border border-[#c93a3a]/20">
+              <div className="text-lg md:text-3xl font-bold text-[#c93a3a]" style={{ fontFamily: "'Teko', sans-serif" }}>{stats?.totalKills ?? gameState.kills}</div>
+              <div className="text-[#6b7b6a] text-[7px] md:text-[10px] font-mono tracking-wider">KILLS</div>
             </div>
-            <div className="p-2 md:p-3 bg-[#1a1f16] border border-[#4a6741]/20">
-              <div className="text-xl md:text-3xl font-bold text-[#4a6741]" style={{ fontFamily: "'Teko', sans-serif" }}>{gameState.currentWave}</div>
-              <div className="text-[#6b7b6a] text-[8px] md:text-[10px] font-mono tracking-wider mt-0.5 md:mt-1">WAVES SURVIVED</div>
+            <div className="p-1 md:p-3 bg-[#1a1f16] border border-[#4a6741]/20">
+              <div className="text-lg md:text-3xl font-bold text-[#4a6741]" style={{ fontFamily: "'Teko', sans-serif" }}>{gameState.currentWave}</div>
+              <div className="text-[#6b7b6a] text-[7px] md:text-[10px] font-mono tracking-wider">WAVES</div>
             </div>
-            <div className="p-2 md:p-3 bg-[#1a1f16] border border-[#c4a35a]/20">
-              <div className="text-lg md:text-2xl font-bold text-[#c4a35a]" style={{ fontFamily: "'Teko', sans-serif" }}>{fmt(stats?.survivalTime ?? gameState.gameTime)}</div>
-              <div className="text-[#6b7b6a] text-[8px] md:text-[10px] font-mono tracking-wider mt-0.5 md:mt-1">SURVIVAL TIME</div>
+            <div className="p-1 md:p-3 bg-[#1a1f16] border border-[#c4a35a]/20">
+              <div className="text-base md:text-2xl font-bold text-[#c4a35a]" style={{ fontFamily: "'Teko', sans-serif" }}>{fmt(stats?.survivalTime ?? gameState.gameTime)}</div>
+              <div className="text-[#6b7b6a] text-[7px] md:text-[10px] font-mono tracking-wider">TIME</div>
             </div>
-            <div className="p-2 md:p-3 bg-[#1a1f16] border border-[#d4a24e]/20">
-              <div className="text-lg md:text-2xl font-bold text-[#d4a24e]" style={{ fontFamily: "'Teko', sans-serif" }}>{stats?.bestKillStreak ?? gameState.bestKillStreak}</div>
-              <div className="text-[#6b7b6a] text-[8px] md:text-[10px] font-mono tracking-wider mt-0.5 md:mt-1">BEST STREAK</div>
+            <div className="p-1 md:p-3 bg-[#1a1f16] border border-[#d4a24e]/20">
+              <div className="text-base md:text-2xl font-bold text-[#d4a24e]" style={{ fontFamily: "'Teko', sans-serif" }}>{stats?.bestKillStreak ?? gameState.bestKillStreak}</div>
+              <div className="text-[#6b7b6a] text-[7px] md:text-[10px] font-mono tracking-wider">STREAK</div>
             </div>
           </div>
-          {/* Rank */}
-          <div className="mt-3 md:mt-4 text-center pt-2 md:pt-3 border-t border-[#c4a35a]/10">
-            <div className="text-[#6b7b6a] text-[9px] md:text-[10px] font-mono tracking-wider uppercase">RANK</div>
-            <div className="text-xl md:text-2xl font-bold mt-1 text-[#d4a24e]" style={{ fontFamily: "'Teko', sans-serif" }}>{rank}</div>
+          {/* Rank -- inline on mobile */}
+          <div className="mt-1 md:mt-4 text-center pt-1 md:pt-3 border-t border-[#c4a35a]/10">
+            <span className="text-[#6b7b6a] text-[8px] md:text-[10px] font-mono tracking-wider uppercase">RANK </span>
+            <span className="text-base md:text-2xl font-bold text-[#d4a24e]" style={{ fontFamily: "'Teko', sans-serif" }}>{rank}</span>
           </div>
         </div>
       </div>
 
-      {/* Leaderboard top 5 */}
-      <div className="w-[360px] max-w-[90vw] mb-4 overflow-hidden bg-[#12150f] border border-[#c4a35a]/15">
-        <div className="p-3 md:p-4">
-          <h3 className="text-[#c4a35a] font-bold text-xs md:text-sm mb-2 md:mb-3 text-center tracking-[0.25em] uppercase" style={{ fontFamily: "'Teko', sans-serif" }}>LEADERBOARD</h3>
-          {leaderboard.slice(0, 5).map((entry, i) => {
+      {/* Leaderboard top 3 on mobile, top 5 on desktop */}
+      <div className="w-[360px] max-w-[90vw] mb-2 md:mb-4 overflow-hidden bg-[#12150f] border border-[#c4a35a]/15 shrink-0">
+        <div className="p-2 md:p-4">
+          <h3 className="text-[#c4a35a] font-bold text-[10px] md:text-sm mb-1 md:mb-3 text-center tracking-[0.25em] uppercase" style={{ fontFamily: "'Teko', sans-serif" }}>LEADERBOARD</h3>
+          {leaderboard.slice(0, typeof window !== 'undefined' && window.innerWidth < 768 ? 3 : 5).map((entry, i) => {
             const rankColors = ['#d4a24e', '#c4a35a', '#8a7a4a', '#6b7b6a', '#555'];
             return (
               <div key={i} className="flex items-center justify-between text-[10px] md:text-xs font-mono py-1 md:py-1.5 px-1.5 md:px-2 mb-0.5 border-b border-[#c4a35a]/05">
@@ -81,9 +81,9 @@ export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem
         </div>
       </div>
 
-      {/* Welcome Pack Banner */}
+      {/* Welcome Pack Banner -- hidden on mobile landscape to prevent overflow */}
       {skinSystem.current && !skinSystem.current.purchases.welcomePurchased && (
-        <div className="w-[360px] max-w-[90vw] mb-4 overflow-hidden bg-[#12150f] border-2 border-[#d4a24e]/40"
+        <div className="hidden md:block w-[360px] max-w-[90vw] mb-4 overflow-hidden bg-[#12150f] border-2 border-[#d4a24e]/40"
           style={{
             clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))',
             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(212,162,78,0.04) 20px, rgba(212,162,78,0.04) 21px)',
@@ -110,17 +110,17 @@ export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-[90vw] max-w-[360px]">
+      <div className="flex flex-row gap-2 md:gap-3 w-[90vw] max-w-[360px] shrink-0 mb-auto md:mb-0">
         <button
           onClick={() => window.location.reload()}
-          className="flex-1 py-3 md:py-3.5 min-h-[48px] bg-[#d4a24e] text-black font-bold text-lg md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#c4a35a]"
+          className="flex-1 py-2 md:py-3.5 min-h-[44px] bg-[#d4a24e] text-black font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#c4a35a]"
           style={{ fontFamily: "'Teko', sans-serif" }}
         >
-          PLAY AGAIN
+          AGAIN
         </button>
         <button
           onClick={onShowShop}
-          className="px-6 py-3 md:py-3.5 min-h-[48px] bg-[#4a6741] text-white font-bold text-lg md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#5a7751]"
+          className="px-4 md:px-6 py-2 md:py-3.5 min-h-[44px] bg-[#4a6741] text-white font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#5a7751]"
           style={{ fontFamily: "'Teko', sans-serif" }}
         >
           SHOP
@@ -128,7 +128,7 @@ export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem
         {onShowArena && (
           <button
             onClick={onShowArena}
-            className="px-6 py-3 md:py-3.5 min-h-[48px] bg-[#c93a3a] text-white font-bold text-lg md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#b93030]"
+            className="px-4 md:px-6 py-2 md:py-3.5 min-h-[44px] bg-[#c93a3a] text-white font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#b93030]"
             style={{ fontFamily: "'Teko', sans-serif" }}
           >
             ARENA

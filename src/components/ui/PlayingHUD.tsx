@@ -53,9 +53,9 @@ export function PlayingHUD({
         </div>
       )}
 
-      {/* TIME / BIOME / WEATHER HUD */}
+      {/* TIME / BIOME / WEATHER HUD -- below minimap (mobile: minimap bottom ~110px, so top-[116px]) */}
       {gameState.phase === 'playing' && (
-        <div className="absolute top-[90px] md:top-40 left-2 px-1.5 py-0.5 md:px-2 md:py-1 text-[8px] md:text-[10px] font-mono space-y-0.5 border rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', borderColor: '#4a4535' }}>
+        <div className="absolute top-[116px] md:top-40 left-2 px-1.5 py-0.5 md:px-2 md:py-1 text-[8px] md:text-[10px] font-mono space-y-0.5 border rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', borderColor: '#4a4535' }}>
           <div style={{ color: '#c4a35a' }}>
             {(() => {
               const period = engineRef.current?.dayNightSystem.getTimePeriod() ?? 'noon';
@@ -127,10 +127,10 @@ export function PlayingHUD({
         <div className="absolute inset-0 pointer-events-none bg-red-500/20" />
       )}
 
-      {/* WP POPUP on kill */}
+      {/* WP POPUP on kill -- top-[35%] to avoid drowning at top-[40%] */}
       {wpPopup && gameState.phase === 'playing' && (
-        <div className="absolute top-[40%] left-1/2 -translate-x-1/2 pointer-events-none animate-bounce">
-          <span className="text-green-400 text-lg font-bold font-mono">{wpPopup}</span>
+        <div className="absolute top-[35%] left-1/2 -translate-x-1/2 pointer-events-none animate-bounce">
+          <span className="text-green-400 text-sm md:text-lg font-bold font-mono">{wpPopup}</span>
         </div>
       )}
 
@@ -188,13 +188,13 @@ export function PlayingHUD({
         </div>
       )}
 
-      {/* BOSS HP BAR */}
+      {/* BOSS HP BAR -- mobile: top-[48px] clears top HUD (~40px tall), PC: top-16 */}
       {gameState.phase === 'playing' && engineRef.current?.bossSystem.getActiveBosses().map(boss => (
-        <div key={boss.id} className="absolute top-14 md:top-16 left-1/2 -translate-x-1/2 w-44 md:w-64">
-          <div className="text-center text-xs font-bold font-mono mb-0.5 uppercase tracking-wider" style={{ color: '#c93a3a', fontFamily: "'Teko', sans-serif", fontSize: '14px' }}>
-            {boss.name} (Phase {boss.phase})
+        <div key={boss.id} className="absolute top-[48px] md:top-16 left-1/2 -translate-x-1/2 w-44 md:w-64">
+          <div className="text-center text-[10px] md:text-xs font-bold font-mono mb-0.5 uppercase tracking-wider" style={{ color: '#c93a3a', fontFamily: "'Teko', sans-serif", fontSize: '12px' }}>
+            {boss.name} (P{boss.phase})
           </div>
-          <div className="w-full h-3 border" style={{ background: '#1a1f16', borderColor: '#c93a3a' }}>
+          <div className="w-full h-2.5 md:h-3 border" style={{ background: '#1a1f16', borderColor: '#c93a3a' }}>
             <div className="h-full transition-all"
               style={{
                 width: `${(boss.health / boss.maxHealth) * 100}%`,
@@ -216,15 +216,15 @@ export function PlayingHUD({
         const names: Record<string, string> = { military: 'MILITARY BASE', temple: 'ANCIENT TEMPLE', gas_station: 'GAS STATION' };
         const poiColors: Record<string, string> = { military: '#c93a3a', temple: '#d4a24e', gas_station: '#c4a35a' };
         return (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider" style={{ color: poiColors[poi.type] ?? '#c4a35a', fontFamily: "'Teko', sans-serif", fontSize: '14px' }}>{names[poi.type]}</span>
+          <div className="absolute top-[76px] md:top-20 left-1/2 -translate-x-1/2">
+            <span className="text-[10px] md:text-xs font-mono font-bold uppercase tracking-wider" style={{ color: poiColors[poi.type] ?? '#c4a35a', fontFamily: "'Teko', sans-serif" }}>{names[poi.type]}</span>
           </div>
         );
       })()}
 
-      {/* KILL FEED */}
+      {/* KILL FEED -- mobile: top-[48px] to clear top HUD, right-1 narrower margin */}
       {killFeed.length > 0 && (
-        <div className="absolute top-14 right-2 flex flex-col gap-0.5 z-5">
+        <div className="absolute top-[48px] md:top-14 right-1 md:right-2 flex flex-col gap-0.5 z-5">
           {(() => {
             const myName = typeof localStorage !== 'undefined' ? localStorage.getItem('blitzpit_name') || 'You' : 'You';
             const feedSlice = isMobile ? killFeed.slice(-3) : killFeed;
@@ -244,11 +244,11 @@ export function PlayingHUD({
       )}
 
       {/* BOTTOM - HP + ARMOR
-          Mobile: centered at bottom-2 (above nothing, below weapon info at bottom-10)
+          Mobile: centered at bottom-1 (compact, below weapon info at bottom-8)
           PC: left-3 bottom-4
       */}
       {['playing', 'dead'].includes(gameState.phase) && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 md:bottom-4 md:left-3 md:translate-x-0 flex flex-col gap-1 z-10">
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 md:bottom-4 md:left-3 md:translate-x-0 flex flex-col gap-0.5 md:gap-1 z-10">
           <div className="flex items-center gap-1">
             <span className="text-[9px] md:text-[10px] font-bold w-4 md:w-5" style={{ color: '#c4a35a', fontFamily: "'Teko', sans-serif" }}>HP</span>
             <div className="w-20 md:w-48 h-2.5 md:h-3.5 overflow-hidden rounded-sm" style={{ background: 'rgba(26,31,22,0.8)', border: '1px solid #4a4535' }}>
@@ -275,8 +275,8 @@ export function PlayingHUD({
       */}
       {gameState.phase === 'playing' && (
         <>
-          {/* Mobile weapon info: 1 line, centered, above HP bar */}
-          <div className="md:hidden absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
+          {/* Mobile weapon info: 1 line, centered, above HP bar (HP ~30px tall at bottom-1 = ~34px, so weapon at bottom-[36px]) */}
+          <div className="md:hidden absolute bottom-[36px] left-1/2 -translate-x-1/2 z-10">
             <div className="flex items-center gap-1.5 px-2 py-0.5 text-[9px] font-mono rounded-sm" style={{ background: 'rgba(26,31,22,0.85)', border: '1px solid #4a4535' }}>
               <span className="font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
                 {weapon?.def.name ?? 'Empty'}
@@ -341,10 +341,10 @@ export function PlayingHUD({
         </div>
       )}
 
-      {/* DROWNING WARNING */}
+      {/* DROWNING WARNING -- top-[40%] to avoid overlap with kill banner at top-1/3 */}
       {(engineRef.current?.player.swimTimer ?? 0) > 10 && gameState.phase === 'playing' && (
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 px-4 py-2 animate-pulse" style={{ background: 'rgba(201,58,58,0.3)', border: '1px solid #c93a3a' }}>
-          <span className="text-sm font-bold uppercase tracking-wider" style={{ color: '#c93a3a', fontFamily: "'Teko', sans-serif" }}>DROWNING!</span>
+        <div className="absolute top-[40%] left-1/2 -translate-x-1/2 px-3 py-1 md:px-4 md:py-2 animate-pulse z-20" style={{ background: 'rgba(201,58,58,0.3)', border: '1px solid #c93a3a' }}>
+          <span className="text-xs md:text-sm font-bold uppercase tracking-wider" style={{ color: '#c93a3a', fontFamily: "'Teko', sans-serif" }}>DROWNING!</span>
         </div>
       )}
 
@@ -389,10 +389,10 @@ export function PlayingHUD({
         </div>
       )}
 
-      {/* KILL STREAK NOTIFICATION */}
+      {/* KILL STREAK NOTIFICATION -- top-[20%] to clear boss HP and avoid kill banner overlap */}
       {streakLabel && (
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 animate-bounce pointer-events-none">
-          <div className="text-2xl md:text-5xl font-black text-center tracking-[0.2em] uppercase" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", filter: 'drop-shadow(0 0 12px rgba(212,162,78,0.5))' }}>
+        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 animate-bounce pointer-events-none z-20">
+          <div className="text-xl md:text-5xl font-black text-center tracking-[0.2em] uppercase" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif", filter: 'drop-shadow(0 0 12px rgba(212,162,78,0.5))' }}>
             {streakLabel}
           </div>
         </div>

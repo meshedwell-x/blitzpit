@@ -423,13 +423,13 @@ export default function GameUI() {
         </div>
       )}
 
-      {/* SOUND TOGGLE */}
+      {/* SOUND TOGGLE -- hidden on mobile to avoid overlap with kill feed / top HUD */}
       <button
         onClick={() => {
           engineRef.current?.soundManager.toggleMute();
           setMuted(m => !m);
         }}
-        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-xs font-bold border hover:opacity-80 z-10"
+        className="hidden md:flex absolute top-2 right-2 w-8 h-8 items-center justify-center text-xs font-bold border hover:opacity-80 z-10"
         style={{ background: '#1a1f16', borderColor: '#4a4535', color: muted ? '#c93a3a' : '#d4a24e', fontFamily: "'Teko', sans-serif", letterSpacing: '0.05em' }}
       >
         {muted ? 'OFF' : 'SND'}

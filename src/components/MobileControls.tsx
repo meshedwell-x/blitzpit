@@ -68,7 +68,7 @@ export function MobileControls({ engine, nearbyItem, onToggleInventory }: { engi
   const safeLeft = 'max(1rem, calc(1rem + env(safe-area-inset-left)))';
   const safeRight = 'max(1rem, calc(1rem + env(safe-area-inset-right)))';
   const safeRightAim = 'max(5.5rem, calc(5.5rem + env(safe-area-inset-right)))';
-  const safeRightSecond = 'max(4.25rem, calc(4.25rem + env(safe-area-inset-right)))';
+  const safeRightSecond = 'max(5rem, calc(5rem + env(safe-area-inset-right)))';
 
   return (
     <>

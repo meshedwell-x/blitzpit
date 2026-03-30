@@ -11,15 +11,15 @@ export interface LobbyScreenProps {
 
 export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onShowShop, onShowArena }: LobbyScreenProps) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 overflow-y-auto py-2 md:py-0 z-20">
       <div className="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-2">
         FREE TO PLAY
       </div>
-      <h1 className="text-5xl md:text-7xl font-black mb-0 tracking-wider uppercase" style={{ fontFamily: "'Teko', sans-serif", color: '#e8e0d0', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+      <h1 className="text-4xl md:text-7xl font-black mb-0 tracking-wider uppercase" style={{ fontFamily: "'Teko', sans-serif", color: '#e8e0d0', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
         BLITZ<span style={{ color: '#c93a3a' }}>PIT</span>
       </h1>
-      <p className="text-xs md:text-sm mb-2 tracking-[0.3em] uppercase font-bold" style={{ fontFamily: "'Teko', sans-serif", color: '#8a7e6b' }}>INFINITE BATTLE ROYALE</p>
-      <div className="text-xs font-mono mb-4" style={{ color: '#6b6356' }}>
+      <p className="text-[10px] md:text-sm mb-1 md:mb-2 tracking-[0.3em] uppercase font-bold" style={{ fontFamily: "'Teko', sans-serif", color: '#8a7e6b' }}>INFINITE BATTLE ROYALE</p>
+      <div className="text-[10px] md:text-xs font-mono mb-2 md:mb-4" style={{ color: '#6b6356' }}>
         40 players waiting...
       </div>
 
@@ -101,7 +101,7 @@ export function LobbyScreen({ engineRef, skinSystem, bestLeaderboardEntry, onSho
         </div>
       )}
 
-      <div className="mt-5 text-[8px] md:text-[10px] font-mono space-y-0.5 text-center uppercase max-w-[90vw] md:max-w-none" style={{ color: '#4a4535' }}>
+      <div className="hidden md:block mt-5 text-[10px] font-mono space-y-0.5 text-center uppercase" style={{ color: '#4a4535' }}>
         <p>WASD Move | SHIFT Sprint | C Crouch | V Melee</p>
         <p>Click Shoot | RMB Aim | R Reload | F Pickup</p>
         <p>1/2 Weapons | T Grenade | E Vehicle | TAB Inv</p>
