@@ -202,7 +202,13 @@ export function MobileControls({ engine, nearbyItem, onToggleInventory }: { engi
           border: '1.5px solid rgba(196,163,90,0.5)',
           fontFamily: teko,
         }}
-        onTouchStart={() => {}}
+        onTouchStart={(e) => {
+          e.stopPropagation();
+          if (engine?.player) engine.player.isADS = true;
+        }}
+        onTouchEnd={() => {
+          if (engine?.player) engine.player.isADS = false;
+        }}
       >
         <span className="text-[12px] font-bold tracking-wider" style={{ color: '#c4a35a' }}>AIM</span>
       </button>

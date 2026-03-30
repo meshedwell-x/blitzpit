@@ -10,6 +10,14 @@ export function initCallbacks(engine: GameEngine): void {
     engine.soundManager.playHorn();
   };
 
+  engine.vehicleSystem.onEnterVehicle = () => {
+    engine.soundManager.playPickup();
+  };
+
+  engine.vehicleSystem.onExitVehicle = () => {
+    engine.soundManager.playPickup();
+  };
+
   engine.zoneSystem.onBotKill = (_botId: string) => {
     engine.botSystem.alive = Math.max(0, engine.botSystem.alive - 1);
   };

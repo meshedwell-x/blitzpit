@@ -29,6 +29,8 @@ export class VehicleSystem {
   private _onKeyUp: (e: KeyboardEvent) => void = () => {};
   private honkCooldown = 0;
   onHonk: (() => void) | null = null;
+  onEnterVehicle: (() => void) | null = null;
+  onExitVehicle: (() => void) | null = null;
 
   constructor(scene: THREE.Scene, world: WorldGenerator, player: PlayerController) {
     this.scene = scene;
@@ -114,6 +116,7 @@ export class VehicleSystem {
       this.player.state.position.copy(this.playerVehicle.position).add(exitOffset);
       this.player.mesh.visible = true;
       this.playerVehicle = null;
+      if (this.onExitVehicle) this.onExitVehicle();
       return;
     }
     for (const v of this.vehicles) {
@@ -124,6 +127,7 @@ export class VehicleSystem {
         v.occupantId = 'player';
         this.playerVehicle = v;
         this.player.mesh.visible = false;
+        if (this.onEnterVehicle) this.onEnterVehicle();
         break;
       }
     }

@@ -294,7 +294,8 @@ export class WeaponSystem {
       if (w.fireTimer > 0) w.fireTimer -= delta;
     }
 
-    if (this.isFiring && this.player.isPointerLocked()) this.fire();
+    const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (this.isFiring && (this.player.isPointerLocked() || isMobileDevice)) this.fire();
 
     // Delegate bullet updates to BulletSystem
     updateBullets(this.bullets, delta, this.scene, this.world);

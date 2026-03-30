@@ -245,6 +245,7 @@ export class GameEngine {
     // 3-second countdown before plane phase
     this.isCountingDown = true;
     this.countdownTimer = 3.0;
+    this.soundManager.playWaveStart();
     this.notifyStateChange();
   }
 

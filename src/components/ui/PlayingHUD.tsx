@@ -4,6 +4,15 @@ import { GameState } from '../../game/core/GameEngine';
 import { GameEngine } from '../../game/core/GameEngine';
 import { SkinSystem } from '../../game/shop/SkinSystem';
 
+const WEAPON_COLORS: Record<string, string> = {
+  pistol: '#c4a35a',
+  smg: '#4a9cd4',
+  rifle: '#4a6741',
+  sniper: '#8a5aac',
+  shotgun: '#c93a3a',
+  Melee: '#d4a24e',
+};
+
 export interface PlayingHUDProps {
   gameState: GameState;
   health: number;
@@ -243,7 +252,10 @@ export function PlayingHUD({
               return (
                 <div key={`${k.time}_${i}`} className="px-1.5 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-[11px] font-mono flex gap-1 md:gap-1.5 max-w-[45vw] md:max-w-none" style={{ background: isMyKill ? 'rgba(74,103,65,0.5)' : 'rgba(26,31,22,0.7)', borderLeft: isMyKill ? '2px solid #d4a24e' : '2px solid #4a4535' }}>
                   <span className="font-bold truncate" style={{ color: isMyKill ? '#d4a24e' : '#c4a35a' }}>{k.killer}</span>
-                  <span className="hidden md:inline" style={{ color: '#8a7e6b' }}>[{k.weapon}]</span>
+                  <span className="hidden md:inline flex items-center gap-0.5" style={{ color: '#8a7e6b' }}>
+                    <span className="inline-block w-2 h-2 rounded-full align-middle" style={{ backgroundColor: WEAPON_COLORS[k.weapon] || '#888888' }} />
+                    {k.weapon}
+                  </span>
                   <span className="font-bold truncate" style={{ color: isMyDeath ? '#c93a3a' : '#e8e0d0' }}>{k.victim}</span>
                 </div>
               );
