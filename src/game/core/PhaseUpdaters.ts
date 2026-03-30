@@ -7,6 +7,7 @@ import {
   REINFORCEMENT_MIN_ALIVE,
   REINFORCEMENT_MIN_COUNT,
   REINFORCEMENT_MAX_EXTRA,
+  WEAPONS,
 } from './constants';
 
 export function updatePlane(engine: GameEngine, delta: number): void {
@@ -145,6 +146,20 @@ export function updateDropping(engine: GameEngine, delta: number): void {
     engine.player.mesh.visible = true;
     if (engine.planeMesh) engine.planeMesh.visible = false;
     if (engine.playerDropMesh) engine.playerDropMesh.visible = false;
+
+    // Grant starter pistol if both weapon slots are empty (first landing only)
+    if (!engine.weaponSystem.weapons[0] && !engine.weaponSystem.weapons[1]) {
+      const pistolDef = WEAPONS['pistol'];
+      engine.weaponSystem.weapons[0] = {
+        def: pistolDef,
+        currentAmmo: pistolDef.magazineSize,
+        reserveAmmo: pistolDef.magazineSize,
+        isReloading: false,
+        reloadTimer: 0,
+        fireTimer: 0,
+      };
+    }
+
     engine.soundManager.playWaveStart();
     engine.notifyStateChange();
   }

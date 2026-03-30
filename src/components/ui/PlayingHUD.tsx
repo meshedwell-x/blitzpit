@@ -130,7 +130,7 @@ export function PlayingHUD({
       {/* WP POPUP on kill -- top-[35%] to avoid drowning at top-[40%] */}
       {wpPopup && gameState.phase === 'playing' && (
         <div className="absolute top-[35%] left-1/2 -translate-x-1/2 pointer-events-none animate-bounce">
-          <span className="text-green-400 text-sm md:text-lg font-bold font-mono">{wpPopup}</span>
+          <span className="text-green-400 text-sm md:text-lg font-bold font-mono">{wpPopup} | Kill #{gameState.kills}</span>
         </div>
       )}
 
@@ -140,6 +140,15 @@ export function PlayingHUD({
           <div className="text-white font-black opacity-80 animate-pulse uppercase tracking-widest" style={{ fontSize: 60, fontFamily: "'Teko', sans-serif" }}>
             WAVE {waveAnnounce}
           </div>
+        </div>
+      )}
+
+      {/* ZONE CLOSING SOON WARNING */}
+      {zoneInfo.timer < 10 && !zoneInfo.isShrinking && gameState.phase === 'playing' && (
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 animate-pulse z-20 pointer-events-none">
+          <span className="text-sm font-bold font-mono uppercase tracking-widest" style={{ color: '#c93a3a', textShadow: '0 0 8px rgba(201,58,58,0.8)' }}>
+            ZONE CLOSING IN {Math.ceil(zoneInfo.timer)}s
+          </span>
         </div>
       )}
 
@@ -350,8 +359,10 @@ export function PlayingHUD({
 
       {/* NEARBY PROMPTS */}
       {nearbyItem && gameState.phase === 'playing' && !isMobile && (
-        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 px-3 py-1.5 border rounded-sm" style={{ background: 'rgba(26,31,22,0.85)', borderColor: '#d4a24e' }}>
-          <span className="text-xs font-mono uppercase" style={{ color: '#d4a24e' }}>[F] {nearbyItem}</span>
+        <div className="absolute bottom-[45%] left-1/2 -translate-x-1/2 z-20 animate-bounce">
+          <div className="px-4 py-2 rounded-lg text-center border-2" style={{ background: 'rgba(212,162,78,0.92)', borderColor: '#d4a24e', boxShadow: '0 0 16px rgba(212,162,78,0.6)' }}>
+            <span className="text-base font-bold font-mono uppercase" style={{ color: '#1a1f16', fontFamily: "'Teko', sans-serif", fontSize: '18px' }}>[F] {nearbyItem}</span>
+          </div>
         </div>
       )}
       {nearbyVehicle && !inVehicle && gameState.phase === 'playing' && !isMobile && (
@@ -368,13 +379,18 @@ export function PlayingHUD({
             </div>
             <div className="text-[7px] md:text-[8px] font-mono uppercase tracking-wider" style={{ color: '#8a7e6b' }}>KM/H</div>
           </div>
-          <div className="w-10 md:w-16 h-1.5 md:h-2 overflow-hidden" style={{ background: '#4a4535' }}>
-            <div className="h-full transition-all"
-              style={{
-                width: `${engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0}%`,
-                backgroundColor: (engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0) < 20 ? '#c93a3a' : '#4a6741',
-              }}
-            />
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="w-10 md:w-16 h-1.5 md:h-2 overflow-hidden" style={{ background: '#4a4535' }}>
+              <div className="h-full transition-all"
+                style={{
+                  width: `${engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0}%`,
+                  backgroundColor: (engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 0) < 20 ? '#c93a3a' : '#4a6741',
+                }}
+              />
+            </div>
+            {(engineRef.current?.vehicleSystem.playerVehicle?.fuel ?? 100) < 20 && (
+              <span className="text-[9px] font-bold font-mono animate-pulse" style={{ color: '#c93a3a' }}>LOW FUEL</span>
+            )}
           </div>
           <span className="text-xs md:text-sm font-bold" style={{ color: '#d4a24e', fontFamily: "'Teko', sans-serif" }}>
             G{engineRef.current?.vehicleSystem.playerVehicle

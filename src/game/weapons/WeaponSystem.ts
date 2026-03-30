@@ -26,8 +26,10 @@ export class WeaponSystem {
   onBotFire: ((position: THREE.Vector3, direction: THREE.Vector3, weaponType: string) => void) | null = null;
   onPickup: ((position: THREE.Vector3, type: string) => void) | null = null;
   onMelee: ((position: THREE.Vector3) => void) | null = null;
+  onDryFire: (() => void) | null = null;
 
   private meleeCooldown = 0;
+  private dryFireCooldown = 0;
 
   private _onMouseDown: (e: MouseEvent) => void = () => {};
   private _onMouseUp: (e: MouseEvent) => void = () => {};
@@ -199,7 +201,22 @@ export class WeaponSystem {
   private fire(): void {
     if (this.player.state.isSwimming) return;
     const w = this.weapons[this.activeSlot];
-    if (!w || w.isReloading || w.currentAmmo <= 0) return;
+    if (!w) {
+      if (this.dryFireCooldown <= 0 && this.onDryFire) {
+        this.onDryFire();
+        this.dryFireCooldown = 0.3;
+      }
+      return;
+    }
+    if (w.isReloading) return;
+    if (w.currentAmmo <= 0) {
+      if (w.reserveAmmo > 0) this.reload();
+      else if (this.dryFireCooldown <= 0 && this.onDryFire) {
+        this.onDryFire();
+        this.dryFireCooldown = 0.3;
+      }
+      return;
+    }
     const fireInterval = 1 / w.def.fireRate;
     if (w.fireTimer > 0) return;
     w.fireTimer = fireInterval;
@@ -260,6 +277,7 @@ export class WeaponSystem {
 
   update(delta: number): void {
     if (this.meleeCooldown > 0) this.meleeCooldown -= delta;
+    if (this.dryFireCooldown > 0) this.dryFireCooldown -= delta;
 
     const w = this.weapons[this.activeSlot];
     if (w) {

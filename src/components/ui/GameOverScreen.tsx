@@ -112,7 +112,10 @@ export function GameOverScreen({ gameState, stats, rank, leaderboard, skinSystem
 
       <div className="flex flex-row gap-2 md:gap-3 w-[90vw] max-w-[360px] shrink-0 mb-auto md:mb-0">
         <button
-          onClick={() => window.location.reload()}
+          onClick={(e) => {
+            (e.currentTarget as HTMLButtonElement).textContent = 'LOADING...';
+            window.location.reload();
+          }}
           className="flex-1 py-2 md:py-3.5 min-h-[44px] bg-[#d4a24e] text-black font-bold text-sm md:text-xl active:scale-95 transition-all tracking-[0.2em] uppercase hover:bg-[#c4a35a]"
           style={{ fontFamily: "'Teko', sans-serif" }}
         >

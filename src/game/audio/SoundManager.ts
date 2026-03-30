@@ -135,6 +135,8 @@ export class SoundManager {
     setTimeout(() => this.playTone(110, 0.5, 'sawtooth', 0.2), 600);
   }
 
+  playDryFire(): void { this.playTone(2500, 0.02, 'square', 0.15); }
+
   playHeadshot(): void { this.playNoise(0.04, 0.4, 800); this.playTone(1400, 0.12, 'triangle', 0.3); }
 
   playFootstep(terrain: string): void {

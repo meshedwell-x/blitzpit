@@ -83,6 +83,10 @@ export function initCallbacks(engine: GameEngine): void {
     engine.playerHitFlashTimer = 0.1;
   };
 
+  engine.weaponSystem.onDryFire = () => {
+    engine.soundManager.playDryFire();
+  };
+
   engine.weaponSystem.onMelee = (pos) => {
     engine.soundManager.playDamageTaken();
     engine.player.addShake(0.15);
