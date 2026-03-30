@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SimplexNoise } from '../core/noise';
 import { WORLD_SIZE, WATER_LEVEL } from '../core/constants';
-import { generateHeightMap, buildTerrainMesh, addGroundPlane, addWater } from './TerrainGenerator';
+import { generateHeightMap, generateRiver, generateRoads, buildTerrainMesh, addGroundPlane, addWater } from './TerrainGenerator';
 import { Building, generateBuildings, buildBuildingMeshes } from './BuildingGenerator';
 import { ItemSpawn, POILocation, generateTrees, generateRocks, generateItemSpawns } from './VegetationGenerator';
 import { generatePOIs } from './POIGenerator';
@@ -27,6 +27,18 @@ export class WorldGenerator {
 
   generate(): void {
     generateHeightMap(this.noise, this.heightMap);
+    generateRiver(this.noise, this.heightMap);
+    // Village positions must match BuildingGenerator layout (6 villages at dist 150-250)
+    const rand = this.seededRandom(12345);
+    // Skip main city rand calls (same seed pattern as BuildingGenerator)
+    for (let i = 0; i < 60; i++) rand(); // burn through main city rand calls
+    const villages: Array<{ cx: number; cz: number }> = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 + rand() * 0.5;
+      const dist = 150 + rand() * 100;
+      villages.push({ cx: Math.cos(angle) * dist, cz: Math.sin(angle) * dist });
+    }
+    generateRoads(this.heightMap, villages);
     generateBuildings(this.buildings, this.seededRandom.bind(this));
     buildTerrainMesh(this.scene, this.heightMap);
     buildBuildingMeshes(this.scene, this.buildings, this.getHeightAt.bind(this));

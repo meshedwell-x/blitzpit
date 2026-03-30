@@ -10,6 +10,8 @@ export function generateHeightMap(
   noise: SimplexNoise,
   heightMap: Float32Array
 ): void {
+  const biomeSystem = new BiomeSystem();
+
   for (let x = 0; x < WORLD_SIZE; x++) {
     for (let z = 0; z < WORLD_SIZE; z++) {
       const nx = x / WORLD_SIZE;
@@ -18,15 +20,92 @@ export function generateHeightMap(
       let h = noise.fbm(nx * 3, nz * 3, 4, 2, 0.45);
       h = (h + 1) / 2;
 
-      // Island falloff
+      // Island falloff with coastal noise for irregular shoreline
       const dx = (x - WORLD_SIZE / 2) / (WORLD_SIZE / 2);
       const dz = (z - WORLD_SIZE / 2) / (WORLD_SIZE / 2);
       const dist = Math.sqrt(dx * dx + dz * dz);
-      const falloff = Math.max(0, 1 - dist * 1.1);
+      const coastNoise = noise.fbm(nx * 5, nz * 5, 2, 2, 0.5) * 0.15;
+      const falloff = Math.max(0, 1 - (dist * 1.1) + coastNoise);
       h *= falloff;
 
-      const height = Math.floor(h * 20) + WATER_LEVEL;
+      // Biome-based height scale
+      const worldX = x - WORLD_SIZE / 2;
+      const worldZ = z - WORLD_SIZE / 2;
+      const biome = biomeSystem.getBiome(worldX, worldZ);
+      let heightScale = 20;
+
+      if (biome === 'tundra') {
+        heightScale = 45;
+        h += noise.fbm(nx * 1.5, nz * 1.5, 3, 2.5, 0.6) * 0.3;
+      } else if (biome === 'desert') {
+        heightScale = 25;
+        h += Math.sin(nx * 8 * Math.PI) * Math.cos(nz * 6 * Math.PI) * 0.15;
+      } else if (biome === 'jungle') {
+        heightScale = 30;
+      } else {
+        // urban -- flat
+        heightScale = 15;
+      }
+
+      const height = Math.floor(h * heightScale) + WATER_LEVEL;
       heightMap[x + z * WORLD_SIZE] = height;
+    }
+  }
+}
+
+export function generateRiver(noise: SimplexNoise, heightMap: Float32Array): void {
+  const riverWidth = 8;
+
+  for (let x = 0; x < WORLD_SIZE; x++) {
+    const riverNoise = noise.noise2D(x * 0.01, 0.5) * 80;
+    const centerZ = WORLD_SIZE / 2 + riverNoise;
+
+    for (let dz = -riverWidth / 2; dz < riverWidth / 2; dz++) {
+      const iz = Math.floor(centerZ + dz);
+      if (iz < 0 || iz >= WORLD_SIZE) continue;
+      // Carve river -- set to below water level
+      heightMap[x + iz * WORLD_SIZE] = Math.min(
+        heightMap[x + iz * WORLD_SIZE],
+        WATER_LEVEL - 1
+      );
+    }
+  }
+}
+
+export function generateRoads(
+  heightMap: Float32Array,
+  villages: Array<{ cx: number; cz: number }>
+): void {
+  for (const village of villages) {
+    carveRoad(heightMap, 0, 0, village.cx, village.cz);
+  }
+}
+
+function carveRoad(
+  heightMap: Float32Array,
+  x1: number, z1: number,
+  x2: number, z2: number
+): void {
+  const dist = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
+  const steps = Math.ceil(dist);
+  const roadWidth = 3;
+
+  for (let i = 0; i < steps; i++) {
+    const t = i / steps;
+    const rx = x1 + (x2 - x1) * t;
+    const rz = z1 + (z2 - z1) * t;
+
+    for (let ddx = -roadWidth; ddx <= roadWidth; ddx++) {
+      for (let ddz = -roadWidth; ddz <= roadWidth; ddz++) {
+        const ix = Math.floor(rx + WORLD_SIZE / 2 + ddx);
+        const iz = Math.floor(rz + WORLD_SIZE / 2 + ddz);
+        if (ix >= 0 && ix < WORLD_SIZE && iz >= 0 && iz < WORLD_SIZE) {
+          const currentH = heightMap[ix + iz * WORLD_SIZE];
+          if (currentH > WATER_LEVEL + 1) {
+            heightMap[ix + iz * WORLD_SIZE] = Math.max(WATER_LEVEL + 2, currentH - 3);
+          }
+        }
+      }
     }
   }
 }

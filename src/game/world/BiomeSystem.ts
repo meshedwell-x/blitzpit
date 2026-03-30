@@ -29,9 +29,9 @@ export class BiomeSystem {
 
   getBiomeColor(biome: BiomeType): number {
     switch (biome) {
-      case 'jungle': return 0x2d5a1e;
-      case 'desert': return 0xd4a060;
-      case 'tundra': return 0xe8e8f0;
+      case 'jungle': return 0x1a4a12;
+      case 'desert': return 0xe8c878;
+      case 'tundra': return 0xf0f0f5;
       case 'urban': return 0x5ba34d;
     }
   }
