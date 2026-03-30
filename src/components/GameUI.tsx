@@ -99,18 +99,29 @@ export default function GameUI() {
     const mobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     setIsMobile(mobile);
 
+    // Mobile: request fullscreen on first interaction to hide URL bar
     if (mobile) {
-      // Attempt native landscape lock
-      try {
-        const orientation = screen.orientation as ScreenOrientation & {
-          lock?: (orientation: string) => Promise<void>;
-        };
-        if (orientation?.lock) {
-          orientation.lock('landscape').catch(() => {});
+      const requestFullscreen = () => {
+        const el = document.documentElement;
+        const rfs = el.requestFullscreen || (el as any).webkitRequestFullscreen || (el as any).msRequestFullscreen;
+        if (rfs) {
+          rfs.call(el).then(() => {
+            // Try landscape lock after fullscreen
+            try {
+              const orientation = screen.orientation as ScreenOrientation & {
+                lock?: (o: string) => Promise<void>;
+              };
+              if (orientation?.lock) {
+                orientation.lock('landscape').catch(() => {});
+              }
+            } catch {}
+          }).catch(() => {});
         }
-      } catch {
-        // lock not supported, fall back to CSS/overlay
-      }
+        document.removeEventListener('touchstart', requestFullscreen);
+        document.removeEventListener('click', requestFullscreen);
+      };
+      document.addEventListener('touchstart', requestFullscreen, { once: true });
+      document.addEventListener('click', requestFullscreen, { once: true });
     }
 
     const checkOrientation = () => {
@@ -399,16 +410,30 @@ export default function GameUI() {
   void uiTick;
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black select-none touch-none">
-      {/* PORTRAIT MODE BLOCKER -- mobile only, shows rotate prompt */}
+    <div className="relative w-full overflow-hidden bg-black select-none touch-none" style={{ height: '100dvh' }}>
+      {/* PORTRAIT MODE -- tap to go fullscreen + landscape */}
       {isPortrait && (
-        <div className="fixed inset-0 bg-gray-900 z-[200] flex flex-col items-center justify-center">
-          <div className="text-white font-black mb-2" style={{ fontSize: '2rem', fontFamily: "'Teko', sans-serif", letterSpacing: '0.1em' }}>
-            BLITZ<span style={{ color: '#c93a3a' }}>PIT</span>
+        <div className="fixed inset-0 bg-gray-900 z-[200] flex flex-col items-center justify-center"
+          onClick={() => {
+            const el = document.documentElement;
+            const rfs = el.requestFullscreen || (el as any).webkitRequestFullscreen;
+            if (rfs) {
+              rfs.call(el).then(() => {
+                try {
+                  const o = screen.orientation as any;
+                  if (o?.lock) o.lock('landscape').catch(() => {});
+                } catch {}
+              }).catch(() => {});
+            }
+          }}>
+          <div className="text-white font-black mb-2 text-3xl tracking-tight">
+            BLITZ<span className="text-red-500">PIT</span>
           </div>
-          <div className="text-gray-400 text-sm mb-6">Rotate your device to play</div>
-          <div className="text-6xl animate-pulse" style={{ color: '#d4a24e' }}>&#x21BB;</div>
-          <div className="text-gray-500 text-xs mt-4 font-mono tracking-widest">LANDSCAPE MODE REQUIRED</div>
+          <div className="text-gray-400 text-sm mb-4">Tap to enter fullscreen</div>
+          <div className="w-16 h-16 border-2 border-gray-500 rounded-lg flex items-center justify-center mb-4 animate-pulse">
+            <div className="text-white text-2xl">TAP</div>
+          </div>
+          <div className="text-gray-500 text-xs font-mono">Best experience in landscape mode</div>
         </div>
       )}
       <div ref={containerRef} className="w-full h-full" />
