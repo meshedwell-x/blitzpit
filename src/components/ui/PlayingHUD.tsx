@@ -23,6 +23,10 @@ export interface PlayingHUDProps {
   flashAlpha: number;
   killBanner: string | null;
   hitMarkerActive: boolean;
+  hitMarkerIsKill: boolean;
+  playerHitFlash: boolean;
+  wpPopup: string | null;
+  waveAnnounce: number | null;
   streakLabel: string | null;
   killFlashActive: boolean;
   waveFlashActive: boolean;
@@ -35,7 +39,8 @@ export function PlayingHUD({
   gameState, health, armor, weapon, weapons, activeSlot,
   zoneInfo, killFeed, grenadeType, grenadeCount, inVehicle,
   nearbyItem, nearbyVehicle, isMobile, damageDirection, flashAlpha,
-  killBanner, hitMarkerActive, streakLabel, killFlashActive, waveFlashActive,
+  killBanner, hitMarkerActive, hitMarkerIsKill, playerHitFlash,
+  wpPopup, waveAnnounce, streakLabel, killFlashActive, waveFlashActive,
   engineRef, skinSystem, fmt,
 }: PlayingHUDProps) {
   return (
@@ -106,10 +111,35 @@ export function PlayingHUD({
         );
       })()}
 
-      {/* HIT MARKER (X) on kill */}
+      {/* HIT MARKER: X on kill, + on regular hit */}
       {hitMarkerActive && gameState.phase === 'playing' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-red-500 font-black" style={{ fontSize: 28, lineHeight: 1, textShadow: '0 0 6px rgba(255,0,0,0.8)' }}>X</div>
+          {hitMarkerIsKill ? (
+            <div className="text-red-500 font-black" style={{ fontSize: 28, lineHeight: 1, textShadow: '0 0 6px rgba(255,0,0,0.8)' }}>X</div>
+          ) : (
+            <div className="text-white font-bold opacity-80" style={{ fontSize: 20, lineHeight: 1 }}>+</div>
+          )}
+        </div>
+      )}
+
+      {/* PLAYER HIT RED FLASH */}
+      {playerHitFlash && (
+        <div className="absolute inset-0 pointer-events-none bg-red-500/20" />
+      )}
+
+      {/* WP POPUP on kill */}
+      {wpPopup && gameState.phase === 'playing' && (
+        <div className="absolute top-[40%] left-1/2 -translate-x-1/2 pointer-events-none animate-bounce">
+          <span className="text-green-400 text-lg font-bold font-mono">{wpPopup}</span>
+        </div>
+      )}
+
+      {/* WAVE ANNOUNCE */}
+      {waveAnnounce !== null && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+          <div className="text-white font-black opacity-80 animate-pulse uppercase tracking-widest" style={{ fontSize: 60, fontFamily: "'Teko', sans-serif" }}>
+            WAVE {waveAnnounce}
+          </div>
         </div>
       )}
 
@@ -327,6 +357,11 @@ export function PlayingHUD({
               ? engineRef.current.vehicleSystem.getGear(engineRef.current.vehicleSystem.playerVehicle)
               : 0}
           </span>
+          {engineRef.current?.vehicleSystem.playerVehicle?.type === 'helicopter' && (
+            <span className="text-cyan-400 text-xs font-mono">
+              ALT {Math.round(engineRef.current.vehicleSystem.playerVehicle.position.y)}m
+            </span>
+          )}
         </div>
       )}
 

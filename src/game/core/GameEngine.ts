@@ -80,6 +80,18 @@ export class GameEngine {
   botFootstepTimer = 0;
   killStreakTimer = 0;
 
+  // Hit marker: shown on any bot hit (not just kill)
+  hitMarkerActive = false;
+  hitMarkerTimer = 0;
+
+  // Player hit flash (red overlay)
+  playerHitFlash = false;
+  playerHitFlashTimer = 0;
+
+  // Countdown before plane phase
+  isCountingDown = false;
+  countdownTimer = 0;
+
   reinforcementTimer = REINFORCEMENT_FIRST_DELAY;
   reinforcementInterval = REINFORCEMENT_INTERVAL;
 
@@ -207,6 +219,7 @@ export class GameEngine {
 
     this.botSystem.setWaveManager(this.waveManager);
     this.botSystem.setVehicles(this.vehicleSystem.vehicles);
+    this.botSystem.setGrenadeSystem(this.grenadeSystem);
 
     // Mobile: zone shrinks 2x faster so the effective play area collapses
     // quicker, compensating for the wide map on small screens.
@@ -229,6 +242,13 @@ export class GameEngine {
   }
 
   startGame(): void {
+    // 3-second countdown before plane phase
+    this.isCountingDown = true;
+    this.countdownTimer = 3.0;
+    this.notifyStateChange();
+  }
+
+  private actuallyStartGame(): void {
     this.gameState.phase = 'plane';
     const angle = Math.random() * Math.PI * 2;
     const edge = WORLD_SIZE / 2 * 0.8;
@@ -279,6 +299,29 @@ export class GameEngine {
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.gameState.gameTime += delta;
     if (this.flashTimer > 0) this.flashTimer -= delta;
+
+    // Hit marker timer
+    if (this.hitMarkerTimer > 0) {
+      this.hitMarkerTimer -= delta;
+      if (this.hitMarkerTimer <= 0) this.hitMarkerActive = false;
+    }
+
+    // Player hit flash timer
+    if (this.playerHitFlashTimer > 0) {
+      this.playerHitFlashTimer -= delta;
+      if (this.playerHitFlashTimer <= 0) this.playerHitFlash = false;
+    }
+
+    // Countdown phase
+    if (this.isCountingDown) {
+      this.countdownTimer -= delta;
+      if (this.countdownTimer <= 0) {
+        this.isCountingDown = false;
+        this.actuallyStartGame();
+      }
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
 
     switch (this.gameState.phase) {
       case 'lobby': {

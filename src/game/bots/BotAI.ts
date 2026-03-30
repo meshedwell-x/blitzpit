@@ -4,6 +4,7 @@ import { Bot } from './BotTypes';
 import { WorldGenerator } from '../world/WorldGenerator';
 import { WeaponSystem } from '../weapons/WeaponSystem';
 import { PlayerController } from '../player/PlayerController';
+import { GrenadeSystem } from '../weapons/GrenadeSystem';
 
 export interface BotAIContext {
   player: PlayerController;
@@ -12,6 +13,7 @@ export interface BotAIContext {
   scene: THREE.Scene;
   bots: Bot[];
   weatherDetectionMultiplier: number;
+  grenadeSystem: GrenadeSystem | null;
 }
 
 // Module-level temp vectors to reduce GC pressure
@@ -20,6 +22,7 @@ const _tmpFireDir = new THREE.Vector3();
 const _tmpStrafeDir = new THREE.Vector3();
 const _tmpFirePos = new THREE.Vector3();
 const _tmpVec1 = new THREE.Vector3();
+const _tmpGrenadeDir = new THREE.Vector3();
 
 export function updateLanding(bot: Bot, delta: number, ctx: BotAIContext): void {
   const groundH = ctx.world.getEffectiveHeightAt(bot.position.x, bot.position.z);
@@ -55,7 +58,8 @@ export function updateRoaming(bot: Bot, delta: number, ctx: BotAIContext): void 
         // Scavenger keeps roaming instead of engaging
       } else {
         bot.state = 'fighting';
-        bot.stateTimer = 3 + Math.random() * 5;
+        // Reaction delay: skill 1.0 = 0.5s, skill 0.0 = 1.5s
+        bot.stateTimer = 0.5 + (1 - bot.skill) * 1.0;
         return;
       }
     }
@@ -298,6 +302,21 @@ export function updateFighting(bot: Bot, delta: number, ctx: BotAIContext): void
     );
 
     bot.fireTimer = 1 / weapon.fireRate * (1 + (1 - bot.skill) * 0.5);
+  }
+
+  // Elite/Boss bots throw grenades at player when in mid-range (0.5% per frame)
+  if (
+    ctx.grenadeSystem &&
+    (bot.level === 'elite' || bot.level === 'boss') &&
+    targetDist < 15 &&
+    targetDist > 5 &&
+    bot.fireTimer <= 0 &&
+    Math.random() < 0.005
+  ) {
+    const grenadeDir = _tmpGrenadeDir
+      .subVectors(targetPos, bot.position)
+      .normalize();
+    ctx.grenadeSystem.throwBotGrenade(bot.position.clone(), grenadeDir);
   }
 
   // Personality-based flee HP threshold

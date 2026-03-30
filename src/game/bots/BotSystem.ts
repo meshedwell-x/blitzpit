@@ -9,6 +9,7 @@ import { BotMeshFactory } from '../rendering/BotMeshFactory';
 // Re-export Bot so downstream imports don't break
 export type { Bot } from './BotTypes';
 import { type Bot, BOT_NAMES, randomPersonality, skillToLevel } from './BotTypes';
+import { GrenadeSystem } from '../weapons/GrenadeSystem';
 import { BotAIContext, updateLanding, updateRoaming, updateLooting, updateFighting, updateFleeing, updateWalkAnimation, updateBotDriving } from './BotAI';
 import { checkBulletHits as combatCheckBulletHits, damageBotDirect, BotCombatCallbacks } from './BotCombat';
 
@@ -24,6 +25,7 @@ export class BotSystem {
   killFeed: { killer: string; victim: string; weapon: string; time: number }[] = [];
 
   weatherDetectionMultiplier = 1.0;
+  private grenadeSystem: GrenadeSystem | null = null;
 
   onBotHit: ((position: THREE.Vector3, isHeadshot: boolean, damage: number) => void) | null = null;
   onBotDeath: ((position: THREE.Vector3) => void) | null = null;
@@ -49,6 +51,10 @@ export class BotSystem {
     this.vehicles = vehicles;
   }
 
+  setGrenadeSystem(gs: GrenadeSystem): void {
+    this.grenadeSystem = gs;
+  }
+
   private getAIContext(): BotAIContext {
     return {
       player: this.player,
@@ -57,6 +63,7 @@ export class BotSystem {
       scene: this.scene,
       bots: this.bots,
       weatherDetectionMultiplier: this.weatherDetectionMultiplier,
+      grenadeSystem: this.grenadeSystem,
     };
   }
 

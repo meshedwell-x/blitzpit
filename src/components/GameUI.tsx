@@ -65,9 +65,22 @@ export default function GameUI() {
   const lastKillsRef = useRef(0);
   const lastPhaseRef = useRef<GameState['phase']>('lobby');
 
-  // Hit marker (X) on kill
+  // Hit marker: X on kill, + on regular hit
   const [hitMarkerActive, setHitMarkerActive] = useState(false);
+  const [hitMarkerIsKill, setHitMarkerIsKill] = useState(false);
   const hitMarkerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Player hit red flash
+  const [playerHitFlash, setPlayerHitFlash] = useState(false);
+  const playerHitFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // WP popup on kill
+  const [wpPopup, setWpPopup] = useState<string | null>(null);
+  const wpPopupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Wave announce text
+  const [waveAnnounce, setWaveAnnounce] = useState<number | null>(null);
+  const waveAnnounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Kill banner "Eliminated {name}"
   const [killBanner, setKillBanner] = useState<string | null>(null);
@@ -171,10 +184,13 @@ export default function GameUI() {
       setGameState({ ...s });
       gameDataRef.current.gameState = { ...s };
 
-      // Wave start flash
+      // Wave start flash + wave announce
       if (s.phase === 'playing' && lastPhaseRef.current === 'wave_transition') {
         setWaveFlashActive(true);
         setTimeout(() => setWaveFlashActive(false), 400);
+        setWaveAnnounce(s.currentWave);
+        if (waveAnnounceTimerRef.current) clearTimeout(waveAnnounceTimerRef.current);
+        waveAnnounceTimerRef.current = setTimeout(() => setWaveAnnounce(null), 2000);
       }
 
       // Dead phase: clear transient UI + submit arena scores
@@ -240,16 +256,40 @@ export default function GameUI() {
         d.flashAlpha = Math.max(0, engine.flashTimer);
         d.gameState = { ...engine.gameState };
 
-        // Kill flash + hit marker + banner detection
+        // Player hit flash from engine
+        if (engine.playerHitFlash) {
+          setPlayerHitFlash(true);
+          if (playerHitFlashTimerRef.current) clearTimeout(playerHitFlashTimerRef.current);
+          playerHitFlashTimerRef.current = setTimeout(() => setPlayerHitFlash(false), 150);
+        }
+
+        // Regular hit marker from engine (non-kill hits)
+        if (engine.hitMarkerActive) {
+          const isKillNow = engine.player.state.kills > lastKillsRef.current;
+          if (!isKillNow) {
+            setHitMarkerIsKill(false);
+            setHitMarkerActive(true);
+            if (hitMarkerTimerRef.current) clearTimeout(hitMarkerTimerRef.current);
+            hitMarkerTimerRef.current = setTimeout(() => setHitMarkerActive(false), 200);
+          }
+        }
+
+        // Kill flash + hit marker (X) + banner detection
         const newKills = engine.player.state.kills;
         if (newKills > lastKillsRef.current) {
           setKillFlashActive(true);
           setTimeout(() => setKillFlashActive(false), 100);
 
-          // Hit marker (X) for 0.3s
+          // Kill hit marker (X) for 0.3s -- overrides regular +
           if (hitMarkerTimerRef.current) clearTimeout(hitMarkerTimerRef.current);
+          setHitMarkerIsKill(true);
           setHitMarkerActive(true);
           hitMarkerTimerRef.current = setTimeout(() => setHitMarkerActive(false), 300);
+
+          // WP popup
+          if (wpPopupTimerRef.current) clearTimeout(wpPopupTimerRef.current);
+          setWpPopup('+10 WP');
+          wpPopupTimerRef.current = setTimeout(() => setWpPopup(null), 1500);
 
           // Kill banner: find recently killed bot name from kill feed
           const feed = engine.botSystem.killFeed;
@@ -327,6 +367,9 @@ export default function GameUI() {
       if (streakTimerRef.current) clearTimeout(streakTimerRef.current);
       if (hitMarkerTimerRef.current) clearTimeout(hitMarkerTimerRef.current);
       if (killBannerTimerRef.current) clearTimeout(killBannerTimerRef.current);
+      if (playerHitFlashTimerRef.current) clearTimeout(playerHitFlashTimerRef.current);
+      if (wpPopupTimerRef.current) clearTimeout(wpPopupTimerRef.current);
+      if (waveAnnounceTimerRef.current) clearTimeout(waveAnnounceTimerRef.current);
       engine.destroy();
     };
   }, []);
@@ -401,6 +444,10 @@ export default function GameUI() {
         flashAlpha={flashAlpha}
         killBanner={killBanner}
         hitMarkerActive={hitMarkerActive}
+        hitMarkerIsKill={hitMarkerIsKill}
+        playerHitFlash={playerHitFlash}
+        wpPopup={wpPopup}
+        waveAnnounce={waveAnnounce}
         streakLabel={streakLabel}
         killFlashActive={killFlashActive}
         waveFlashActive={waveFlashActive}
@@ -430,6 +477,15 @@ export default function GameUI() {
       {/* ESC PAUSE OVERLAY */}
       {engineRef.current?.isPaused && gameState.phase === 'playing' && (
         <PauseOverlay engineRef={engineRef} containerRef={containerRef} onShowShop={() => setShowShop(true)} />
+      )}
+
+      {/* COUNTDOWN OVERLAY */}
+      {engineRef.current?.isCountingDown && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-50 pointer-events-none">
+          <div className="text-white font-black animate-ping" style={{ fontSize: 96, fontFamily: "'Teko', sans-serif", lineHeight: 1 }}>
+            {Math.ceil(engineRef.current.countdownTimer)}
+          </div>
+        </div>
       )}
 
       {/* LOBBY */}

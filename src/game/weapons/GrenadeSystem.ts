@@ -237,6 +237,31 @@ export class GrenadeSystem {
     }
   }
 
+  throwBotGrenade(position: THREE.Vector3, direction: THREE.Vector3): void {
+    const def = GRENADES['frag'];
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 8, 8),
+      new THREE.MeshLambertMaterial({ color: def.color })
+    );
+    const startPos = position.clone();
+    startPos.y += 1.5;
+    mesh.position.copy(startPos);
+    this.scene.add(mesh);
+
+    const throwSpeed = 18;
+    const velocity = direction.clone().multiplyScalar(throwSpeed);
+    velocity.y += 7;
+
+    this.grenades.push({
+      position: startPos.clone(),
+      velocity,
+      def,
+      timer: def.fuseTime,
+      mesh,
+      exploded: false,
+    });
+  }
+
   addGrenade(type: string, count: number = 1): void {
     if (GRENADES[type]) {
       this.inventory[type] = (this.inventory[type] || 0) + count;

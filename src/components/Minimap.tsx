@@ -99,12 +99,15 @@ export function Minimap({ engine }: { engine: GameEngine | null }) {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Vehicles (olive squares)
+      // Vehicles (colored squares by occupant)
       for (const v of engine.vehicleSystem.vehicles) {
         if (v.health <= 0) continue;
         const vx = v.position.x * scale + ox;
         const vz = v.position.z * scale + oz;
-        ctx.fillStyle = v.isOccupied ? '#5588ff' : '#3366bb';
+        // Bot-occupied = red, player-occupied = green, empty = blue
+        ctx.fillStyle =
+          v.isOccupied && v.occupantId !== 'player' ? '#ff4444' :
+          v.isOccupied ? '#44ff44' : '#2266aa';
         ctx.fillRect(vx - 3, vz - 3, 6, 6);
       }
 

@@ -64,6 +64,9 @@ export function initCallbacks(engine: GameEngine): void {
     engine.particleSystem.emitBlood(pos);
     if (isHeadshot) engine.soundManager.playHeadshot();
     engine.player.addShake(0.1);
+    // Show hit marker on any bot hit
+    engine.hitMarkerActive = true;
+    engine.hitMarkerTimer = 0.15;
   };
 
   engine.botSystem.onBotDeath = (pos) => {
@@ -75,6 +78,9 @@ export function initCallbacks(engine: GameEngine): void {
     engine.player.addShake(0.2);
     engine.lastDamageFrom = fromPos.clone();
     engine.lastDamageTime = Date.now();
+    // Red screen flash on player hit
+    engine.playerHitFlash = true;
+    engine.playerHitFlashTimer = 0.1;
   };
 
   engine.weaponSystem.onMelee = (pos) => {
