@@ -1,4 +1,4 @@
-export const WORLD_SIZE = 3200;
+export const WORLD_SIZE = 600;
 export const CHUNK_SIZE = 16;
 export const BLOCK_SIZE = 1;
 export const MAX_HEIGHT = 64;
