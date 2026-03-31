@@ -1,7 +1,38 @@
 import * as THREE from 'three';
+import { assetManager } from './AssetManager';
 
 export class BotMeshFactory {
+  private static botModels = [
+    '/assets/characters/bot1.glb',
+    '/assets/characters/bot2.glb',
+    '/assets/characters/bot3.glb',
+    '/assets/characters/bot4.glb',
+    '/assets/characters/bot5.glb',
+  ];
+
   static create(skill: number): THREE.Group {
+    // GLB 모델이 로드되어있으면 사용
+    const modelIdx = Math.floor(Math.random() * BotMeshFactory.botModels.length);
+    const model = assetManager.getClone(BotMeshFactory.botModels[modelIdx]);
+
+    if (model) {
+      model.scale.setScalar(0.8);
+      // 스킬에 따라 색상 틴트
+      const hue = skill * 0.3;
+      model.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+          child.material = child.material.clone();
+          child.material.color.setHSL(hue, 0.7, 0.5);
+        }
+      });
+      return model;
+    }
+
+    // 폴백: 기존 BoxGeometry 복셀
+    return BotMeshFactory.createFallback(skill);
+  }
+
+  static createFallback(skill: number): THREE.Group {
     const group = new THREE.Group();
     const bodyColor = new THREE.Color().setHSL(0.0 + skill * 0.3, 0.7, 0.5);
     const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor });
@@ -46,9 +77,8 @@ export class BotMeshFactory {
     mesh.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose();
-        if (child.material instanceof THREE.Material) {
-          child.material.dispose();
-        }
+        if (child.material instanceof THREE.Material) child.material.dispose();
+        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
       }
     });
   }

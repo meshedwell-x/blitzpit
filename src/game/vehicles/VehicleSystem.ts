@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { WorldGenerator } from '../world/WorldGenerator';
 import { PlayerController } from '../player/PlayerController';
-import { createVehicleMesh } from './VehicleMesh';
+import { createVehicleMesh, createVehicleMeshFromGlb } from './VehicleMesh';
 
 export interface Vehicle {
   id: string;
@@ -69,7 +69,7 @@ export class VehicleSystem {
       const h = this.world.getHeightAt(x, z);
       if (h <= 5) continue;
       const type = types[Math.floor(rand() * types.length)];
-      const mesh = createVehicleMesh(type);
+      const mesh = createVehicleMeshFromGlb(type) || createVehicleMesh(type);
       mesh.position.set(x, h + 1.2, z);
       mesh.rotation.y = rand() * Math.PI * 2;
       this.scene.add(mesh);

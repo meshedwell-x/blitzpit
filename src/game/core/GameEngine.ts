@@ -17,6 +17,7 @@ import { BiomeSystem } from '../world/BiomeSystem';
 import { AnimalSystem } from '../world/AnimalSystem';
 import { SkinSystem } from '../shop/SkinSystem';
 import { initCallbacks } from './GameInit';
+import { assetManager } from '../rendering/AssetManager';
 import {
   WORLD_SIZE,
   REINFORCEMENT_FIRST_DELAY,
@@ -182,6 +183,20 @@ export class GameEngine {
   }
 
   async init(): Promise<void> {
+    // 에셋 프리로드 (병렬, 실패해도 게임 진행)
+    await Promise.allSettled([
+      assetManager.load('/assets/characters/player.glb'),
+      assetManager.load('/assets/characters/bot1.glb'),
+      assetManager.load('/assets/characters/bot2.glb'),
+      assetManager.load('/assets/characters/bot3.glb'),
+      assetManager.load('/assets/characters/bot4.glb'),
+      assetManager.load('/assets/characters/bot5.glb'),
+      assetManager.load('/assets/vehicles/jeep.glb'),
+      assetManager.load('/assets/vehicles/buggy.glb'),
+      assetManager.load('/assets/vehicles/truck.glb'),
+      assetManager.load('/assets/vehicles/sedan.glb'),
+    ]);
+
     this.world.generate();
     this.weaponSystem.spawnItems(this.world.itemSpawns);
     this.player.init(this.container);
@@ -191,6 +206,16 @@ export class GameEngine {
     this.vehicleSystem.init();
     this.vehicleSystem.spawnVehicles(20);
     this.animalSystem.spawn();
+
+    // 플레이어 GLB 메시 교체 (폴백: 기존 복셀 유지)
+    const playerGlb = assetManager.getClone('/assets/characters/player.glb');
+    if (playerGlb) {
+      playerGlb.scale.setScalar(0.8);
+      const oldMesh = this.player.mesh;
+      this.scene.remove(oldMesh);
+      this.player.mesh = playerGlb;
+      this.scene.add(playerGlb);
+    }
 
     this.planeMesh = this.createPlaneMesh();
     this.planeMesh.visible = false;

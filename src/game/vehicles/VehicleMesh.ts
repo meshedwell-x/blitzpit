@@ -1,5 +1,22 @@
 import * as THREE from 'three';
 import type { Vehicle } from './VehicleSystem';
+import { assetManager } from '../rendering/AssetManager';
+
+const vehicleGlbPaths: Record<string, string> = {
+  jeep: '/assets/vehicles/jeep.glb',
+  buggy: '/assets/vehicles/buggy.glb',
+  truck: '/assets/vehicles/truck.glb',
+  sedan: '/assets/vehicles/sedan.glb',
+};
+
+export function createVehicleMeshFromGlb(type: Vehicle['type']): THREE.Group | null {
+  const path = vehicleGlbPaths[type];
+  if (!path) return null;
+  const model = assetManager.getClone(path);
+  if (!model) return null;
+  model.scale.setScalar(1.2);
+  return model;
+}
 
 export function createHelicopterMesh(): THREE.Group {
   const group = new THREE.Group();
